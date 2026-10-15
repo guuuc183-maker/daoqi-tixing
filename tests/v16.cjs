@@ -27,7 +27,7 @@ const {chromium}=require('playwright-core');const B='http://localhost:8765/daoqi
   // U2 RCA + 计数一致
   await q.goto(B+'#/');await q.waitForTimeout(300);const N=+await q.textContent('#todayN'),X=+await q.textContent('#todayX'),Y=+await q.textContent('#todayS');
   await q.goto(B+'#/todo');await q.waitForTimeout(300);const rows=await q.$$eval('.card.todo:not(.later) .todo-row',e=>e.map(r=>r.querySelector('b').textContent));
-  t(rows.includes('RCA 交强险'),'U2 RCA 在待办');t(N===rows.length&&X+Y===N,`U2 首页 ${N}=待办 ${rows.length}，${X}+${Y}`);
+  t(rows.includes('RCA 车辆强制险'),'U2 RCA 在待办');t(N===rows.length&&X+Y===N,`U2 首页 ${N}=待办 ${rows.length}，${X}+${Y}`);
   // 明天再说不计入今天
   await q.click('.todo-row:has([data-a=more]) [data-a=more]');await q.click('[data-s=snooze]');await q.waitForTimeout(300);await q.goto(B+'#/');await q.waitForTimeout(300);t(+await q.textContent('#todayN')===N-1,'PM3 明天再说不算今天要办');
   // 按钮文案

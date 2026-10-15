@@ -32,7 +32,7 @@ const CJK=/[\u3000-\u303f\u4e00-\u9fff\uff00-\uffef]/;
   await q.goto(B+'#/new');await q.waitForTimeout(300);for(const [w,k] of [['lapte','food'],['pașaport','doc'],['detergent','daily']]){await q.fill('[name=name]',w);await q.press('[name=name]','Tab');await q.waitForTimeout(150);t(await q.inputValue('[name=cat]')===k,'L5 ro 推断 '+w);}
   t(await q.$eval('.cat-field',e=>getComputedStyle(e).display)==='flex'&&(await q.textContent('.lbl-wrap .lbl-t')).trim()==='Categorie','L7 分类框单行 + 标签单数');
   // 模板分组
-  await q.goto(B+'#/new?cat=doc');await q.reload();await q.waitForTimeout(300);const grp=await q.$$eval('.tpl-grp',e=>e.map(x=>x.textContent));t(grp.join('/')==='China/General','L4 地区跟浏览器 zh-CN（不跟界面语言 ro）'+grp);
+  await q.goto(B+'#/new?cat=doc');await q.reload();await q.waitForTimeout(300);const grp=await q.$$eval('.tpl-grp',e=>e.map(x=>x.textContent));t(grp.join('/')==='România/China/General','L4 地区跟浏览器 zh-CN（不跟界面语言 ro）'+grp);
   await q.evaluate(()=>{const s=JSON.parse(localStorage.getItem('dq.settings.v1'));s.region='all';localStorage.setItem('dq.settings.v1',JSON.stringify(s));});await q.reload();await q.waitForTimeout(300);
   const g2=await q.$$eval('.tpl-grp',e=>e.map(x=>x.textContent));t(g2.join('/')==='România/China/General','L4 三组罗马尼亚在前 '+g2);
   // 日期格式
@@ -40,7 +40,7 @@ const CJK=/[\u3000-\u303f\u4e00-\u9fff\uff00-\uffef]/;
   await q.goto(B+'#/cal');await q.waitForTimeout(300);t(/^lun/i.test((await q.textContent('.cal-grid.wk span')).trim()),'L3 ro 日历周一开头');
   await c.close();}
  // R8-2 默认地区：地区码 → 时区 → 两组都显示（罗马尼亚在前）；R8 #3 日期用浏览器完整 locale
- for(const [loc,tz,exp] of [['ro-RO','Asia/Shanghai','România/General'],['en-US','Asia/Shanghai','China/General'],['en','Asia/Shanghai','China/General'],['en','Asia/Urumqi','China/General'],['en','Europe/Bucharest','România/General'],['zh','America/New_York','România/China/General'],['en-US','America/New_York','România/China/General'],['en-GB','Europe/London','România/China/General']]){
+ for(const [loc,tz,exp] of [['ro-RO','Asia/Shanghai','China/România/General'],['en-US','Asia/Shanghai','China/General'],['en','Asia/Shanghai','China/General'],['en','Asia/Urumqi','China/General'],['en','Europe/Bucharest','România/General'],['zh','America/New_York','România/China/General'],['en-US','America/New_York','România/China/General'],['en-GB','Europe/London','România/China/General']]){
   const [c,q]=await ctx(loc,{timezoneId:tz});await q.goto(B+'?demo=1#/new?cat=doc');await q.waitForTimeout(400);await q.goto(B+'#/new?cat=doc');await q.reload();await q.waitForTimeout(300);
   const g=(await q.$$eval('.tpl-grp',e=>e.map(x=>x.textContent))).map(x=>({'中国':'China','罗马尼亚':'România','通用':'General','Romania':'România'}[x]||x));t(g.join('/')===exp,`R8-2 ${loc} ${tz} → ${g.join('/')}（应 ${exp}）`);
   if(loc==='en-US'&&tz==='America/New_York'){await q.goto(B+'#/settings');await q.waitForTimeout(300);await q.selectOption('#region','cn');await q.goto(B+'#/new?cat=doc');await q.waitForTimeout(300);

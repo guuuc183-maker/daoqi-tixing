@@ -18,7 +18,7 @@ const {chromium}=require('playwright-core');const B='http://localhost:8765/daoqi
    if(r==='ro')t(['roPermit','roRca','roItp','roRovinieta'].every(x=>ids.includes(x))&&!ids.some(x=>/^cn/.test(x)),`${loc} RO 示例 ${ch}`);
    if(r==='all')t(ids.slice(0,4).join()==='passport,carIns,milk,meds'&&ids.indexOf('roRca')>3&&ids.indexOf('roRca')<ids.indexOf('cnId'),`${loc} 未知：通用+罗在前 ${ch}`);
    if(loc==='zh-CN')t(ch.some(x=>/=身份证$/.test(x))&&ch.some(x=>/=交强险$/.test(x))&&ch.some(x=>/=上线年检$/.test(x))&&ch.some(x=>/=检验标志$/.test(x))&&ch.some(x=>/=医保$/.test(x)),'CN 中文短名 '+ch);
-   if(loc==='zh'&&r==='ro')t(['RCA 车辆强制险','ITP 车辆年检','rovinieta 公路使用费','罗马尼亚居留卡'].every(s=>ch.some(x=>x.endsWith('='+s))),'zh 界面罗马尼亚示例带中文解释 '+ch);
+   if(loc==='zh'&&r==='ro')t(['RCA 车辆强制险','ITP 车辆年检','Rovinieta 公路使用费','罗马尼亚居留卡'].every(s=>ch.some(x=>x.endsWith('='+s))),'zh 界面罗马尼亚示例带中文解释 '+ch);
    if(loc==='ro-RO')t(!ch.some(x=>/车|公路/.test(x))&&ch.some(x=>x.endsWith('=RCA')),'ro 界面不加解释 '+ch);
    // 新增页冷启动常用
    await q.goto(B+'#/new');await q.waitForTimeout(300);const cold=await q.$$eval('.tpl-recent [data-tpl]',e=>e.map(x=>x.dataset.tpl));
@@ -82,7 +82,7 @@ const {chromium}=require('playwright-core');const B='http://localhost:8765/daoqi
  // 默认值
  {const [c,q]=await ctx('zh-CN','Asia/Shanghai');await q.goto(B+'#/');
   const tp=await q.evaluate(async()=>{const m=await import('./js/templates.js');const o={};for(const x of m.TEMPLATES)if(x.region==='cn')o[x.id]={renew:x.renew,int:x.int,days:x.days};return o;});
-  const J=JSON.stringify;t(tp.cnId.renew===''&&tp.cnDriving.renew===''&&J(tp.cnDriving.days)==='[90,30,7]','中国 身份证/驾驶证 '+J([tp.cnId,tp.cnDriving]));
+  const J=JSON.stringify;t(tp.cnId.renew===120&&tp.cnDriving.renew===''&&J(tp.cnDriving.days)==='[90,30,7]','中国 身份证/驾驶证 '+J([tp.cnId,tp.cnDriving]));
   t(tp.cnCompulsory.renew===12&&tp.cnCommercial.renew===12&&tp.cnCompulsory.int==='standard'&&tp.cnCommercial.int==='standard','中国 交强险/商业险 12 月 30/7/1');
   t(tp.cnInspectionMark?.renew===24&&tp.cnInspection.renew==='','中国 年检拆成 标志(2 年)/上线(用户填) '+J([tp.cnInspectionMark,tp.cnInspection]));
   t(tp.cnPassport.renew===120&&J(tp.cnPassport.days)==='[180,90,30]','中国 护照 10 年 180/90/30');t(tp.cnMedical.renew===12&&J(tp.cnMedical.days)==='[91,30]','中国 医保 每年 10-01/12-01');

@@ -26,8 +26,10 @@ setLang(curLang());
 const CN_TZ=/^(Asia\/(Shanghai|Chongqing|Chungking|Harbin|Urumqi|Kashgar)|PRC)$/,RO_TZ=/^Europe\/Bucharest$/;
 export function detectRegion(lang=globalThis.navigator?.language,tz=(()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone;}catch{return '';}})()){
   const rg=(String(lang||'').split(/[-_]/).slice(1).find(x=>/^[a-z]{2}$/i.test(x))||'').toUpperCase();
-  if(rg==='CN')return 'cn';if(rg==='RO')return 'ro';
-  if(CN_TZ.test(tz||''))return 'cn';if(RO_TZ.test(tz||''))return 'ro';return 'all';}
+  const lr=rg==='CN'?'cn':rg==='RO'?'ro':'',tr=CN_TZ.test(tz||'')?'cn':RO_TZ.test(tz||'')?'ro':'';
+  // v1.7.4 PM：语言地区与时区地区都已知且不同 → 两组都显示，时区组在前（如 'ro+cn'）
+  if(lr&&tr&&lr!==tr)return tr+'+'+lr;return tr||lr||'all';}
+const regs=r=>String(r||'all').split('+');
 const regionOf=s=>s.region||detectRegion();
 applyCats(S.settings());
 // 静态外壳（底栏、侧栏品牌、标题）跟随语言
@@ -124,7 +126,7 @@ function enter(){hydrate(view);const kids=[...view.children];kids.forEach((e,i)=
 function fillRing(){requestAnimationFrame(()=>requestAnimationFrame(()=>view.querySelectorAll('.ring-fg[data-off]').forEach(c=>c.style.strokeDashoffset=c.dataset.off)));}
 // v1.7.3：首页/引导/空状态的示例跟地区走（地区 = 设置 > navigator.language 地区码 > 时区）
 const EX={cn:['cnId','cnPassport','cnDriving','cnCompulsory','cnCommercial','cnInspectionMark','cnInspection','cnMedical'],ro:['roPermit','roRca','roItp','roRovinieta'],gen:['passport','carIns','milk','meds']};
-export const exampleIds=r=>r==='cn'?[...EX.cn,'milk']:r==='ro'?[...EX.ro,'milk']:[...EX.gen,...EX.ro,...EX.cn.filter(x=>x!=='cnPassport')];
+export const exampleIds=r=>r.includes('+')?[...new Set(regs(r).flatMap(x=>EX[x]).concat('milk'))]:r==='cn'?[...EX.cn,'milk']:r==='ro'?[...EX.ro,'milk']:[...EX.gen,...EX.ro,...EX.cn.filter(x=>x!=='cnPassport')];
 // 罗马尼亚专有名词在非罗语界面加一句解释（gloss.*）
 const tplLabel=id=>getLang()!=='ro'&&dictHas('gloss.'+id)?t('gloss.'+id):dictHas('tplShort.'+id)?t('tplShort.'+id):t('tpl.'+id);
 const dictHas=k=>t(k)!==k;
@@ -341,7 +343,7 @@ function form(id,q){
   if(!it.id)it.id=S.uid();if(pre)it.photos=[];
   let shelfFrom=null;const applyTpl=tp=>{it.cat=tp.cat;it.name=tp.id==='custom'?'':tp.name;it.renewMonths=tp.renew||'';if(tp.int){it.intensity=tp.int;it.intensitySource='item';if(tp.days)it.customDays=[...tp.days];else delete it.customDays;}shelfFrom=null;if(tp.shelfDays){it.due=addDays(todayStr(),tp.shelfDays);shelfFrom=tp;}};
   {const tq=q.get('tpl'),tq2=tq&&TEMPLATES.find(x=>x.id===tq||x.name===tq);if(tq2&&!ex)applyTpl(tq2);}
-  let moreOpen=!!(ex&&(ex.intensitySource==='item'||ex.soonSource==='item'||ex.renewMonths||ex.qty||ex.location||ex.note||ex.prodDate||ex.photos?.length));
+  let moreOpen=!!(ex&&(ex.intensitySource==='item'||ex.soonSource==='item'||ex.renewMonths||ex.qty||ex.location||ex.note||ex.prodDate||ex.photos?.length))||(it.intensitySource==='item'&&it.intensity==='custom'&&!!(it.customDays||[]).length);
   // 分类来源：none 未选 / last 上次使用 / auto 按名称推断 / manual 手动 / tpl 来自模板
   let fromTpl=!!q.get('tpl');const lastOK=!!(CATEGORIES[s.lastCat]&&!CATEGORIES[s.lastCat].hidden);
   // N9：上次分类也只是「默认」，显示「X · 默认」、全部行不高亮，直到用户自己选
@@ -360,7 +362,7 @@ function form(id,q){
     view.innerHTML=`${top(ex?t('form.title.edit'):it.rebuyFrom?t('ui.detail.4'):t('form.title.new'),{back:true,right:`<button class="btn sm primary" id="saveTop">${t('form.save')}</button>`})}
     ${ex?'':recentHTML()}
     ${ex?'':`<div class="micro pad">${t('form.allCats')}</div><div class="chips">${visibleCats().map(([k,c])=>`<button data-cat="${k}" class="${it.cat===k&&catSrc()!=='none'?'on':''}">${ci(k,16)}${h(c.name)}</button>`).join('')}</div>
-    ${(()=>{const ts=tplFor(it.cat,regionOf(s)),grp=['ro','cn',undefined].map(r=>[r,ts.filter(tp=>tp.region===r)]).filter(([,l])=>l.length),multi=grp.filter(([r])=>r).length>1||(grp.length>1);
+    ${(()=>{const ts=tplFor(it.cat,regionOf(s)),grp=[...(regionOf(s).includes('+')?regs(regionOf(s)):['ro','cn']),undefined].map(r=>[r,ts.filter(tp=>tp.region===r)]).filter(([,l])=>l.length),multi=grp.filter(([r])=>r).length>1||(grp.length>1);
       return `<div class="chips tpl ${ts.length<=8?'wrap':''}">${grp.map(([r,l])=>`${multi?`<span class="tpl-grp">${t('region.'+(r||'any'))}</span>`:''}${l.map(tp=>`<button data-tpl="${tp.id}" class="${it.name===tp.name?'on':''}">${ci(tp.cat,16)}${h(tp.name)}</button>`).join('')}`).join('')}</div>${(()=>{const sel=TEMPLATES.find(x=>x.name===it.name&&x.docs);return sel?`<p class="small tpl-docs">${h(sel.docs)}</p>`:'';})()}`;})()}`}
     <form class="card form" id="f" novalidate>
       <label>${t('form.name')}<input name="name" maxlength="60" required value="${h(it.name)}" placeholder="${t('form.name.ph')}" enterkeyhint="done"></label>
@@ -372,14 +374,14 @@ function form(id,q){
       <div id="dueHint" class="hint-l"></div>
       <div class="chips quick">${[['7d',t('ui.draw.4')],['1m',t('ui.renewFlow.4')],['3m',t('ui.draw.5')],['1y',t('ui.renewFlow.6')],['2y',t('ui.renewFlow.7')]].map(([k,l])=>`<button type="button" data-q="${k}">${l}</button>`).join('')}</div>
       ${shelfFrom?`<div class="shelf-note"><b>${t('form.due.byShelf',{n:shelfFrom.shelfDays})}</b> ${t('ui.draw.6')}<br><span>${h(shelfFrom.shelfNote||'')}</span><br><span class="src-l">${t('ui.draw.7',{shelfLevel:h(shelfFrom.shelfLevel||'')})}${(shelfFrom.src||[]).map(u=>`<a class="ext" href="${h(u)}" target="_blank" rel="noopener noreferrer">${h(u.replace(/^https?:\/\//,'').split('/')[0])}</a>`).join(t('ui.sep'))}</span></div>`:''}
-      <details id="more" ${moreOpen?'open':''}><summary>${t('form.more')}</summary>
+      <details id="more" ${moreOpen?'open':''}><summary>${t('form.more')}${ei==='custom'&&(it.customDays||[]).length?` <span class="cd-sum">· ${[...it.customDays].sort((a,b)=>b-a).map(d=>d?t('ui.dDays',{n:d}):t('ui.detail.10')).join(' · ')}</span>`:''}</summary>
       ${per?`<div class="two"><label>${t('ui.detail.21')}<input name="prodDate" id="prod" inputmode="numeric" value="${h(it.prodDate||'')}" placeholder="${t('ui.draw.8')}"></label>
         <label>${t('ui.draw.9')}<span class="shelf"><input id="shelfN" type="number" min="1" value="${h(shelfN)}" placeholder="&#8212;"><select id="shelfU"><option value="d" ${shelfUnit==='d'?'selected':''}>${t('ui.row.4')}</option><option value="m" ${shelfUnit==='m'?'selected':''}>${t('ui.draw.10')}</option></select></span></label></div>`:''}
 
       <div class="lbl">${it.intensitySource==='item'?`${t('ui.draw.11',{name:INTENSITY[ei].name})} <span class="src">${t('ui.draw.12')} <a href="#" id="follow">${t('ui.draw.13')}</a></span>`:t('form.intensity',{lvl:INTENSITY[catDefault(it.cat,s)].name,cat:h(cat(it.cat).name)})}</div>
       <div class="seg">${Object.entries(INTENSITY).map(([k,v])=>`<button type="button" data-int="${k}" class="${ei===k?'on':''}">${v.name}</button>`).join('')}</div>
       <p class="hint-l">${INTENSITY[ei].desc}</p>
-      ${ei==='custom'?`<div class="chips wrap">${[90,60,30,14,7,3,1,0].map(d=>`<button type="button" data-cd="${d}" class="${(it.customDays||[]).includes(d)?'on':''}">${d?t('ui.dDays',{n:d}):t('ui.detail.10')}</button>`).join('')}</div>`:''}
+      ${ei==='custom'?`<div class="chips wrap">${[...new Set([180,90,60,30,14,7,3,1,0,...(it.customDays||[]),...(findTpl(it.cat,it.name)?.days||[])])].sort((a,b)=>b-a).map(d=>`<button type="button" data-cd="${d}" class="${(it.customDays||[]).includes(d)?'on':''}">${d?t('ui.dDays',{n:d}):t('ui.detail.10')}</button>`).join('')}</div>`:''}
       <div class="lbl">${t('form.soon')}</div>
       <div class="seg soon-seg"><button type="button" data-ss="cat" class="${it.soonSource!=='item'?'on':''}">${t('form.soon.follow',{n:catSoon(it.cat,s)})}</button><button type="button" data-ss="item" class="${it.soonSource==='item'?'on':''}">${t('form.soon.own')}</button></div>
       ${it.soonSource==='item'?`<label class="inline-n">${t('ui.draw.14')} <input name="soonDays" type="number" min="0" max="3650" value="${h(it.soonDays??'')}" required> ${t('ui.draw.15',{n:+it.soonDays||0})}</label>`:''}
@@ -418,7 +420,7 @@ function form(id,q){
       // 离开名称框：自动应用第一个候选；之前是自动推断而这次推断不出，就回到默认分类（O1）
       nameI.onchange=()=>{if(picked)return;sync();if(sug){if(sug!==it.cat||!auto){it.cat=sug;auto=true;inferredFor=it.name;draw();}}else if(auto){it.cat=defaultCat(s);auto=false;draw();}};}
     bindSug();
-    view.querySelectorAll('[data-tpl]').forEach(b=>b.onclick=()=>{sync();picked=true;fromTpl=true;sug=null;auto=false;const tp=TEMPLATES.find(x=>x.id===b.dataset.tpl);applyTpl(tp);dueText=it.due?it.due.split('-').reverse().join('.'):'';draw(it.due?null:'due');});
+    view.querySelectorAll('[data-tpl]').forEach(b=>b.onclick=()=>{sync();picked=true;fromTpl=true;sug=null;auto=false;const tp=TEMPLATES.find(x=>x.id===b.dataset.tpl);applyTpl(tp);if(tp.days)moreOpen=true;dueText=it.due?it.due.split('-').reverse().join('.'):'';draw(it.due?null:'due');});
     view.querySelectorAll('[data-int]').forEach(b=>b.onclick=()=>{sync();it.intensity=b.dataset.int;it.intensitySource='item';
       if(it.intensity==='custom'&&!(it.customDays||[]).length)it.customDays=(CUSTOM_PRESET[it.cat]||[7,1]).slice();draw();});
     $('#follow')&&($('#follow').onclick=e=>{e.preventDefault();sync();it.intensitySource='cat';delete it.intensity;draw();});
@@ -494,7 +496,7 @@ function settings(){
    ${badgeOK?`<div class="kv"><div><span>${t('ui.settings.18')}</span><b><button class="btn sm" id="badge">${s.badge?t('ui.settings.19'):t('ui.settings.20')}</button></b></div></div>`:''}
    <p class="small muted">${t('ui.settings.21')}</p>
 
-   <div class="kv"><div><span>${t('ui.settings.22')}</span><select id="region">${[['all',t('ui.settings.23')],['cn',t('region.cn')],['ro',t('region.ro')]].map(([k,v])=>`<option value="${k}" ${(regionOf(s)||'all')===k?'selected':''}>${v}</option>`).join('')}</select></div></div></section>
+   <div class="kv"><div><span>${t('ui.settings.22')}</span><select id="region">${[['all',t('ui.settings.23')],['cn',t('region.cn')],['ro',t('region.ro')]].map(([k,v])=>`<option value="${k}" ${(s.region||regionOf(s))===k?'selected':''}>${v}</option>`).join('')}</select></div></div></section>
   <div class="micro pad">${t('ui.settings.24')}</div><section class="card push-note"><span class="bk-ic">${icon('bell',20)}</span><div><b>${t('ui.settings.25')}</b><span class="ver-pill">${t('ui.settings.26')}</span>
    <p>${t('set.push')}${t('ui.settings.27')}</p>
    <button class="btn" id="icsS2">${icon('cal',16)}${t('ui.icsSheet.1')}</button></div></section>
@@ -625,7 +627,14 @@ function trashPage(){const l=S.trash().sort((a,b)=>b.deletedAt.localeCompare(a.d
 
 function seed(){const tp=todayStr(),D=n=>addDays(tp,n);
   S.merge([
-   ...(regionOf(st())==='cn'?[
+   ...(regs(regionOf(st()))[0]==='all'?[
+   {id:'d1',cat:'doc',name:t('tpl.passport'),due:D(40),intensitySource:'cat',renewMonths:120},
+   {id:'d2',cat:'doc',name:t('tpl.lease'),due:D(412),intensitySource:'cat',renewMonths:12},
+   {id:'d3',cat:'doc',name:t('tpl.bankCard'),due:D(-3),intensitySource:'item',intensity:'standard',renewMonths:48},
+   {id:'d4',cat:'car',name:t('tpl.carIns'),due:D(6),intensitySource:'cat',renewMonths:12},
+   {id:'d5',cat:'bill',name:t('tpl.domain'),due:D(143),intensitySource:'cat',renewMonths:12},
+   {id:'d6',cat:'bill',name:t('tpl.phonePlan'),due:D(21),intensitySource:'item',intensity:'light',renewMonths:1},
+   ]:regs(regionOf(st()))[0]==='cn'?[
    {id:'d1',cat:'doc',name:t('tpl.cnId'),due:D(40),intensitySource:'cat'},
    {id:'d2',cat:'doc',name:t('tpl.cnPassport'),due:D(412),intensitySource:'cat',renewMonths:120},
    {id:'d3',cat:'doc',name:t('tpl.cnDriving'),due:D(-3),intensitySource:'item',intensity:'standard'},
@@ -658,7 +667,7 @@ export function obNote(lv){const d=INTENSITY[lv].days;return t('ob.lvl.'+lv,{day
 function onboarding(){document.querySelector('.ob')?.remove();const el=document.createElement('div');el.className='ob ob1';el.setAttribute('role','dialog');el.setAttribute('aria-label',t('ui.onboarding.1'));
   el.innerHTML=`<button class="skip" data-ob="skip">${t('ob.skip')}</button>
    <img class="logo" src="icons/icon-192.png" alt="">
-   <h1>${t('ob.title')}</h1><p class="lead">${(r=>r==='cn'?t('ob.desc.cn'):r==='ro'?t('ob.desc.ro'):t('ob.desc'))(regionOf(st()))}</p>
+   <h1>${t('ob.title')}</h1><p class="lead">${(r=>r==='cn'?t('ob.desc.cn'):r==='ro'?t('ob.desc.ro'):t('ob.desc'))(regs(regionOf(st()))[0])}</p>
    <div class="lvls">${[['light',1,''],['standard',2,''],['strong',4,'strong']].map(([lv,k,c])=>[INTENSITY[lv].name,obNote(lv),k,c]).map(([n,d,k,c],i)=>`<div class="lv ${c}" style="--i:${i}"><div class="bars">${[10,16,22,28].map((hh,j)=>`<i class="${j<k?'on':''}" style="height:${hh}px"></i>`).join('')}</div><b>${n}</b><small>${d}</small></div>`).join('')}</div>
    <div class="foot"><button class="btn primary cta" data-ob="add">${icon('add',20)}${t('ob.add')}</button><button class="restore" data-ob="restore">${t('ob.restore')}</button></div>`;
   document.body.appendChild(el);

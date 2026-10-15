@@ -103,7 +103,7 @@ const br={newContext:async o=>{const c=await br0.newContext(o);c.setDefaultTimeo
   await q.reload();await q.waitForTimeout(500);t(await q.locator('.ob').count()===0,'OB 只显示一次');
   t(/还没有要盯着的日期/.test(await q.textContent('#view')),'空状态标题');t(await q.locator('.empty-ring svg').count()===1,'空状态灰环');
   t(await q.locator('.tpl-quick a').count()===5,'空状态 5 个模板（罗马尼亚 4 + 牛奶）');t(await q.locator('.empty-state .btn.primary').count()===1,'空状态主按钮');
-  await q.click('.tpl-quick a:nth-child(2)');await q.waitForTimeout(400);t(await q.inputValue('[name=name]')==='RCA 交强险','空状态模板→表单预填');
+  await q.click('.tpl-quick a:nth-child(2)');await q.waitForTimeout(400);t(await q.inputValue('[name=name]')==='RCA 车辆强制险','空状态模板→表单预填');
   await q.goto(B+'#/settings');await q.waitForTimeout(300);await q.click('#obAgain');await q.waitForTimeout(300);t(await q.locator('.ob').isVisible(),'设置里重新打开引导');
   await q.click('[data-ob=skip]');
   // 动效路径：已处理先播放离场动画再生效

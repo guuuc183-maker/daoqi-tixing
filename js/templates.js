@@ -16,21 +16,21 @@ const BUILTIN={
 export const TEMPLATES=[
   // 中国默认值依据 i18n-校对/中国证件清单.md（百科全书 2026-10-15 核实）
   // 身份证：不预设周期，用户填到期日（年龄分档见 tplDocs）
-  {id:'cnId',cat:'doc',region:'cn',renew:'',lead:90,url:"https://www.gov.cn/gongbao/content/2003/content_62254.htm"},
-  {id:'cnPassport',cat:'doc',region:'cn',renew:120,lead:180,int:'custom',days:[180,90,30],url:"https://s.nia.gov.cn/mps/bszy/gmcrg/slpthz/201903/t20190313_1011.html"},
+  {id:'cnId',cat:'doc',region:'cn',renew:120,lead:90,int:'custom',days:[60,30,7],url:"http://www.npc.gov.cn/c2/c12435/201905/t20190522_81831.html"},
+  {id:'cnPassport',cat:'doc',region:'cn',renew:120,lead:180,int:'custom',days:[180,90,30],url:"https://www.nia.gov.cn/n741440/n741547/c1014017/content.html"},
   {id:'cnHkMacau',cat:'doc',region:'cn',renew:120,lead:60,url:"https://gat.jiangsu.gov.cn/art/2025/3/13/art_90830_6789.html"},
   {id:'cnHkEndorse',cat:'doc',region:'cn',renew:"",lead:14,verify:true},
   {id:'cnTaiwan',cat:'doc',region:'cn',renew:120,lead:60,verify:true},
   {id:'cnTaiwanCompat',cat:'doc',region:'cn',renew:60,lead:60,verify:true},
   {id:'cnResidence',cat:'doc',region:'cn',renew:12,lead:30,verify:true},
-  {id:'cnDriving',cat:'doc',region:'cn',renew:'',lead:90,int:'custom',days:[90,30,7],url:"https://www.gov.cn/zhengce/2021-12/27/content_5712881.htm"},
-  {id:'cnDrivingCheck',cat:'doc',region:'cn',renew:12,lead:30,url:"https://www.gov.cn/zhengce/2021-12/27/content_5712881.htm"},
+  {id:'cnDriving',cat:'doc',region:'cn',renew:'',lead:90,int:'custom',days:[90,30,7],url:"https://www.gov.cn/gongbao/2025/issue_11866/202502/content_7004031.html"},
+  {id:'cnDrivingCheck',cat:'doc',region:'cn',renew:12,lead:30,url:"https://www.gov.cn/gongbao/2025/issue_11866/202502/content_7004031.html"},
   // 交强险、商业险：1 年（可手动改周期），提前 30 / 7 / 1 天
   {id:'cnCompulsory',cat:'car',region:'cn',renew:12,lead:30,int:'standard',verify:true},
   {id:'cnCommercial',cat:'car',region:'cn',renew:12,lead:30,int:'standard'},
   // 私家车（9 座及以下，不含面包车）年检拆两条：10 年内每 2 年申领检验标志；第 6、10 年上线检验，10 年后每年。用户填日期
-  {id:'cnInspectionMark',cat:'car',region:'cn',renew:24,lead:30},
-  {id:'cnInspection',cat:'car',region:'cn',renew:'',lead:30,url:"https://www.gov.cn/zhengce/zhengceku/2022-10/19/content_5719521.htm"},
+  {id:'cnInspectionMark',cat:'car',region:'cn',renew:24,lead:30,int:'custom',days:[30,7]},
+  {id:'cnInspection',cat:'car',region:'cn',renew:'',lead:30,int:'custom',days:[30,7],url:"https://www.gov.cn/zhengce/zhengceku/2022-10/19/content_5719521.htm"},
   // 城乡居民医保：按年缴费，用户填当地截止日；按 12-31 截止算，提前 91 / 30 天 ≈ 10-01、12-01
   {id:'cnMedical',cat:'bill',region:'cn',renew:12,lead:91,int:'custom',days:[91,30]},
   {id:'roPermit',cat:'doc',region:'ro',renew:12,lead:45,url:"https://igi.mai.gov.ro"},
@@ -74,7 +74,7 @@ for(const x of TEMPLATES)Object.defineProperties(x,{name:{get(){return t('tpl.'+
 // 提醒强度（与 MAO 确认的需求一致）
 export const INTENSITY={light:{days:[7]},standard:{days:[30,7,1]},strong:{days:[60,45,30,21,14,10,7,6,5,4,3,2,1,0]},custom:{days:null}};
 for(const [k,v] of Object.entries(INTENSITY))Object.defineProperties(v,{name:{get:()=>t('int.'+k)},desc:{get:()=>t('intDesc.'+k)}});
-export const findTpl=(cat,name)=>TEMPLATES.find(x=>x.cat===cat&&anyLang('tpl.'+x.id).includes(name));
+export const findTpl=(cat,name)=>TEMPLATES.find(x=>x.cat===cat&&(anyLang('tpl.'+x.id).includes(name)||anyLang('tplOld.'+x.id).includes(name)));
 export const isTplName=name=>TEMPLATES.some(x=>anyLang('tpl.'+x.id).includes(name));
 // 有保质期概念的分类（显示 生产日期+保质期、再买一次）
 export const PERISHABLE=['food','med','shop','cosm'];
@@ -125,7 +125,7 @@ export function inferTop2(name,learn){const c=inferCands(name,learn);return c.le
 
 export const REGIONS=['cn','ro'];
 // 常用地区过滤：region 为空的是通用模板
-export const tplFor=(cat,region)=>TEMPLATES.filter(t=>t.cat===cat&&(!region||region==='all'||!t.region||t.region===region));
+export const tplFor=(cat,region)=>TEMPLATES.filter(t=>t.cat===cat&&(!region||region==='all'||!t.region||region.split('+').includes(t.region)));
 
 // R9-4：自建分类和某个内置分类（任一语言、含旧名）同名时改名，条目不动（id 不变）
 export function renameDupCustom(st,fmt=n=>n+' 2'){const c=st&&st.cats,list=Array.isArray(c?.custom)?c.custom:[];
