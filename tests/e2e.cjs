@@ -8,14 +8,15 @@ const B='http://localhost:8765/daoqi-tixing/';
  const LS=()=>p.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')));
  await go('?demo=1#/');t((await LS()).length===14,'seed');
  const n0=await p.locator('.todo .todo-row').count();const head=await p.textContent('.todo-head');console.log('home todo:',head);
- t(n0===4&&/查看全部/.test(head),'首页4条+查看全部');
+ t(n0===3&&/查看全部/.test(head),'首页3条+查看全部');
  await go('#/todo');const nAll=await p.locator('.todo-row').count();console.log('todo all',nAll,await p.$$eval('.todo-main b',e=>e.map(x=>x.textContent)));
  // 已处理 + 撤销
  const first=await p.textContent('.todo-row .todo-main b');await p.click('.todo-row [data-a=done]');await p.waitForTimeout(200);
  t(!(await p.$$eval('.todo-main b',e=>e.map(x=>x.textContent))).includes(first),'已处理后消失');
  await p.click('.toast button');await p.waitForTimeout(300);t((await p.$$eval('.todo-main b',e=>e.map(x=>x.textContent))).includes(first),'撤销后回来');
  // 明天
- await p.click('.todo-row [data-a=snooze]');await p.waitForTimeout(300);t(await p.locator('.later .todo-row').count()===1,'明天→稍后');
+ await p.click('.todo-row [data-a=more]');await p.click('[data-s=snooze]');await p.waitForTimeout(300);t(await p.locator('.later .todo-row').count()===1,'明天→稍后');
+ await go('#/cats');const med=await p.textContent('a.tile[href="#/cat/med"]');t(!/暂无条目/.test(med)&&/布洛芬/.test(med),'药品卡不再显示暂无条目');
  // 删除+撤销
  await go('#/item/d3');await p.click('#del');await p.waitForTimeout(300);t((await LS()).find(x=>x.id==='d3').deletedAt,'软删除');
  await p.click('.toast button');await p.waitForTimeout(200);t(!(await LS()).find(x=>x.id==='d3').deletedAt,'删除撤销');

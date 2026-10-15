@@ -45,12 +45,16 @@ function todoRow(it){const tag=it.reason==='remind'?label(it.n):it.reason==='exp
   <a href="#/item/${h(it.id)}" class="todo-main"><span class="ic sm" style="--c:${cat(it.cat).color}">${ci(it.cat,18)}</span>
    <span class="grow"><b class="ell">${h(it.name)}</b><small class="${it.n<0?'expired':it.n<=7?'soon':'muted'}">${h(tag)}${it.reason==='lead'||it.reason==='askRenew'?` · ${label(it.n)}`:''}${effInt(it,st())==='strong'?' · 强':''}</small></span></a>
   <div class="todo-act">${it.reason==='askRenew'?`<button data-a="renew">${icon('renew',16)}已续期</button><button data-a="noRenew">不再问</button>`:
-   `<button data-a="done">${icon('check',16)}已处理</button><button data-a="renew">${icon('renew',16)}已续期</button>${it.reason==='snooze'||it.reason==='weekly'?'':`<button data-a="snooze">明天</button>`}`}</div></div>`;}
+   `<button data-a="done">${icon('check',16)}已处理</button><button data-a="more" class="more" aria-label="更多操作">⋯</button>`}</div></div>`;}
 function bindTodo(root,rerender){root.querySelectorAll('.todo-row [data-a]').forEach(b=>b.onclick=e=>{e.preventDefault();const id=b.closest('.todo-row').dataset.id,a=b.dataset.a,it=S.get(id);
   if(a==='done')act(`已停止提醒「${it.name}」`,()=>S.patch(id,x=>{x.handledAt=todayStr();delete x.snoozeUntil;}));
   if(a==='snooze')act(`「${it.name}」明天再提醒`,()=>S.patch(id,x=>{x.snoozeUntil=addDays(todayStr(),1);}));
   if(a==='noRenew')act('已标记，不再询问',()=>S.patch(id,x=>{x.renewAsked=true;}));
   if(a==='renew')return renewFlow(id,rerender);
+  if(a==='more'){const snoozed=b.closest('.later');return sheet(`<h3>${h(it.name)}</h3><p class="small muted">${h(label(daysLeft(it.due)))} · ${h(it.due)}</p>
+    <div class="sheet-list"><button data-s="renew">${icon('renew',20)}已续期</button>${snoozed?'':`<button data-s="snooze">${icon('bell',20)}明天再提醒</button>`}<a href="#/item/${h(id)}">${icon('chev',20)}查看详情</a></div>`,w=>{
+    w.querySelector('[data-s=renew]').onclick=()=>{closeSheet();renewFlow(id,rerender);};
+    w.querySelector('[data-s=snooze]')&&(w.querySelector('[data-s=snooze]').onclick=()=>{closeSheet();act(`「${it.name}」明天再提醒`,()=>S.patch(id,x=>{x.snoozeUntil=addDays(todayStr(),1);}));rerender();});});}
   rerender();});}
 
 function home(){
@@ -62,7 +66,7 @@ function home(){
   view.innerHTML=`${top(`<span class="micro">${d.getMonth()+1}月${d.getDate()}日 · 周${'日一二三四五六'[d.getDay()]}</span><br>到期提醒`)}
   ${ios?`<div class="banner">添加到主屏幕，才能显示角标：点 Safari「分享」→「添加到主屏幕」<button class="x" id="iosx" aria-label="关闭">×</button></div>`:''}
   ${backupTip(s)}
-  <section class="card hero">
+  <div class="home-grid"><section class="card hero">
     <div class="ring-wrap">${ring(pct)}<div class="ring-txt"><span class="num big">${Math.round(pct*100)}<i>%</i></span><span class="micro">安全率</span></div></div>
     <div class="stats">
       <a href="#/" data-seg="expired" class="stat"><span class="dot expired"></span><span class="num">${c.expired}</span><small>已过期</small></a>
@@ -70,8 +74,8 @@ function home(){
       <a href="#/" data-seg="safe" class="stat"><span class="dot safe"></span><span class="num">${c.safe}</span><small>安全</small></a>
     </div>
   </section>
-  <section class="card todo"><div class="todo-head"><span class="micro">今日待处理 · ${todo.length}</span>${todo.length>4?`<a href="#/todo" class="small">查看全部 ${todo.length} 条 ›</a>`:''}</div>
-   ${todo.length?todo.slice(0,4).map(todoRow).join(''):`<div class="all-clear">${icon('check',18)} 今天没有要处理的</div>`}</section>
+  <section class="card todo"><div class="todo-head"><span class="micro">今日待处理 · ${todo.length}</span>${todo.length>3?`<a href="#/todo" class="small">查看全部 ${todo.length} 条 ›</a>`:''}</div>
+   ${todo.length?todo.slice(0,3).map(todoRow).join(''):`<div class="all-clear">${icon('check',18)} 今天没有要处理的</div>`}</section></div>
   <div class="seg" role="tablist">${[['all','全部'],['soon','临期'],['expired','已过期'],['safe','安全']].map(([k,n])=>`<button data-seg="${k}" class="${homeSeg===k?'on':''}">${n}</button>`).join('')}</div>
   <section class="card list">${shown.map(row).join('')||`<div class="empty">${items.length?'这一栏没有条目':'还没有条目<br><a href="#/new">添加第一条</a> 或在设置里载入示例数据'}</div>`}</section>`;
   view.querySelectorAll('[data-seg]').forEach(b=>b.onclick=e=>{e.preventDefault();homeSeg=b.dataset.seg;home();});
@@ -92,10 +96,10 @@ function todoPage(){const {todo,later}=todoList(S.all(),st());
 function cats(){
   const items=enrich();
   view.innerHTML=`${top('分类')}<section class="grid">${Object.entries(CATEGORIES).map(([k,c])=>{
-    const l=items.filter(i=>i.cat===k&&!i.handledAt),e=l.filter(i=>i.st==='expired').length,s=l.filter(i=>i.st==='soon').length,next=l.find(i=>i.n>=0);
+    const l=items.filter(i=>i.cat===k&&!i.handledAt),e=l.filter(i=>i.st==='expired').length,s=l.filter(i=>i.st==='soon').length,next=l.find(i=>i.n>=0)||l[0];
     return `<a class="tile" href="#/cat/${k}" style="--c:${c.color}"><span class="tile-ic">${ci(k)}</span><b>${c.name}</b>
     <span class="badges">${e?`<em class="b expired">${e}</em>`:''}${s?`<em class="b soon">${s}</em>`:''}<span class="num cnt">${l.length}</span></span>
-    <small class="ell">${next?`最近：${h(next.name)} · ${next.n} 天`:'暂无条目'}</small></a>`;}).join('')}</section>`;
+    <small class="ell">${next?`最近：${h(next.name)} · ${next.n<0?`已过期 ${-next.n} 天`:next.n===0?'今天到期':`${next.n} 天`}`:'暂无条目'}</small></a>`;}).join('')}</section>`;
 }
 function catList(k){
   const items=enrich().filter(i=>i.cat===k),c=cat(k);
@@ -156,7 +160,7 @@ function detail(id){
   </section>
   ${it.handledAt?`<div class="card handled">${icon('check',18)}<span class="grow">已处理（${h(md(it.handledAt))}）· 本周期不再提醒</span><button class="btn sm" id="unhandle">恢复提醒</button></div>`:''}
   <div class="actions"><button class="btn primary" id="renew">${icon('renew',20)}已续期</button>${it.handledAt?'':`<button class="btn" id="handled">${icon('check',20)}已处理</button>`}</div>
-  <div class="actions sub">${PERISHABLE.includes(it.cat)?`<button class="btn" id="rebuy">${icon('add',18)}再买一次</button>`:''}<button class="btn" id="ics1">${icon('cal',18)}加入日历</button></div>
+  ${PERISHABLE.includes(it.cat)?`<div class="actions sub"><button class="btn" id="rebuy">${icon('add',18)}再买一次</button></div>`:''}
   <section class="card kv">
     <div><span>提醒强度</span><b>${INTENSITY[ei].name}<small class="muted"> · ${it.intensitySource==='item'?'单独设置':'跟随分类'}</small></b></div>
     <div><span>提前提醒</span><b>${ei==='strong'?'提前 60 天起，最后一周每天':plan.length?plan.map(d=>d===0?'当天':d+' 天').join(' / '):'无'}</b></div>
@@ -164,6 +168,7 @@ function detail(id){
     <div><span>续期周期</span><b>${it.renewMonths?it.renewMonths+' 个月':'不重复'}</b></div>
     ${it.prodDate?`<div><span>生产日期</span><b>${h(it.prodDate)}${it.shelfDays?` · 保质期 ${it.shelfDays} 天`:''}</b></div>`:''}
     ${lead?`<div><span>建议开始办理</span><b>${md(addDays(it.due,-lead))} 前（提前 ${lead} 天）</b></div>`:''}
+    <button class="btn ghost cal-btn" id="ics1">${icon('cal',18)}加入日历</button>
   </section>
   ${tpl?.docs?`<section class="card"><div class="micro">办理材料（参考）</div><p class="small">${h(tpl.docs)}</p><p class="small muted">以官方为准（IGI / 使馆 / RAR 等）</p></section>`:''}
   ${it.note?`<section class="card"><div class="micro">备注</div><p class="small">${h(it.note)}</p></section>`:''}
@@ -189,7 +194,7 @@ function form(id,q){
   const draw=(focus)=>{const ei=effInt(it,s),per=PERISHABLE.includes(it.cat);
     view.innerHTML=`${top(ex?'编辑':it.rebuyFrom?'再买一次':'新增',{back:true})}
     ${ex?'':`<div class="micro pad">选择模板</div><div class="chips">${Object.entries(CATEGORIES).map(([k,c])=>`<button data-cat="${k}" class="${it.cat===k?'on':''}">${ci(k,16)}${c.name}</button>`).join('')}</div>
-    <div class="chips tpl">${TEMPLATES.filter(t=>t.cat===it.cat).map(t=>`<button data-tpl="${h(t.name)}" class="${it.name===t.name?'on':''}">${ci(t.cat,16)}${h(t.name)}</button>`).join('')}</div>`}
+    <div class="chips tpl ${TEMPLATES.filter(t=>t.cat===it.cat).length<=8?'wrap':''}">${TEMPLATES.filter(t=>t.cat===it.cat).map(t=>`<button data-tpl="${h(t.name)}" class="${it.name===t.name?'on':''}">${ci(t.cat,16)}${h(t.name)}</button>`).join('')}</div>`}
     <form class="card form" id="f" novalidate>
       <label>名称<input name="name" maxlength="60" required value="${h(it.name)}" placeholder="例如：居留卡"></label>
       <label>分类<select name="cat">${Object.entries(CATEGORIES).map(([k,c])=>`<option value="${k}" ${k===it.cat?'selected':''}>${c.name}</option>`).join('')}</select></label>
