@@ -283,3 +283,7 @@ input,select,button,textarea{font:inherit;color:inherit}
 .ob-dots{display:flex;gap:6px;justify-content:center;margin-bottom:16px}.ob-dots i{width:6px;height:6px;border-radius:50%;background:var(--line2);transition:width var(--t-base) var(--ease),background-color var(--t-base)}
 .ob-dots i.on{width:18px;border-radius:3px;background:var(--text)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+.soon-seg{margin-bottom:10px}.inline-n{display:flex!important;align-items:center;gap:8px;color:var(--text)!important;font-weight:500!important}
+.inline-n input{width:90px!important;display:inline-block!important;margin:0!important;text-align:center}
+.toast.err{background:var(--expired);color:#fff}

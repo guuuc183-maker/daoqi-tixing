@@ -6,8 +6,8 @@ const ID=/^[A-Za-z0-9_-]{1,64}$/;
 const newId=()=>(globalThis.crypto?.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2));
 const day=v=>{const d=typeof v==='string'&&valid(v)?v:parseInput(v);return d||undefined;};
 const iso=v=>typeof v==='string'&&!isNaN(Date.parse(v))&&/^\d{4}-\d{2}-\d{2}/.test(v)?new Date(v).toISOString():undefined;
-const num=(v,max=1e6)=>{if(v===''||v==null)return '';const n=Number(v);return Number.isFinite(n)&&n>=0&&n<=max?Math.round(n):'';};
-const str=(v,max)=>v==null?'':String(v).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').trim().slice(0,max);
+const num=(v,max=1e6)=>{if(v===''||v==null)return '';const n=Number(typeof v==='string'?v.normalize('NFKC').trim():v);return Number.isFinite(n)&&n>=0&&n<=max?Math.round(n):'';};
+const str=(v,max)=>v==null?'':String(v).normalize('NFKC').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').trim().slice(0,max);
 // 返回干净对象或 {error}
 export function sanitize(o){
   if(!o||typeof o!=='object')return {error:'不是有效的条目'};
@@ -18,6 +18,7 @@ export function sanitize(o){
   let src=o.intensitySource==='item'||o.intensitySource==='cat'?o.intensitySource:undefined;
   if(INTENSITY[o.intensity])r.intensity=o.intensity;else if(src==='item')src='cat';
   if(src)r.intensitySource=src;
+  const sd=num(o.soonDays,3650);if((o.soonSource==='item'||!o.soonSource)&&sd!==''){r.soonSource='item';r.soonDays=sd;}else r.soonSource='cat';
   let cd=o.customDays;if(typeof cd==='string')cd=cd.split(/[\/ ;,]+/);
   if(Array.isArray(cd))r.customDays=[...new Set(cd.map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<=366))].slice(0,20);
   if(r.intensity==='custom'&&!(r.customDays||[]).length)r.customDays=[7,1];

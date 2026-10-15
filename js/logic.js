@@ -5,6 +5,7 @@ export const catDefault=(cat,st={})=>{const v=(st.catIntensity||{})[cat];return 
 export const effInt=(it,st)=>it.intensitySource==='item'&&INTENSITY[it.intensity]?it.intensity:catDefault(it.cat,st);
 // 旧数据没有 intensitySource：等于分类默认→跟随分类，否则→单独设置
 export function inferSource(it,st){if(!it.intensitySource)it.intensitySource=(!it.intensity||it.intensity===catDefault(it.cat,st))?'cat':'item';
+  if(!it.soonSource)it.soonSource='cat';
   if(it.handled===true&&!it.handledAt)it.handledAt=todayStr();delete it.handled;return it;}
 export function remindDays(it,st){const i=effInt(it,st);return i==='custom'?[...new Set((Array.isArray(it.customDays)?it.customDays:[]).map(Number).filter(Number.isFinite))].sort((a,b)=>b-a):INTENSITY[i].days;}
 export const leadDays=it=>findTpl(it.cat,it.name)?.lead;
@@ -17,12 +18,18 @@ export function pending(it,st,today=todayStr()){
     return {kind:null,n};}
   const days=remindDays(it,st),first=days.length?Math.max(...days):0,lead=leadDays(it);
   const inLead=lead!=null&&n<=lead;
-  if(n>first&&!inLead&&n>0)return {kind:null,n};
+  const inSoon=n<=effSoon(it,st);
+  if(n>first&&!inLead&&!inSoon&&n>0)return {kind:null,n};
   if(it.snoozeUntil&&it.snoozeUntil>today)return {kind:'later',reason:'snooze',n};
   if(effInt(it,st)==='strong'&&n<-30&&((-n-30)%7)!==0)return {kind:'later',reason:'weekly',n};
-  return {kind:'todo',reason:n<0?'expired':n===0?'today':(n>first&&inLead)?'lead':'remind',n};}
+  return {kind:'todo',reason:n<0?'expired':n===0?'today':(n>first&&inLead)?'lead':(n>first&&inSoon)?'soon':'remind',n};}
+// 临期阈值：单条 > 分类 > 全局
+export const globalSoon=st=>{const g=Number(st?.soonDays);return Number.isInteger(g)&&g>=0?g:30;};
+export function catSoon(cat,st={}){const v=(st.catSoon||{})[cat];if(v==='g')return globalSoon(st);
+  if(Number.isInteger(v)&&v>=0&&v<=3650)return v;const d=(CATEGORIES[cat]||{}).soon;return d!=null?d:globalSoon(st);}
+export function effSoon(it,st){const n=Number(it.soonDays);return it.soonSource==='item'&&Number.isInteger(n)&&n>=0&&n<=3650?n:catSoon(it.cat,st);}
 export function itemState(it,st,today=todayStr()){const n=daysLeft(it.due,today);
-  return it.handledAt&&n<0&&!it.renewMonths?'ended':status(n,st.soonDays||30);}
+  return it.handledAt&&n<0&&!it.renewMonths?'ended':status(n,effSoon(it,st));}
 export function sortTodo(list,st){const r=x=>x.n<0?0:x.n===0?1:effInt(x,st)==='strong'?2:3;return list.slice().sort((a,b)=>r(a)-r(b)||a.n-b.n);}
 export function todoList(items,st,today=todayStr()){const t=[],l=[];
   for(const it of items){const p=pending(it,st,today);if(p.kind){const x={...it,n:p.n,reason:p.reason};(p.kind==='todo'?t:l).push(x);}}

@@ -1,9 +1,10 @@
 // 分类与模板。lead=建议办理提前量（天），docs=所需材料（参考，请以官方为准）
 export const CATEGORIES={
-  doc:{name:'证件',color:'#3D7BE0',intensity:'strong'},
-  car:{name:'车辆',color:'#7A5AF0',intensity:'strong'},
-  food:{name:'食品',color:'#E08A1E',intensity:'standard'},
-  med:{name:'药品',color:'#E0507A',intensity:'standard'},
+  doc:{name:'证件',color:'#3D7BE0',intensity:'strong',soon:90},
+  car:{name:'车辆',color:'#7A5AF0',intensity:'strong',soon:30},
+  food:{name:'食品',color:'#E08A1E',intensity:'standard',soon:3},
+  med:{name:'药品',color:'#E0507A',intensity:'standard',soon:30},
+  cosm:{name:'化妆品',color:'#C0569E',intensity:'light',soon:30},
   shop:{name:'店内商品',color:'#0C9C6B',intensity:'light'},
   bill:{name:'订阅账单',color:'#1E9FB0',intensity:'standard'},
   home:{name:'家居保修',color:'#8A6A4A',intensity:'light'},
@@ -22,6 +23,7 @@ export const TEMPLATES=[
   {cat:'car',name:'CASCO 车损险',renew:12,lead:14,docs:'保单、车辆照片'},
   {cat:'food',name:'牛奶',renew:0,lead:1},{cat:'food',name:'鸡蛋',renew:0,lead:2},{cat:'food',name:'冷冻食品',renew:0,lead:7},
   {cat:'med',name:'常备药',renew:0,lead:30},{cat:'med',name:'维生素',renew:0,lead:14},
+  {cat:'cosm',name:'面霜',renew:0,lead:14},{cat:'cosm',name:'防晒霜',renew:0,lead:14},{cat:'cosm',name:'口红',renew:0,lead:14},{cat:'cosm',name:'香水',renew:0,lead:30},{cat:'cosm',name:'隐形眼镜护理液',renew:0,lead:14},
   {cat:'shop',name:'店内商品',renew:0,lead:7},
   {cat:'bill',name:'手机套餐',renew:1,lead:3},{cat:'bill',name:'视频会员',renew:12,lead:7},{cat:'bill',name:'域名/服务器',renew:12,lead:30},
   {cat:'home',name:'家电保修',renew:0,lead:30},{cat:'home',name:'燃气检查',renew:24,lead:30},
@@ -36,7 +38,7 @@ export const INTENSITY={
 };
 export const findTpl=(cat,name)=>TEMPLATES.find(t=>t.cat===cat&&t.name===name);
 // 有保质期概念的分类（显示 生产日期+保质期、再买一次）
-export const PERISHABLE=['food','med','shop'];
+export const PERISHABLE=['food','med','shop','cosm'];
 // 自定义档的分类预设
 export const CUSTOM_PRESET={doc:[14,7,3,1],car:[14,7,3,1]};
-export const CAT_ALIAS={'证件':'doc','车辆':'car','食品':'food','药品':'med','店内商品':'shop','订阅账单':'bill','订阅':'bill','家居保修':'home','其他':'other'};
+export const CAT_ALIAS={'证件':'doc','车辆':'car','食品':'food','药品':'med','化妆品':'cosm','店内商品':'shop','订阅账单':'bill','订阅':'bill','家居保修':'home','其他':'other'};

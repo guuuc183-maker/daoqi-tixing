@@ -10,18 +10,20 @@ export function save(l){lastSaveFailed=false;try{localStorage.setItem(KEY,JSON.s
 export const get=id=>raw().find(x=>x.id===id);
 export const uid=()=>(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2));
 export function upsert(it){const l=raw();const i=l.findIndex(x=>x.id===it.id);it.updatedAt=new Date().toISOString();
-  if(i>=0)l[i]=it;else{it.id=it.id||uid();it.createdAt=it.createdAt||it.updatedAt;l.push(it);}save(l);return it;}
-export function patch(id,f){const it=get(id);if(!it)return;f(it);return upsert(it);}
-export function softDelete(ids,at=new Date().toISOString()){const l=raw();l.forEach(x=>{if(ids.includes(x.id))x.deletedAt=at;});save(l);}
+  if(i>=0)l[i]=it;else{it.id=it.id||uid();it.createdAt=it.createdAt||it.updatedAt;l.push(it);}return save(l)?it:null;}
+export function patch(id,f){const it=get(id);if(!it)return null;f(it);return upsert(it);}
+export function softDelete(ids,at=new Date().toISOString()){const l=raw();l.forEach(x=>{if(ids.includes(x.id))x.deletedAt=at;});return save(l);}
 export function restore(id){patch(id,x=>{delete x.deletedAt;});}
-export function purge(id){save(raw().filter(x=>x.id!==id));}
-export function emptyTrash(){save(raw().filter(x=>!x.deletedAt));}
-export function purgeOld(now=Date.now(),days=30){const l=raw();const k=l.filter(x=>!x.deletedAt||now-Date.parse(x.deletedAt)<days*864e5);if(k.length!==l.length)save(k);return l.length-k.length;}
-export function merge(list){const l=raw();for(const it of list){it.id=it.id||uid();const i=l.findIndex(x=>x.id===it.id);if(i>=0)l[i]=it;else l.push(it);}save(l);return list.length;}
-export function replaceAll(l){save(l);}
+export function purge(id){return save(raw().filter(x=>x.id!==id));}
+export function emptyTrash(){return save(raw().filter(x=>!x.deletedAt));}
+export function purgeOld(now=Date.now(),days=30){const l=raw();const k=l.filter(x=>!x.deletedAt||now-Date.parse(x.deletedAt)<days*864e5);if(k.length!==l.length&&!save(k))return 0;return l.length-k.length;}
+export function merge(list){const l=raw();for(const it of list){it.id=it.id||uid();const i=l.findIndex(x=>x.id===it.id);if(i>=0)l[i]=it;else l.push(it);}return save(l)?list.length:0;}
+export function replaceAll(l){return save(l);}
+// 启动迁移：把清洗后的数据写回一次（固定 id、补齐新字段）
+export function migrate(){let before;try{before=localStorage.getItem(KEY)}catch{return false}if(before==null)return true;const l=raw(),after=JSON.stringify(l);return after===before?true:save(l);}
 // 撤销：操作前保存整份快照，只保留最近 1 步
 let snap=null;export function snapshot(){snap=localStorage.getItem(KEY)||'[]';}
-export function undo(){if(snap==null)return false;localStorage.setItem(KEY,snap);snap=null;return true;}
-const DEF={soonDays:30,catIntensity:{},badge:false,iosTipClosed:false};
+export function undo(){if(snap==null)return false;try{localStorage.setItem(KEY,snap)}catch(e){lastSaveFailed=true;globalThis.dispatchEvent?.(new CustomEvent('dq-storage-error',{detail:e}));return false;}snap=null;return true;}
+const DEF={soonDays:30,catIntensity:{},catSoon:{},badge:false,iosTipClosed:false};
 export function settings(){try{return Object.assign({},DEF,JSON.parse(localStorage.getItem(SKEY)||'{}'))}catch{return {...DEF}}}
-export function saveSettings(s){try{localStorage.setItem(SKEY,JSON.stringify(s))}catch(e){globalThis.dispatchEvent?.(new CustomEvent('dq-storage-error',{detail:e}));}}
+export function saveSettings(s){try{localStorage.setItem(SKEY,JSON.stringify(s));return true;}catch(e){lastSaveFailed=true;globalThis.dispatchEvent?.(new CustomEvent('dq-storage-error',{detail:e}));return false;}}

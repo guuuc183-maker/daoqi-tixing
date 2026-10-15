@@ -29,7 +29,7 @@ eq(inferSource({cat:'doc',intensity:'light'},st).intensitySource,'item','旧数�
 const {todo}=todoList([{id:'a',cat:'food',name:'a',due:D(3)},{id:'b',cat:'doc',name:'b',due:D(5)},{id:'c',cat:'food',name:'c',due:D(0)},{id:'d',cat:'food',name:'d',due:D(-1)}],st,T);
 eq(todo.map(x=>x.id),['d','c','b','a'],'排序 过期>今天>强>天数');
 // CSV
-const items=[{id:'1',name:'a,"b"',cat:'doc',due:'2026-11-01',intensitySource:'item',intensity:'custom',customDays:[7,1],note:'l1\nl2',history:[{from:'2025-11-01',to:'2026-11-01',at:'2025-10-01'}],handledAt:'2026-10-01',renewMonths:12,qty:3}];
+const items=[{id:'1',soonSource:'cat',name:'a,"b"',cat:'doc',due:'2026-11-01',intensitySource:'item',intensity:'custom',customDays:[7,1],note:'l1\nl2',history:[{from:'2025-11-01',to:'2026-11-01',at:'2025-10-01'}],handledAt:'2026-10-01',renewMonths:12,qty:3}];
 const back=parseCSV(toCSV(items)).items.map(r=>r.item);const clean=o=>Object.fromEntries(Object.entries(o).filter(([,v])=>v!==undefined&&v!=='').sort());
 eq(clean(back[0]),clean(items[0]),'CSV 往返一致');
 eq(clean(parseJSON(toJSON(items)).items[0].item),clean(items[0]),'JSON 往返');

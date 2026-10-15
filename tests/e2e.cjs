@@ -113,4 +113,33 @@ const B='http://localhost:8765/daoqi-tixing/';
   const off=await q.$eval('.ring-fg',e=>e.style.strokeDashoffset);t(off!=='','圆环填充动画已设置');
   t(await q.locator('.list .row .bar').count()>0,'列表短横条');
   await c2.close();}
+
+ // ---- 临期阈值 / round2 ----
+ {const c3=await br.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});const q=await c3.newPage();q.on('pageerror',e=>errs.push(e.message));q.on('console',m=>m.type()==='error'&&errs.push(m.text()));
+  const L3=()=>q.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')));
+  // N2：非法 id 启动时写回，详情可打开
+  await q.goto(B+'?demo=1');await q.evaluate(()=>{const l=JSON.parse(localStorage.getItem('dq.items.v2'));l.push({id:'a b',name:'旧非法id',due:'2026-12-06'});localStorage.setItem('dq.items.v2',JSON.stringify(l));});
+  await q.reload();await q.waitForTimeout(400);const ids1=(await L3()).find(x=>x.name==='旧非法id').id;await q.reload();await q.waitForTimeout(300);
+  const ids2=(await L3()).find(x=>x.name==='旧非法id').id;t(ids1===ids2&&ids1!=='a b','N2 启动写回 id 稳定');
+  await q.goto(B+'#/item/'+ids1);await q.waitForTimeout(300);t(/旧非法id/.test(await q.textContent('#view')),'N2 详情可打开');
+  t((await L3()).every(x=>x.soonSource),'迁移：全部条目有 soonSource');
+  // 分类阈值：食品默认 3 天 → 牛奶(1天)临期、冷冻饺子(64)安全；改成 90 → 饺子临期
+  await q.goto(B+'#/cat/food');await q.waitForTimeout(300);
+  await q.goto(B+'#/item/d8');await q.waitForTimeout(300);t(/安全/.test(await q.textContent('.pill'))&&/3 天/.test(await q.textContent('.kv')),'食品默认阈值 3 天');
+  await q.goto(B+'#/settings');await q.waitForTimeout(300);await q.selectOption('[data-cs=food]','90');await q.waitForTimeout(200);
+  await q.goto(B+'#/item/d8');await q.waitForTimeout(300);t(/临期/.test(await q.textContent('.pill')),'分类阈值改为 90 后变临期');
+  await q.goto(B+'#/');await q.waitForTimeout(300);t((await q.$$eval('.todo-main b',e=>e.map(x=>x.textContent))).length>0,'首页待处理正常');
+  // 单条覆盖
+  await q.goto(B+'#/edit/d8');await q.waitForTimeout(300);await q.click('[data-ss=item]');await q.fill('[name=soonDays]','10');await q.click('[data-save]');await q.waitForTimeout(300);
+  const d8=(await L3()).find(x=>x.id==='d8');t(d8.soonSource==='item'&&d8.soonDays===10,'单条阈值保存');
+  await q.goto(B+'#/item/d8');await q.waitForTimeout(300);t(/安全/.test(await q.textContent('.pill'))&&/单独设置/.test(await q.textContent('.kv')),'单条优先于分类');
+  t(await q.locator('a.tile[href="#/cat/cosm"]').count()===0,'');await q.goto(B+'#/cats');await q.waitForTimeout(300);t(await q.locator('a.tile[href="#/cat/cosm"]').count()===1,'化妆品分类');
+  await q.goto(B+'#/new?cat=cosm');await q.waitForTimeout(300);t(await q.locator('[data-tpl]').count()>=4,'化妆品模板');
+  // N1：写入失败不显示已保存、不跳转
+  await q.evaluate(()=>{const o=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k==='dq.items.v2')throw new DOMException('full','QuotaExceededError');return o.call(this,k,v)};});
+  await q.fill('[name=name]','保存失败测试');await q.fill('#dueT','01.12.2026');await q.click('[data-save]');await q.waitForTimeout(300);
+  t(/存储已满/.test(await q.textContent('.toast'))&&!/已保存/.test(await q.textContent('.toast')),'N1 失败不提示已保存');
+  t(q.url().includes('#/new')&&await q.inputValue('[name=name]')==='保存失败测试','N1 停在表单并保留内容');
+  await q.goto(B+'#/item/d7');await q.waitForTimeout(300);await q.click('#del');await q.waitForTimeout(200);t(!/已删除/.test(await q.textContent('.toast')),'N1 删除失败不提示成功');
+  await c3.close();}
  console.log(ok,'passed',bad,'failed');console.log('errors',errs);await br.close();})();

@@ -27,3 +27,9 @@ t(sc.items.length===2&&sc.items[1].item.name==='a;b'&&sc.items[0].item.qty===2,'
 // 数字字段
 t(!('qty' in sanitize({name:'a',due:'2026-01-01',qty:'-5'})),'数字字段负数丢弃');
 console.log(ok,'passed',bad,'failed');process.exitCode=bad?1:0;
+// round2 N3：全角
+{const {parseInput}=await import('../js/dates.js');const {sanitize}=await import('../js/sanitize.js');
+ let ok2=0;const c=(x,m)=>{if(x)ok2++;else{console.log('FAIL',m);process.exitCode=1;}};
+ c(parseInput('１５．１０．２０２６')==='2026-10-15','N3 全角日期');c(parseInput('２０２６－１０－１５')==='2026-10-15','N3 全角横线');
+ c(sanitize({name:'ＡＢＣ',due:'１５．１０．２０２６',qty:'３'}).qty===3,'N3 sanitize 全角数字');c(sanitize({name:'ＡＢＣ',due:'2026-10-15'}).name==='ABC','N3 名称 NFKC');
+ console.log(ok2,'N3 passed');}

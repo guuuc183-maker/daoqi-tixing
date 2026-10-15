@@ -15,7 +15,7 @@ export function nice(s){const d=parse(s);return `${d.getFullYear()}年${d.getMon
 const mk=(y,m,d)=>{if(y<100)y+=2000;const dt=new Date(y,m-1,d);return dt.getFullYear()===y&&dt.getMonth()===m-1&&dt.getDate()===d?fmt(dt):null;};
 const lastDay=(y,m)=>{if(y<100)y+=2000;return m>=1&&m<=12?fmt(new Date(y,m,0)):null;};
 // 识别键盘输入的日期：2026-10-15 / 15.10.2026 / 15/10/26 / 151026 / 15102026 / 20261015 / 10/26（月/年→当月最后一天）
-export function parseInput(s){s=String(s||'').trim().replace(/\s+/g,'');let m;if(!s)return null;
+export function parseInput(s){s=String(s||'').normalize('NFKC').replace(/[。．]/g,'.').trim().replace(/\s+/g,'');let m;if(!s)return null;
   if(m=s.match(/^(\d{4})[-./年](\d{1,2})[-./月](\d{1,2})日?$/))return mk(+m[1],+m[2],+m[3]);
   if(m=s.match(/^(\d{1,2})[-./](\d{1,2})[-./](\d{2}|\d{4})$/))return mk(+m[3],+m[2],+m[1]);
   if(m=s.match(/^(\d{1,2})[./](\d{2}|\d{4})$/)){const yy=new Date().getFullYear()%100;

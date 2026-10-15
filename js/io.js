@@ -1,7 +1,7 @@
 // CSV / JSON 导入导出
 import {parseInput} from './dates.js';
 import {sanitize} from './sanitize.js';
-export const FIELDS=['id','name','cat','due','intensity','intensitySource','customDays','renewMonths','qty','location','note','prodDate','shelfDays','handledAt','snoozeUntil','renewAsked','history','deletedAt','createdAt','updatedAt'];
+export const FIELDS=['id','name','cat','due','intensity','intensitySource','soonSource','soonDays','customDays','renewMonths','qty','location','note','prodDate','shelfDays','handledAt','snoozeUntil','renewAsked','history','deletedAt','createdAt','updatedAt'];
 const esc=v=>{v=v==null?'':Array.isArray(v)?(v.length&&typeof v[0]==='object'?JSON.stringify(v):v.join('/')):String(v);return /[",\n\r]/.test(v)?`"${v.replace(/"/g,'""')}"`:v;};
 export function toCSV(items){return '\ufeff'+[FIELDS.join(','),...items.map(it=>FIELDS.map(f=>esc(it[f])).join(','))].join('\r\n');}
 export const TEMPLATE_CSV='\ufeff名称,分类,到期日,数量,位置,备注\r\n居留卡,证件,15.03.2027,,,IGI 预约\r\n牛奶,食品,20.10.2026,2,冰箱,\r\n';
@@ -13,7 +13,7 @@ function rows(t){const out=[];let row=[],f='',q=false;t=t.replace(/^\ufeff/,'');
     else if(c=='"')q=true;else if(c==D){row.push(f);f='';}
     else if(c=='\n'||c=='\r'){if(c=='\r'&&t[i+1]=='\n')i++;row.push(f);out.push(row);row=[];f='';}else f+=c;}
   if(f||row.length){row.push(f);out.push(row);}return out;}
-const ALIAS={'名称':'name','分类':'cat','到期日':'due','提醒强度':'intensity','备注':'note','数量':'qty','位置':'location',
+const ALIAS={'名称':'name','分类':'cat','到期日':'due','提醒强度':'intensity','临期阈值':'soonDays','备注':'note','数量':'qty','位置':'location',
   'denumire':'name','data expirării':'due','data expirarii':'due','cantitate':'qty','categorie':'cat','locație':'location','locatie':'location','notă':'note','nota':'note',
   'expiry':'due','expiration':'due','expires':'due','category':'cat','quantity':'qty'};
 const key=h=>{h=h.trim();return ALIAS[h]||ALIAS[h.toLowerCase()]||h;};
