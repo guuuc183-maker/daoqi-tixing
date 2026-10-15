@@ -6,9 +6,9 @@ function db(){return dbp||(dbp=new Promise((res,rej)=>{const r=indexedDB.open(DB
 function tx(mode,fn){return db().then(d=>new Promise((res,rej)=>{const t=d.transaction(ST,mode),s=t.objectStore(ST);let out;const r=fn(s);if(r)r.onsuccess=()=>{out=r.result;};
   t.oncomplete=()=>res(out);t.onerror=()=>rej(t.error||r?.error);t.onabort=()=>rej(t.error||new DOMException('aborted','AbortError'));}));}
 export const isQuota=e=>e&&(e.name==='QuotaExceededError'||e.code===22||/quota/i.test(e.message||''));
-export const put=rec=>tx('readwrite',s=>s.put(rec));
+export const put=rec=>{forget(rec.id);return tx('readwrite',s=>s.put(rec));};
 export const get=id=>tx('readonly',s=>s.get(id));
-export const del=id=>tx('readwrite',s=>s.delete(id));
+export const del=id=>{forget(id);return tx('readwrite',s=>s.delete(id));};
 export const allKeys=()=>tx('readonly',s=>s.getAllKeys());
 // 读图（按 EXIF 方向摆正）→ 缩放到长边 max → JPEG
 async function decode(file){
@@ -24,6 +24,7 @@ export async function addPhoto(itemId,file){const {full,thumb}=await compress(fi
   await put({id,itemId,blob:full.blob,thumb:thumb.blob,w:full.w,h:full.h,createdAt:new Date().toISOString()});return id;}
 // 对象 URL 缓存
 const urls={};
+function forget(id){for(const k of ['thumb','full']){const u=urls[id+':'+k];if(u){URL.revokeObjectURL(u);delete urls[id+':'+k];}}}
 export async function url(id,kind='thumb'){const k=id+':'+kind;if(urls[k])return urls[k];const r=await get(id);if(!r)return null;return urls[k]=URL.createObjectURL(kind==='thumb'?r.thumb:r.blob);}
 // 清理不再被任何条目（含回收站）引用的照片
 export async function cleanup(referenced){try{const keys=await allKeys(),ref=new Set(referenced);let n=0;for(const k of keys)if(!ref.has(k)){await del(k);n++;}return n;}catch{return 0;}}

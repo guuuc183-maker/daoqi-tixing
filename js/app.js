@@ -27,14 +27,22 @@ function applyTheme(){const t=st().theme;if(t&&t!=='auto')document.documentEleme
 // 通用 toast / 撤销条（5 秒）
 let toastEl=null,toastTimer=null;
 let errUntil=0;
-function toast(m,undo,err,extra,ms){if(!err&&Date.now()<errUntil)return;if(err)errUntil=Date.now()+3000;toastEl?.remove();clearTimeout(toastTimer);const t=document.createElement('div');t.className='toast';
-  t.innerHTML=`<span>${h(m)}</span>${extra?`<button class="x2">${h(extra.label)}</button>`:''}${undo?'<button class="undo">撤销</button>':''}`;document.body.appendChild(t);toastEl=t;
+// 撤销钩子：撤销时还原照片（R7-1），撤销窗口结束时真正清理照片（R7-2）
+let curHooks=null;
+function endHooks(kind){const k=curHooks;curHooks=null;if(k&&k[kind])Promise.resolve().then(k[kind]).catch(()=>{});}
+function toast(m,undo,err,extra,ms,hooks){if(!err&&Date.now()<errUntil)return;if(err)errUntil=Date.now()+3000;if(!(undo&&hooks&&hooks===curHooks))endHooks('expire');toastEl?.remove();clearTimeout(toastTimer);if(undo&&hooks)curHooks=hooks;const t=document.createElement('div');t.className='toast';
+  // R7-3：读屏播报；放在 body 最前，第一次 Tab 就到「撤销」
+  t.setAttribute('role','status');t.setAttribute('aria-live','polite');
+  t.innerHTML=`<span>${h(m)}</span>${extra?`<button class="x2">${h(extra.label)}</button>`:''}${undo?'<button class="undo">撤销</button>':''}`;document.body.prepend(t);toastEl=t;
   if(extra)t.querySelector('.x2').onclick=()=>{t.remove();extra.fn();};
-  if(undo)t.querySelector('.undo').onclick=()=>{if(S.undo()){t.remove();toast('已撤销');route();}else route();};
-  if(err)t.classList.add('err');toastTimer=setTimeout(()=>t.remove(),undo?(ms||UNDO_MS):err?3000:1900);}
+  if(undo)t.querySelector('.undo').onclick=()=>{if(S.undo()){const k=curHooks;curHooks=null;t.remove();Promise.resolve(k?.undo?.()).catch(()=>{}).then(()=>route());toast('已撤销');route();}else route();};
+  if(err)t.classList.add('err');// R7-3：操作后焦点丢了（按钮随重绘消失）就把焦点给「撤销」；有输入框要焦点时（再加一条）不抢
+  if(undo){const ff=()=>{const a=document.activeElement;if(t.isConnected&&(!a||a===document.body||!a.isConnected))t.querySelector('.undo')?.focus({preventScroll:true});};setTimeout(ff,0);setTimeout(ff,150);}
+  toastTimer=setTimeout(()=>{t.remove();if(undo)endHooks('expire');},undo?(ms||UNDO_MS):err?3000:1900);}
 // 所有撤销 toast 共用同一个时长（PM：8 秒）
 const UNDO_MS=8000;
-function act(msg,fn,extra,ms){S.snapshot();fn();if(S.lastSaveFailed)return false;toast(msg,true,false,extra,ms);updateBadge();return true;}
+const PHOTO_GC={expire:()=>globalThis.indexedDB&&P.cleanup(S.raw().flatMap(i=>i.photos||[]))};
+function act(msg,fn,extra,ms,hooks){S.snapshot();fn();if(S.lastSaveFailed)return false;toast(msg,true,false,extra,ms,hooks);updateBadge();return true;}
 // 底部弹出表单
 // 应用内二次确认（危险操作统一用它，不用原生 confirm）
 function ask(title,body,ok,danger=true){return new Promise(res=>{let done=false;const fin=v=>{if(done)return;done=true;closeSheet();res(v);};
@@ -501,8 +509,10 @@ function settings(){
       if(bs.cats){const mine=cs.cats;for(const d of Array.isArray(bs.cats.custom)?bs.cats.custom:[])if(d&&/^c_[a-z0-9]{1,24}$/.test(d.id)&&!CATEGORIES[d.id]&&!mine.custom.some(c=>c.id===d.id||c.name===d.name)&&!Object.values(CATEGORIES).some(c=>c.name===d.name))mine.custom.push({id:d.id,name:String(d.name||'').slice(0,20),icon:d.icon,color:d.color});for(const k of ['hidden','names','order'])if(!(mine[k]&&Object.keys(mine[k]).length)&&bs.cats[k])mine[k]=bs.cats[k];}}
     if(importState.newCat==='create'){const made={};for(const r of rows)if(r.newCat){if(!made[r.newCat]){const id='c_'+Math.random().toString(36).slice(2,10);made[r.newCat]=id;cs.cats.custom.push({id,name:r.newCat,icon:'box',color:COLORS[cs.cats.custom.length%COLORS.length]});}r.item.cat=made[r.newCat];}}
     S.saveSettings(cs);applyCats(cs);const l=rows.map(r=>inferSource(r.item,cs));
-    const ph=importState.photos;importState=null;S.merge(l);if(!S.lastSaveFailed){toast(t('restore.toast',{n:l.length}),true);updateBadge();}
-    if(ph&&!S.lastSaveFailed&&globalThis.indexedDB){P.importPhotos(ph,l.flatMap(i=>i.photos||[])).then(n=>{if(n)toast(t('restore.toastPh',{n:l.length,m:n}),true);}).catch(photoErr);}settings();});
+    const ph=importState.photos;importState=null;const pids=ph&&globalThis.indexedDB?l.flatMap(i=>i.photos||[]).filter(id=>ph[id]):[];const old={};for(const id of pids)old[id]=await P.get(id).catch(()=>null);
+    const hk={undo:async()=>{for(const id of pids)old[id]?await P.put(old[id]):await P.del(id);}};
+    S.merge(l);if(!S.lastSaveFailed){toast(t('restore.toast',{n:l.length}),true,false,null,0,hk);updateBadge();}
+    if(ph&&!S.lastSaveFailed&&globalThis.indexedDB){P.importPhotos(ph,l.flatMap(i=>i.photos||[])).then(n=>{if(n)toast(t('restore.toastPh',{n:l.length,m:n}),true,false,null,0,hk);}).catch(photoErr);}settings();});
   $('#obAgain').onclick=onboarding;
   $('#demo').onclick=()=>{act('已载入示例数据',seed);settings();};
   $('#clear').onclick=async()=>{if(!n)return;if(!await ask(`清空全部 ${n} 条？`,'会先自动下载一份备份；清空后 30 天内可以在回收站恢复。',`清空 ${n} 条`))return;await exportJSON();act(`已清空 ${n} 条（已自动下载备份，可在回收站恢复）`,()=>S.softDelete(S.all().map(i=>i.id)));settings();};
@@ -579,8 +589,8 @@ function trashPage(){const l=S.trash().sort((a,b)=>b.deletedAt.localeCompare(a.d
    <span class="grow"><b class="ell">${h(it.name)}</b><small>到期 ${h(it.due)} · 删除于 ${h(it.deletedAt.slice(0,10))}</small></span>
    <button class="btn sm" data-r>恢复</button><button class="btn sm danger" data-p aria-label="彻底删除">${icon('trash',16)}</button></div>`).join('')||'<div class="empty">回收站是空的</div>'}</section>`;
   view.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{const id=b.closest('[data-id]').dataset.id;act('已恢复',()=>S.restore(id));trashPage();});
-  view.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{const id=b.closest('[data-id]').dataset.id;act('已彻底删除',()=>S.purge(id));trashPage();});
-  $('#empty')&&($('#empty').onclick=async()=>{if(await ask(`彻底删除回收站里的 ${l.length} 条？`,'彻底删除后不能恢复。',`彻底删除 ${l.length} 条`)){act('回收站已清空',()=>S.emptyTrash());trashPage();}});}
+  view.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{const id=b.closest('[data-id]').dataset.id;act('已彻底删除',()=>S.purge(id),null,0,PHOTO_GC);trashPage();});
+  $('#empty')&&($('#empty').onclick=async()=>{if(await ask(`彻底删除回收站里的 ${l.length} 条？`,'彻底删除后不能恢复。',`彻底删除 ${l.length} 条`)){act('回收站已清空',()=>S.emptyTrash(),null,0,PHOTO_GC);trashPage();}});}
 
 function seed(){const t=todayStr(),D=n=>addDays(t,n);
   S.merge([

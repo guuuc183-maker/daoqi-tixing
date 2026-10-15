@@ -116,6 +116,26 @@ const {chromium}=require('playwright-core');const B='http://localhost:8765/daoqi
   t(await q.locator('.toast .undo').count()===1,'R6-2 清空回收站撤销 8 秒内仍在');await q.click('.toast .undo');await q.waitForTimeout(500);
   await q.evaluate(()=>{const l=JSON.parse(localStorage.getItem('dq.items.v2'));const x=l.find(i=>i.id==='d3');x.deletedAt=null;localStorage.setItem('dq.items.v2',JSON.stringify(l));});
   await q.goto(B+'#/item/d3');await q.waitForTimeout(1200);t(await q.evaluate(()=>[...document.querySelectorAll('img[data-ph]')].some(i=>i.src&&!i.classList.contains('missing'))),'R6-2 撤销后照片还在');
+  // v1.6.3 R7
+  {const [c7,q7]=await ctx({reducedMotion:'reduce'});
+   const HASH=(id)=>q7.evaluate(async id=>{const d=await new Promise(r=>{const o=indexedDB.open('dq-photos',1);o.onsuccess=()=>r(o.result);});const rec=await new Promise(r=>{const g=d.transaction('photos').objectStore('photos').get(id);g.onsuccess=()=>r(g.result);});d.close();if(!rec)return null;const b=await rec.blob.arrayBuffer();return [...new Uint8Array(await crypto.subtle.digest('SHA-256',b))].map(x=>x.toString(16).padStart(2,'0')).join('');},id);
+   await q7.goto(B+'?demo=1#/');await q7.waitForTimeout(400);await q7.goto(B+'#/item/d3');await q7.waitForTimeout(300);await q7.setInputFiles('[data-addph]:not([capture])','/workspace/到期提醒/app/tests/fixtures-photo.jpg');await q7.waitForTimeout(1500);
+   const pid=(await IT(q7)).find(i=>i.id==='d3').photos[0];const hB=await HASH(pid);
+   await q7.goto(B+'#/settings');await q7.waitForTimeout(300);const [d7]=await Promise.all([q7.waitForEvent('download'),q7.click('#bkNow')]);await d7.saveAs('/tmp/r7.json');
+   // 本机把同 id 照片换成另一份字节
+   await q7.evaluate(async id=>{const d=await new Promise(r=>{const o=indexedDB.open('dq-photos',1);o.onsuccess=()=>r(o.result);});await new Promise(r=>{const tx=d.transaction('photos','readwrite');const st=tx.objectStore('photos');const g=st.get(id);g.onsuccess=()=>{const x=g.result;x.blob=new Blob([new Uint8Array([1,2,3,4,5])],{type:'image/jpeg'});st.put(x);};tx.oncomplete=r;});d.close();},pid);
+   const hL=await HASH(pid);t(hL&&hL!==hB,'R7-1 准备：本机照片字节不同');
+   await q7.reload();await q7.waitForTimeout(300);await q7.setInputFiles('#imp','/tmp/r7.json');await q7.waitForTimeout(400);await q7.click('#impGo');await q7.waitForTimeout(200);if(await q7.locator('#askOk').count())await q7.click('#askOk');
+   await q7.waitForTimeout(1500);t(await HASH(pid)===hB,'R7-1 导入后照片为备份字节');
+   await q7.click('.toast .undo');await q7.waitForTimeout(800);t(await HASH(pid)===hL,'R7-1 撤销后照片恢复为原字节');
+   // R7-3 提示条无障碍
+   await q7.goto(B+'#/item/d5');await q7.waitForTimeout(300);await q7.click('#del');await q7.waitForTimeout(300);
+   t(await q7.getAttribute('.toast','role')==='status'&&await q7.getAttribute('.toast','aria-live')==='polite','R7-3 toast role=status aria-live=polite');
+   t(await q7.evaluate(()=>document.activeElement?.classList.contains('undo')),'R7-3 删除后焦点直接在「撤销」');await q7.keyboard.press('Enter');await q7.waitForTimeout(300);t((await IT(q7)).find(i=>i.id==='d5')&&!(await IT(q7)).find(i=>i.id==='d5').deletedAt,'R7-3 Enter 即撤销');
+   // R7-2 清空回收站 8 秒后照片真的删除
+   await q7.goto(B+'#/item/d3');await q7.waitForTimeout(300);await q7.click('#del');await q7.waitForTimeout(300);await q7.goto(B+'#/trash');await q7.waitForTimeout(300);await q7.click('#empty');await q7.waitForTimeout(200);await q7.click('#askOk');
+   await q7.waitForTimeout(3000);t(await HASH(pid)!==null,'R7-2 撤销窗口内照片还在');await q7.waitForTimeout(6000);t(await HASH(pid)===null,'R7-2 8 秒后照片已删除（不等重启）');
+   await c7.close();}
   // R6 删除分类：应用内确认
   await q.goto(B+'#/catmgr');await q.waitForTimeout(200);await q.evaluate(()=>{const s=JSON.parse(localStorage.getItem('dq.settings.v1'));s.cats={...(s.cats||{}),custom:[{id:'c_x',name:'临时',icon:'box',color:'#D94545'}]};localStorage.setItem('dq.settings.v1',JSON.stringify(s));});await q.reload();await q.waitForTimeout(300);
   let nat=0;q.on('dialog',dg=>{nat++;dg.dismiss();});await q.click('.cm-row[data-k="c_x"]').catch(()=>q.click('text=临时'));await q.waitForTimeout(300);await q.click('#cDel');await q.waitForTimeout(300);
