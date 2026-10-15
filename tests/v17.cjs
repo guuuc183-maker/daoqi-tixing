@@ -32,13 +32,23 @@ const CJK=/[\u3000-\u303f\u4e00-\u9fff\uff00-\uffef]/;
   await q.goto(B+'#/new');await q.waitForTimeout(300);for(const [w,k] of [['lapte','food'],['pașaport','doc'],['detergent','daily']]){await q.fill('[name=name]',w);await q.press('[name=name]','Tab');await q.waitForTimeout(150);t(await q.inputValue('[name=cat]')===k,'L5 ro 推断 '+w);}
   t(await q.$eval('.cat-field',e=>getComputedStyle(e).display)==='flex'&&(await q.textContent('.lbl-wrap .lbl-t')).trim()==='Categorie','L7 分类框单行 + 标签单数');
   // 模板分组
-  await q.goto(B+'#/new?cat=doc');await q.reload();await q.waitForTimeout(300);const grp=await q.$$eval('.tpl-grp',e=>e.map(x=>x.textContent));t(grp.length===0||!grp.includes('China'),'L4 ro 默认只罗马尼亚+通用 '+grp);
+  await q.goto(B+'#/new?cat=doc');await q.reload();await q.waitForTimeout(300);const grp=await q.$$eval('.tpl-grp',e=>e.map(x=>x.textContent));t(grp.join('/')==='China/General','L4 地区跟浏览器 zh-CN（不跟界面语言 ro）'+grp);
   await q.evaluate(()=>{const s=JSON.parse(localStorage.getItem('dq.settings.v1'));s.region='all';localStorage.setItem('dq.settings.v1',JSON.stringify(s));});await q.reload();await q.waitForTimeout(300);
-  const g2=await q.$$eval('.tpl-grp',e=>e.map(x=>x.textContent));t(g2.join('/')==='China/România/General','L4 三组 '+g2);
+  const g2=await q.$$eval('.tpl-grp',e=>e.map(x=>x.textContent));t(g2.join('/')==='România/China/General','L4 三组罗马尼亚在前 '+g2);
   // 日期格式
   await q.goto(B+'#/');await q.waitForTimeout(300);t(/\d{1,2} [a-zăîâșț]+\.? \d{4}, [a-zăîâșț]+/.test(await q.textContent('.micro')),'L3 ro 首页日期 '+await q.textContent('.micro'));
   await q.goto(B+'#/cal');await q.waitForTimeout(300);t(/^lun/i.test((await q.textContent('.cal-grid.wk span')).trim()),'L3 ro 日历周一开头');
   await c.close();}
+ // R8-2 默认地区：地区码 → 时区 → 两组都显示（罗马尼亚在前）；R8 #3 日期用浏览器完整 locale
+ for(const [loc,tz,exp] of [['ro-RO','Asia/Shanghai','România/General'],['en-US','Asia/Shanghai','China/General'],['en','Asia/Shanghai','China/General'],['en','Asia/Urumqi','China/General'],['en','Europe/Bucharest','România/General'],['zh','America/New_York','România/China/General'],['en-US','America/New_York','România/China/General'],['en-GB','Europe/London','România/China/General']]){
+  const [c,q]=await ctx(loc,{timezoneId:tz});await q.goto(B+'?demo=1#/new?cat=doc');await q.waitForTimeout(400);await q.goto(B+'#/new?cat=doc');await q.reload();await q.waitForTimeout(300);
+  const g=(await q.$$eval('.tpl-grp',e=>e.map(x=>x.textContent))).map(x=>({'中国':'China','罗马尼亚':'România','通用':'General','Romania':'România'}[x]||x));t(g.join('/')===exp,`R8-2 ${loc} ${tz} → ${g.join('/')}（应 ${exp}）`);
+  if(loc==='en-US'&&tz==='America/New_York'){await q.goto(B+'#/settings');await q.waitForTimeout(300);await q.selectOption('#region','cn');await q.goto(B+'#/new?cat=doc');await q.waitForTimeout(300);
+   const g3=(await q.$$eval('.tpl-grp',e=>e.map(x=>x.textContent)));t(g3.length===0||!g3.some(x=>/Rom/.test(x)),'R8-2 设置里手动改地区生效 '+g3);}
+  await c.close();}
+ for(const [loc,re] of [['en-US',/^[A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2}, \d{4}$/],['en-GB',/^[A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4}$/],['en-AU',/^[A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4}$/],['en-IE',/^[A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4}$/]]){
+  const [c,q]=await ctx(loc);await q.goto(B+'?demo=1#/');await q.waitForTimeout(400);const m=(await q.textContent('.micro')).split(' · ')[0].trim();t(re.test(m),`R8-3 ${loc} 首页日期 ${m}`);
+  await q.goto(B+'#/item/d1');await q.waitForTimeout(300);const tx=await q.textContent('#view');t(loc==='en-US'?/[A-Z][a-z]{2} \d{1,2}, \d{4}/.test(tx):/\d{1,2} [A-Z][a-z]{2} \d{4}/.test(tx),`R8-3 ${loc} 详情日期`);await c.close();}
  // 4 中文备份 → en 恢复
  {const [c,q]=await ctx('zh-CN');await q.goto(B+'?demo=1#/settings');await q.waitForTimeout(400);const [d]=await Promise.all([q.waitForEvent('download'),q.click('#bkNow')]);await d.saveAs('/tmp/v17bk.json');const n0=(await q.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')).filter(i=>!i.deletedAt).length));await c.close();
   const [c2,q2]=await ctx('en-US');await q2.goto(B+'#/');await q2.waitForTimeout(400);await q2.evaluate(()=>{localStorage.setItem('dq.settings.v1',JSON.stringify({onboarded:true}));});await q2.goto(B+'#/settings');await q2.reload();await q2.waitForTimeout(300);

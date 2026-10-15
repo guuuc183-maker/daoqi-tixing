@@ -22,7 +22,13 @@ const ci=(k,s=22)=>icon(cat(k).icon||'other',s);
 const curLang=()=>{const l=S.settings().lang;return ['zh','ro','en'].includes(l)?l:detectLang();};
 setLang(curLang());
 // 常用地区：没设置过时按语言给默认值（zh 都显示；ro/en 罗马尼亚 + 通用）
-const regionOf=s=>s.region||(getLang()==='zh'?'all':'ro');
+// 默认地区与界面语言无关：先看 navigator.language 的地区码，再看时区，都判断不了就中罗两组都显示（R8-2）
+const CN_TZ=/^(Asia\/(Shanghai|Chongqing|Chungking|Harbin|Urumqi|Kashgar)|PRC)$/,RO_TZ=/^Europe\/Bucharest$/;
+export function detectRegion(lang=globalThis.navigator?.language,tz=(()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone;}catch{return '';}})()){
+  const rg=(String(lang||'').split(/[-_]/).slice(1).find(x=>/^[a-z]{2}$/i.test(x))||'').toUpperCase();
+  if(rg==='CN')return 'cn';if(rg==='RO')return 'ro';
+  if(CN_TZ.test(tz||''))return 'cn';if(RO_TZ.test(tz||''))return 'ro';return 'all';}
+const regionOf=s=>s.region||detectRegion();
 applyCats(S.settings());
 // 静态外壳（底栏、侧栏品牌、标题）跟随语言
 function chrome(){document.title=t('app.name');const b=document.querySelector('.side-brand');if(b&&b.lastChild&&b.lastChild.nodeType===3)b.lastChild.textContent=t('app.name');
@@ -294,10 +300,10 @@ function detail(id){
     <div><span>${t('ui.detail.5')}</span><b>${INTENSITY[ei].name}<small class="muted"> · ${it.intensitySource==='item'?t('ui.detail.6'):t('ui.detail.7')}</small></b></div>
     <div><span>${t('ui.detail.8')}</span><b>${ei==='strong'?t('ui.detail.9'):plan.length?plan.map(d=>d===0?t('ui.detail.10'):t('ui.dDays',{n:d})).join(' / '):t('ui.detail.12')}</b></div>
     <div><span>${t('ui.detail.13')}</span><b>${it.handledAt?t('ui.detail.14'):nx===undefined?(it.n<0?t('ui.detail.15'):'\u2014'):cnDate(addDays(it.due,-nx))}</b></div>
-    <div><span>${t('ui.detail.16')}</span><b>${t('ui.detail.17',{s:effSoon(it,s)})}<small class="muted"> · ${it.soonSource==='item'?t('ui.detail.6'):t('ui.detail.7')}</small></b></div>
+    <div><span>${t('ui.detail.16')}</span><b>${t('ui.detail.17',{n:effSoon(it,s)})}<small class="muted"> · ${it.soonSource==='item'?t('ui.detail.6'):t('ui.detail.7')}</small></b></div>
     <div><span>${t('ui.detail.18')}</span><b>${it.renewMonths?t('ui.months',{n:+it.renewMonths}):t('ui.detail.20')}</b></div>
-    ${it.prodDate?`<div><span>${t('ui.detail.21')}</span><b>${h(it.prodDate)}${it.shelfDays?` ${t('ui.detail.22',{shelfDays:it.shelfDays})}`:''}</b></div>`:''}
-    ${lead?`<div><span>${t('ui.detail.23')}</span><b>${t('ui.detail.24',{lead:md(addDays(it.due,-lead)),lead2:lead})}</b></div>`:''}
+    ${it.prodDate?`<div><span>${t('ui.detail.21')}</span><b>${h(it.prodDate)}${it.shelfDays?` ${t('ui.detail.22',{n:it.shelfDays})}`:''}</b></div>`:''}
+    ${lead?`<div><span>${t('ui.detail.23')}</span><b>${t('ui.detail.24',{lead:md(addDays(it.due,-lead)),days:t('ui.dDays',{n:lead})})}</b></div>`:''}
     <button class="btn ghost cal-btn" id="ics1">${icon('cal',18)}${t('ui.detail.25')}</button>
   </section>
   ${photoBlock(it.photos)}
@@ -336,7 +342,7 @@ function form(id,q){
   const sugHTML=(typing)=>{const src=catSrc();if(src==='edit')return '';
     if(src==='manual'||src==='tpl')return `<span class="man-tag">${icon('check',14)}${src==='tpl'?t('ui.sugHTML.1'):t('ui.sugHTML.2')}</span>`;
     if(!sug)return '';const two=cands.length>1,applied=auto&&it.cat===sug;
-    return `<span class="inf-tag">${icon('sparkle',14)}${t('ui.sugHTML.3')}</span>${two?cands.map(k=>`<button type="button" class="chip-s ${it.cat===k&&auto?'on':''}" data-sug="${k}">${ci(k,14)}${h(cat(k).name)}</button>`).join(''):''}<span class="inf-hint">${typing&&!applied?`${two?'':`<b>${h(cat(sug).name)}</b> · `}${t('ui.sugHTML.4')}`:`${t('ui.sugHTML.5',{name:INTENSITY[effInt(it,s)].name})} ${it.soonSource==='item'?it.soonDays:catSoon(it.cat,s)} ${t('ui.sugHTML.6')} <u data-chg>${t('ui.sugHTML.7')}</u>`}</span>`;};
+    return `<span class="inf-tag">${icon('sparkle',14)}${t('ui.sugHTML.3')}</span>${two?cands.map(k=>`<button type="button" class="chip-s ${it.cat===k&&auto?'on':''}" data-sug="${k}">${ci(k,14)}${h(cat(k).name)}</button>`).join(''):''}<span class="inf-hint">${typing&&!applied?`${two?'':`<b>${h(cat(sug).name)}</b> · `}${t('ui.sugHTML.4')}`:`${t('ui.sugHTML.5',{name:INTENSITY[effInt(it,s)].name})} ${t('ui.dDays',{n:+(it.soonSource==='item'?it.soonDays:catSoon(it.cat,s))})} ${t('ui.sugHTML.6')} <u data-chg>${t('ui.sugHTML.7')}</u>`}</span>`;};
   // 最近 / 常用：跨分类，按使用次数再按最近时间，最多 8 个；没有记录时用默认常用
   const recentHTML=()=>{const u=s.tplUse||{},vis=tp=>CATEGORIES[tp.cat]&&!CATEGORIES[tp.cat].hidden;
     let l=Object.entries(u).sort((a,b)=>b[1].n-a[1].n||String(b[1].at).localeCompare(String(a[1].at))).map(([n])=>TEMPLATES.find(x=>x.id===n||anyLang('tpl.'+x.id).includes(n))).filter(Boolean).filter(vis).slice(0,8),cold=!l.length;
@@ -347,7 +353,7 @@ function form(id,q){
     view.innerHTML=`${top(ex?t('form.title.edit'):it.rebuyFrom?t('ui.detail.4'):t('form.title.new'),{back:true,right:`<button class="btn sm primary" id="saveTop">${t('form.save')}</button>`})}
     ${ex?'':recentHTML()}
     ${ex?'':`<div class="micro pad">${t('form.allCats')}</div><div class="chips">${visibleCats().map(([k,c])=>`<button data-cat="${k}" class="${it.cat===k&&catSrc()!=='none'?'on':''}">${ci(k,16)}${h(c.name)}</button>`).join('')}</div>
-    ${(()=>{const ts=tplFor(it.cat,regionOf(s)),grp=['cn','ro',undefined].map(r=>[r,ts.filter(tp=>tp.region===r)]).filter(([,l])=>l.length),multi=grp.filter(([r])=>r).length>1||(grp.length>1);
+    ${(()=>{const ts=tplFor(it.cat,regionOf(s)),grp=['ro','cn',undefined].map(r=>[r,ts.filter(tp=>tp.region===r)]).filter(([,l])=>l.length),multi=grp.filter(([r])=>r).length>1||(grp.length>1);
       return `<div class="chips tpl ${ts.length<=8?'wrap':''}">${grp.map(([r,l])=>`${multi?`<span class="tpl-grp">${t('region.'+(r||'any'))}</span>`:''}${l.map(tp=>`<button data-tpl="${tp.id}" class="${it.name===tp.name?'on':''}">${ci(tp.cat,16)}${h(tp.name)}</button>`).join('')}`).join('')}</div>`;})()}`}
     <form class="card form" id="f" novalidate>
       <label>${t('form.name')}<input name="name" maxlength="60" required value="${h(it.name)}" placeholder="${t('form.name.ph')}" enterkeyhint="done"></label>
@@ -369,7 +375,7 @@ function form(id,q){
       ${ei==='custom'?`<div class="chips wrap">${[90,60,30,14,7,3,1,0].map(d=>`<button type="button" data-cd="${d}" class="${(it.customDays||[]).includes(d)?'on':''}">${d?t('ui.dDays',{n:d}):t('ui.detail.10')}</button>`).join('')}</div>`:''}
       <div class="lbl">${t('form.soon')}</div>
       <div class="seg soon-seg"><button type="button" data-ss="cat" class="${it.soonSource!=='item'?'on':''}">${t('form.soon.follow',{n:catSoon(it.cat,s)})}</button><button type="button" data-ss="item" class="${it.soonSource==='item'?'on':''}">${t('form.soon.own')}</button></div>
-      ${it.soonSource==='item'?`<label class="inline-n">${t('ui.draw.14')} <input name="soonDays" type="number" min="0" max="3650" value="${h(it.soonDays??'')}" required> ${t('ui.draw.15')}</label>`:''}
+      ${it.soonSource==='item'?`<label class="inline-n">${t('ui.draw.14')} <input name="soonDays" type="number" min="0" max="3650" value="${h(it.soonDays??'')}" required> ${t('ui.draw.15',{n:+it.soonDays||0})}</label>`:''}
       <div class="two"><label>${t('form.renew')}<input name="renewMonths" type="number" min="0" value="${it.renewMonths??''}" placeholder="${t('form.renew.ph')}"></label>
       <label>${t('ui.draw.16')}<input name="qty" type="number" min="0" value="${it.qty??''}" placeholder="${t('ui.draw.17')}"></label></div>
       ${photoBlock(it.photos,true)}
@@ -460,7 +466,7 @@ function settings(){
   view.innerHTML=`${top(t('ui.settings.1'))}
   ${importState?importPreview():''}
   <div class="micro pad">${t('set.safety.title')}</div><section class="card safe-card">${(()=>{const b=backupState(s),on=+(s.backupEvery??14)>0,ev=+(s.backupEvery||s.backupEveryLast||14),over=b.last&&b.days>=ev;
-   const pill=!b.last?'<span class="st-pill warn">'+t('ui.settings.2')+'</span>':over&&on?`<span class="st-pill warn">${t('ui.settings.3',{days:b.days})}</span>`:`<span class="st-pill ok">${t('ui.settings.4')} ${b.days?t('when.days',{n:b.days}):t('when.today')}</span>`;
+   const pill=!b.last?'<span class="st-pill warn">'+t('ui.settings.2')+'</span>':over&&on?`<span class="st-pill warn">${t('ui.settings.3',{n:b.days})}</span>`:`<span class="st-pill ok">${t('ui.settings.4')} ${b.days?t('when.days',{n:b.days}):t('when.today')}</span>`;
    const lt=b.last?(()=>{const d=new Date(b.last);return `${fmtMD(fmt(d))} ${fmtTime(d)} · ${b.days?t('when.days',{n:b.days}):t('when.today')}`;})():t('ui.settings.5');
    const when=!b.last?t('set.safety.never'):t('set.safety.last',{when:b.days===0?t('when.today'):b.days===1?t('when.yesterday'):t('when.days',{n:b.days})});
    return `<div class="sec-head"><span class="ic" style="--c:var(--text2)">${icon('box',20)}</span><b>${when}</b>${pill}</div>
@@ -470,13 +476,13 @@ function settings(){
    <div class="stat3" id="stat3"><div><span class="num" id="dsN">${n}</span><small>${t('ui.settings.6')}</small></div><div><span class="num" id="dsP">${S.raw().reduce((a,i)=>a+(i.photos||[]).length,0)}</span><small>${t('ui.viewer.1')}</small></div><div id="dsSRow" hidden><span class="num" id="dsS"></span><small>${t('ui.settings.7')}</small></div></div>
    <div class="kv"><div><span>${t('ui.settings.8')}</span><b id="dsL">${lt}</b></div>
    <div><span>${t('ui.settings.9')}</span><label class="sw ${on?'on':''}"><input type="checkbox" role="switch" id="bkOn" ${on?'checked':''} aria-label="${t('ui.settings.9')}"></label></div></div>
-   <div class="lbl ${on?'':'dim-l'}" style="margin-top:12px">${t('ui.settings.10')}</div><div class="seg ${on?'':'dim'}" id="bkSeg">${[7,14,30].map(d=>`<button data-bke="${d}" class="${ev===d?'on':''}">${t('ui.settings.11',{d})}</button>`).join('')}</div>
+   <div class="lbl ${on?'':'dim-l'}" style="margin-top:12px">${t('ui.settings.10')}</div><div class="seg ${on?'':'dim'}" id="bkSeg">${[7,14,30].map(d=>`<button data-bke="${d}" class="${ev===d?'on':''}">${t('ui.settings.11',{n:d})}</button>`).join('')}</div>
    <p class="hint">${t('ui.settings.12',{todayStr:todayStr()})}</p>`;})()}</section>
   <div class="micro pad">${t('ui.settings.13')}</div><section class="card"><div class="seg">${[['auto',t('ui.settings.14')],['light',t('ui.settings.15')],['dark',t('ui.settings.16')]].map(([k,v])=>`<button data-theme="${k}" class="${(s.theme||'auto')===k?'on':''}">${v}</button>`).join('')}</div></section>
   <div class="micro pad">${t('lang.group')}</div><section class="card lang-card"><div class="lang-head"><span class="gl">${icon('globe',18)}</span><b>${t('lang.title')}</b></div>
    <div class="lang-seg" role="radiogroup" aria-label="${t('lang.group')}">${LANGS.map(([k,n])=>`<button role="radio" aria-checked="${getLang()===k}" data-lang="${k}" lang="${k}" class="${getLang()===k?'on':''}"><b>${n}</b><small>${k.toUpperCase()}</small></button>`).join('')}</div>
    <p class="lang-hint">${t('lang.hint')}</p></section>
-  <div class="micro pad">${t('ui.settings.17')}</div><section class="card"><div class="lbl" style="margin-bottom:8px">${t('set.soonGlobal')}</div><div class="seg">${[7,14,30,60].map(d=>`<button data-soon="${d}" class="${globalSoon(s)==d?'on':''}">${t('ui.settings.11',{d})}</button>`).join('')}</div>
+  <div class="micro pad">${t('ui.settings.17')}</div><section class="card"><div class="lbl" style="margin-bottom:8px">${t('set.soonGlobal')}</div><div class="seg">${[7,14,30,60].map(d=>`<button data-soon="${d}" class="${globalSoon(s)==d?'on':''}">${t('ui.settings.11',{n:d})}</button>`).join('')}</div>
 
    ${badgeOK?`<div class="kv"><div><span>${t('ui.settings.18')}</span><b><button class="btn sm" id="badge">${s.badge?t('ui.settings.19'):t('ui.settings.20')}</button></b></div></div>`:''}
    <p class="small muted">${t('ui.settings.21')}</p>
@@ -532,16 +538,16 @@ function settings(){
 // 分类规则二级页：每个分类的快到期天数 + 默认提醒强度
 function catRules(){const s=st(),nItem=k=>S.all().filter(i=>i.cat===k&&inferSource(i,s).intensitySource==='item').length;
   view.innerHTML=`${top(t('ui.settings.28'),{back:true})}
-  <section class="card list set-list sum">${Object.entries(CATEGORIES).map(([k,c])=>`<div class="set-row"><span class="il" style="color:${c.color}">${ci(k,18)}</span><span class="grow">${t('ui.catRules.1',{name:h(c.name),s:catSoon(k,s),name2:INTENSITY[catDefault(k,s)].name})}</span></div>`).join('')}</section>
+  <section class="card list set-list sum">${Object.entries(CATEGORIES).map(([k,c])=>`<div class="set-row"><span class="il" style="color:${c.color}">${ci(k,18)}</span><span class="grow">${t('ui.catRules.1',{name:h(c.name),days:t('ui.dDays',{n:+catSoon(k,s)}),name2:INTENSITY[catDefault(k,s)].name})}</span></div>`).join('')}</section>
   <div class="micro pad">${t('ui.catRules.2')}</div><section class="card kv rules">${Object.entries(CATEGORIES).map(([k,c])=>{const v=(s.catSoon||{})[k],def=c.soon;
     return `<div><span class="il" style="color:${c.color}">${ci(k,18)}<em>${h(c.name)}</em></span><select data-cs="${k}" aria-label="${t('ui.catRules.3',{name:h(c.name)})}">
     <option value="" ${v==null?'selected':''}>${t('ui.catRules.4')} ${def!=null?def:globalSoon(s)} ${t('ui.row.4')}</option>
-    ${def!=null?`<option value="g" ${v==='g'?'selected':''}>${t('ui.catRules.5',{s:globalSoon(s)})}</option>`:''}
-    ${[1,3,7,14,30,60,90,180].map(d=>`<option value="${d}" ${v===d?'selected':''}>${t('ui.settings.11',{d})}</option>`).join('')}</select></div>`;}).join('')}</section>
+    ${def!=null?`<option value="g" ${v==='g'?'selected':''}>${t('ui.catRules.5',{days:t('ui.dDays',{n:+globalSoon(s)})})}</option>`:''}
+    ${[1,3,7,14,30,60,90,180].map(d=>`<option value="${d}" ${v===d?'selected':''}>${t('ui.settings.11',{n:d})}</option>`).join('')}</select></div>`;}).join('')}</section>
   <div class="micro pad">${t('ui.catRules.6')}</div><section class="card kv rules">${Object.entries(CATEGORIES).map(([k,c])=>`<div><span class="il" style="color:${c.color}">${ci(k,18)}<em>${h(c.name)}</em></span>
    <span class="ci-r">${nItem(k)?`<a href="#" data-over="${k}" class="small">${t('ui.catRules.7',{k:nItem(k)})}</a>`:''}<select data-ci="${k}">${Object.entries(INTENSITY).filter(([x])=>x!=='custom').map(([x,v])=>`<option value="${x}" ${catDefault(k,s)===x?'selected':''}>${v.name}</option>`).join('')}</select></span></div>`).join('')}</section>`;
   view.querySelectorAll('[data-cs]').forEach(x=>x.onchange=()=>{s.catSoon=s.catSoon||{};const v=x.value;if(v==='')delete s.catSoon[x.dataset.cs];else s.catSoon[x.dataset.cs]=v==='g'?'g':+v;
-    S.saveSettings(s);toast(`${t('ui.catRules.8',{name:h(cat(x.dataset.cs).name),s:catSoon(x.dataset.cs,s)})}`);});
+    S.saveSettings(s);toast(`${t('ui.catRules.8',{name:h(cat(x.dataset.cs).name),days:t('ui.dDays',{n:+catSoon(x.dataset.cs,s)})})}`);});
   view.querySelectorAll('[data-soon]').forEach(b=>b.onclick=()=>{s.soonDays=+b.dataset.soon;S.saveSettings(s);catRules();});
   view.querySelectorAll('[data-ci]').forEach(x=>x.onchange=()=>{const old=S.all().map(i=>inferSource(i,st()));s.catIntensity[x.dataset.ci]=x.value;S.saveSettings(s);
     // 先固化旧数据的来源，避免改默认后被误判
@@ -625,7 +631,7 @@ function seed(){const tp=todayStr(),D=n=>addDays(tp,n);
 // 引导页：最多 3 屏，可跳过，只自动显示一次
 const isIOS=()=>/iPhone|iPad|iPod/.test(navigator.userAgent)&&!navigator.standalone;
 // 引导里的强度说明由 INTENSITY.days 生成，避免与数据不同步
-export function obNote(lv){const d=INTENSITY[lv].days;return t('ob.lvl.'+lv,{d:Math.max(...d),n:d.length});}
+export function obNote(lv){const d=INTENSITY[lv].days;return t('ob.lvl.'+lv,{days:t('ui.dDays',{n:Math.max(...d)}),n:d.length});}
 // v1.6 引导 1 屏：价值说明 + 三档强度 + 加第一条 / 跳过 / 从备份恢复
 function onboarding(){document.querySelector('.ob')?.remove();const el=document.createElement('div');el.className='ob ob1';el.setAttribute('role','dialog');el.setAttribute('aria-label',t('ui.onboarding.1'));
   el.innerHTML=`<button class="skip" data-ob="skip">${t('ob.skip')}</button>
