@@ -70,7 +70,10 @@ export const isTplName=name=>TEMPLATES.some(x=>anyLang('tpl.'+x.id).includes(nam
 export const PERISHABLE=['food','med','shop','cosm'];
 // 自定义档的分类预设
 export const CUSTOM_PRESET={doc:[14,7,3,1],car:[14,7,3,1]};
-export const catAlias=n=>{for(const k of Object.keys(BUILTIN))if(anyLang('cat.'+k).some(x=>x.toLowerCase()===n.toLowerCase()))return k;return anyLang('cat.billAlias').includes(n)?'bill':null;};
+// 内置分类的历史名称（旧版导出的 CSV/JSON 里可能还在用）：R9-3
+export const OLD_CAT_NAMES={home:['Warranties','Warranty','Garanții','Garanţii','Garantii','Garanție']};
+const builtinNames=k=>[...anyLang('cat.'+k),...(OLD_CAT_NAMES[k]||[])];
+export const catAlias=n=>{const lo=n.toLowerCase();for(const k of Object.keys(BUILTIN))if(builtinNames(k).some(x=>x.toLowerCase()===lo))return k;return anyLang('cat.billAlias').includes(n)?'bill':null;};
 
 // ===== 分类注册表：内置 + 自定义（存在 settings.cats），所有模块共用同一个对象 =====
 export const ICON_SET=['doc','car','food','med','cosm','daily','shop','bill','home','other','box','bell','cal','hourglass','sparkle','gear','tabCats','check','renew'];
@@ -112,6 +115,13 @@ export const REGIONS=['cn','ro'];
 // 常用地区过滤：region 为空的是通用模板
 export const tplFor=(cat,region)=>TEMPLATES.filter(t=>t.cat===cat&&(!region||region==='all'||!t.region||t.region===region));
 
+// R9-4：自建分类和某个内置分类（任一语言、含旧名）同名时改名，条目不动（id 不变）
+export function renameDupCustom(st,fmt=n=>n+' 2'){const c=st&&st.cats,list=Array.isArray(c?.custom)?c.custom:[];
+  const taken=new Set([...Object.keys(BUILTIN).flatMap(builtinNames),...list.map(d=>String(d?.name||''))].map(x=>x.normalize('NFKC').trim().toLowerCase()));
+  const clash=d=>d&&Object.keys(BUILTIN).some(k=>builtinNames(k).some(x=>x.toLowerCase()===String(d.name||'').normalize('NFKC').trim().toLowerCase()));
+  if(!list.some(clash))return {st,changed:false,renamed:[]};const renamed=[];
+  const custom=list.map(d=>{if(!clash(d))return d;let nm=fmt(d.name).slice(0,20),i=2;while(taken.has(nm.toLowerCase())){i++;nm=(d.name+' '+i).slice(0,20);}taken.add(nm.toLowerCase());renamed.push([d.name,nm]);return {...d,name:nm};});
+  return {st:{...st,cats:{...c,custom}},changed:true,renamed};}
 // 老用户自建的同名分类（如「日用品」）并入新内置分类：条目、阈值、强度、排序、学习记录都转过去。纯函数，便于测试
 export function mergeIntoBuiltin(st,items,id='daily'){const names=anyLang('cat.'+id),c=st&&st.cats,list=Array.isArray(c?.custom)?c.custom:[];
   const dup=list.filter(d=>d&&names.includes(String(d.name||'').normalize('NFKC').trim()));if(!dup.length)return {st,items,changed:false};

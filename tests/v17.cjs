@@ -49,6 +49,19 @@ const CJK=/[\u3000-\u303f\u4e00-\u9fff\uff00-\uffef]/;
  for(const [loc,re] of [['en-US',/^[A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2}, \d{4}$/],['en-GB',/^[A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4}$/],['en-AU',/^[A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4}$/],['en-IE',/^[A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4}$/]]){
   const [c,q]=await ctx(loc);await q.goto(B+'?demo=1#/');await q.waitForTimeout(400);const m=(await q.textContent('.micro')).split(' · ')[0].trim();t(re.test(m),`R8-3 ${loc} 首页日期 ${m}`);
   await q.goto(B+'#/item/d1');await q.waitForTimeout(300);const tx=await q.textContent('#view');t(loc==='en-US'?/[A-Z][a-z]{2} \d{1,2}, \d{4}/.test(tx):/\d{1,2} [A-Z][a-z]{2} \d{4}/.test(tx),`R8-3 ${loc} 详情日期`);await c.close();}
+ // round9：R9-4 升级时自建「Home」改名、条目不变；R9-1 规则页复数；R9-2 强度说明
+ {const [c,q]=await ctx('en-US');await q.goto(B+'?demo=1#/');await q.waitForTimeout(400);await q.goto(B+'#/');await q.reload();await q.waitForTimeout(400);
+  await q.evaluate(()=>{const s=JSON.parse(localStorage.getItem('dq.settings.v1'));s.cats={...(s.cats||{}),custom:[{id:'c_myhome',name:'Home',icon:'home',color:'#D94545'}]};localStorage.setItem('dq.settings.v1',JSON.stringify(s));
+   const l=JSON.parse(localStorage.getItem('dq.items.v2'));l[0].cat='c_myhome';localStorage.setItem('dq.items.v2',JSON.stringify(l));});
+  const SNAP=()=>q.evaluate(()=>JSON.stringify(JSON.parse(localStorage.getItem('dq.items.v2')).map(i=>Object.keys(i).sort().reduce((o,k)=>(o[k]=i[k],o),{}))));const before=await SNAP();await q.reload();await q.waitForTimeout(500);
+  t(await SNAP()===before&&before.includes('"cat":"c_myhome"'),'R9-4 升级后条目不变（仍在 c_myhome）');
+  const nm=await q.evaluate(()=>JSON.parse(localStorage.getItem('dq.settings.v1')).cats.custom.find(c=>c.id==='c_myhome')?.name);t(nm&&nm!=='Home','R9-4 自建 Home 改名为 '+nm);
+  await q.goto(B+'#/catmgr');await q.waitForTimeout(300);const names=await q.$$eval('.cm-row',e=>e.map(x=>x.querySelector('b')?.textContent.trim()||x.textContent.trim()));t(names.filter(x=>/^Home$/i.test(x)).length<=1,'R9-4 分类管理没有两个 Home '+names.join('|'));
+  await q.reload();await q.waitForTimeout(400);t(await q.evaluate(()=>JSON.parse(localStorage.getItem('dq.settings.v1')).cats.custom.find(c=>c.id==='c_myhome')?.name)===nm,'R9-4 再次启动不重复改名');
+  await c.close();}
+ for(const [loc,exp] of [['ro-RO','30 de zile'],['en-US','30 days']]){const [c,q]=await ctx(loc);await q.goto(B+'?demo=1#/catrules');await q.waitForTimeout(400);
+  const opts=(await q.$$eval('select option',e=>e.map(x=>x.textContent))).map(x=>x.replace(/\u00a0/g,' '));t(opts.some(x=>x.endsWith(exp))&&!opts.some(x=>/\b30 zile\b|\b1 days\b/.test(x)),`R9-1 ${loc} 规则页 ${exp}`);
+  await q.goto(B+'#/new');await q.waitForTimeout(300);const tx=(await q.textContent('#view')).replace(/\u00a0/g,' ');t(!/\b1 zile\b|\b1 days\b/.test(tx),`R9-2 ${loc} 新增页无「1 zile/1 days」`);await c.close();}
  // 4 中文备份 → en 恢复
  {const [c,q]=await ctx('zh-CN');await q.goto(B+'?demo=1#/settings');await q.waitForTimeout(400);const [d]=await Promise.all([q.waitForEvent('download'),q.click('#bkNow')]);await d.saveAs('/tmp/v17bk.json');const n0=(await q.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')).filter(i=>!i.deletedAt).length));await c.close();
   const [c2,q2]=await ctx('en-US');await q2.goto(B+'#/');await q2.waitForTimeout(400);await q2.evaluate(()=>{localStorage.setItem('dq.settings.v1',JSON.stringify({onboarded:true}));});await q2.goto(B+'#/settings');await q2.reload();await q2.waitForTimeout(300);

@@ -229,7 +229,7 @@ export const ro={
  "int.light": "Discret",
  "intDesc.light": "O dată, cu 7 zile înainte",
  "int.standard": "Normal",
- "intDesc.standard": "Cu 30 / 7 / 1 zile înainte",
+ "intDesc.standard": "Cu 30, 7 și 1 zi înainte",
  "int.strong": "Insistent",
  "intDesc.strong": "De la 60 de zile, tot mai des; zilnic în ultima săptămână, până apeși „Gata”",
  "int.custom": "Personalizat",
@@ -559,5 +559,6 @@ export const ro={
  "tplDocs.roHealthCard": "Actul de identitate, dovada de asigurat",
  "tpl.bankCard": "Card bancar",
  "tplDocs.bankCard": "Actul de identitate, contactează banca emitentă",
- "form.catLbl": "Categorie"
+ "form.catLbl": "Categorie",
+ "cat.dupRename": "{name} (al meu)"
 };

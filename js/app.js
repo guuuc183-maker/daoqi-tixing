@@ -1,7 +1,7 @@
 import * as S from './store.js';
 import {VERSION} from './version.js';
 import {t,setLang,getLang,detectLang,LANGS,anyLang,fmtDay,fmtDate,fmtMD,fmtTime,fmtMonth,weekdays,weekStart,fmtNum} from './i18n/i18n.js';
-import {CATEGORIES,TEMPLATES,INTENSITY,findTpl,PERISHABLE,CUSTOM_PRESET,applyCats,visibleCats,ICON_SET,COLORS,inferTop2,normName,tplFor,REGIONS,mergeIntoBuiltin,isTplName} from './templates.js';
+import {CATEGORIES,TEMPLATES,INTENSITY,findTpl,PERISHABLE,CUSTOM_PRESET,applyCats,visibleCats,ICON_SET,COLORS,inferTop2,normName,tplFor,REGIONS,mergeIntoBuiltin,renameDupCustom,isTplName} from './templates.js';
 // 默认分类：上次保存的分类 > 条目最多的分类 > 食品
 const defaultCat=s=>{if(CATEGORIES[s.lastCat]&&!CATEGORIES[s.lastCat].hidden)return s.lastCat;const c={};for(const i of S.all())if(CATEGORIES[i.cat]&&!CATEGORIES[i.cat].hidden)c[i.cat]=(c[i.cat]||0)+1;const top=Object.entries(c).sort((a,b)=>b[1]-a[1])[0];return top?top[0]:'food';};
 import {daysLeft,label,todayStr,addDays,addMonths,fmt,nice,valid,parseInput,parse} from './dates.js';
@@ -35,6 +35,8 @@ function chrome(){document.title=t('app.name');const b=document.querySelector('.
   document.querySelectorAll('[data-tab]').forEach(a=>{const sp=a.querySelector('span');if(sp)sp.textContent=t('tab.'+(a.dataset.tab==='settings'?'me':a.dataset.tab));});}
 // v1.2：自建的「日用品」并入内置 daily
 {const m=mergeIntoBuiltin(S.settings(),JSON.parse(localStorage.getItem('dq.items.v2')||'[]'));if(m.changed){S.snapshot();localStorage.setItem('dq.items.v2',JSON.stringify(m.items));S.saveSettings(m.st);setTimeout(()=>toast(t('cat.mergeToast'),true),600);}}
+// v1.7.2：自建「Home」等与内置同名的分类改名（条目不动）
+{const r=renameDupCustom(S.settings(),n=>t('cat.dupRename',{name:n}));if(r.changed){S.saveSettings(r.st);}}
 
 function applyTheme(){const tp=st().theme;if(tp&&tp!=='auto')document.documentElement.dataset.theme=tp;else delete document.documentElement.dataset.theme;}
 // 通用 toast / 撤销条（5 秒）
@@ -288,7 +290,7 @@ function detail(id){
   <section class="card big-cd ${it.st}">
     <span class="tile-ic lg" style="--c:${c.color}">${ci(it.cat,34)}</span>
     <h2>${h(it.name)}</h2><div class="muted small">${h(c.name)}${it.qty?` ${t('ui.row.1',{qty:it.qty})}`:''}${it.location?` · ${h(it.location)}`:''}</div>
-    <div class="cd-num num"><span data-count="${Math.abs(it.n)}">${Math.abs(it.n)}</span><small>${t('ui.row.4')}</small></div>
+    <div class="cd-num num"><span data-count="${Math.abs(it.n)}">${Math.abs(it.n)}</span><small>${t('ui.row.4',{n:Math.abs(it.n)})}</small></div>
     <div class="pill ${it.st}">${it.n<0?t('ui.detail.1'):it.n===0?t('row.today'):t('ui.detail.2')} · ${ST[it.st]}</div>
     <div class="muted small">${nice(it.due)}</div>
     ${it.history?.length?`<div class="milestone">${icon('check',16)}${t('ui.detail.3',{n:it.history.length})}</div>`:''}
@@ -541,7 +543,7 @@ function catRules(){const s=st(),nItem=k=>S.all().filter(i=>i.cat===k&&inferSour
   <section class="card list set-list sum">${Object.entries(CATEGORIES).map(([k,c])=>`<div class="set-row"><span class="il" style="color:${c.color}">${ci(k,18)}</span><span class="grow">${t('ui.catRules.1',{name:h(c.name),days:t('ui.dDays',{n:+catSoon(k,s)}),name2:INTENSITY[catDefault(k,s)].name})}</span></div>`).join('')}</section>
   <div class="micro pad">${t('ui.catRules.2')}</div><section class="card kv rules">${Object.entries(CATEGORIES).map(([k,c])=>{const v=(s.catSoon||{})[k],def=c.soon;
     return `<div><span class="il" style="color:${c.color}">${ci(k,18)}<em>${h(c.name)}</em></span><select data-cs="${k}" aria-label="${t('ui.catRules.3',{name:h(c.name)})}">
-    <option value="" ${v==null?'selected':''}>${t('ui.catRules.4')} ${def!=null?def:globalSoon(s)} ${t('ui.row.4')}</option>
+    <option value="" ${v==null?'selected':''}>${t('ui.catRules.4')} ${t('ui.dDays',{n:+(def!=null?def:globalSoon(s))})}</option>
     ${def!=null?`<option value="g" ${v==='g'?'selected':''}>${t('ui.catRules.5',{days:t('ui.dDays',{n:+globalSoon(s)})})}</option>`:''}
     ${[1,3,7,14,30,60,90,180].map(d=>`<option value="${d}" ${v===d?'selected':''}>${t('ui.settings.11',{n:d})}</option>`).join('')}</select></div>`;}).join('')}</section>
   <div class="micro pad">${t('ui.catRules.6')}</div><section class="card kv rules">${Object.entries(CATEGORIES).map(([k,c])=>`<div><span class="il" style="color:${c.color}">${ci(k,18)}<em>${h(c.name)}</em></span>

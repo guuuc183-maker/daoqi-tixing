@@ -229,7 +229,7 @@ export const en={
  "int.light": "Light",
  "intDesc.light": "Once, 7 days before",
  "int.standard": "Standard",
- "intDesc.standard": "30 / 7 / 1 days before",
+ "intDesc.standard": "30, 7 and 1 day before",
  "int.strong": "Strong",
  "intDesc.strong": "From 60 days, more and more often; daily in the last week until you tap Done",
  "int.custom": "Custom",
@@ -559,5 +559,6 @@ export const en={
  "tplDocs.roHealthCard": "ID document, proof of insured status",
  "tpl.bankCard": "Bank card",
  "tplDocs.bankCard": "ID document, contact the issuing bank",
- "form.catLbl": "Category"
+ "form.catLbl": "Category",
+ "cat.dupRename": "{name} (mine)"
 };

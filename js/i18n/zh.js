@@ -559,5 +559,6 @@ export const zh={
  "tplDocs.roHealthCard": "身份证件、医保缴费证明",
  "tpl.bankCard": "银行卡",
  "tplDocs.bankCard": "身份证件，联系发卡银行",
- "form.catLbl": "分类"
+ "form.catLbl": "分类",
+ "cat.dupRename": "{name}（我的）"
 };
