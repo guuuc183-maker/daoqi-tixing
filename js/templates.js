@@ -74,8 +74,10 @@ for(const x of TEMPLATES)Object.defineProperties(x,{name:{get(){return t('tpl.'+
 // 提醒强度（与 MAO 确认的需求一致）
 export const INTENSITY={light:{days:[7]},standard:{days:[30,7,1]},strong:{days:[60,45,30,21,14,10,7,6,5,4,3,2,1,0]},custom:{days:null}};
 for(const [k,v] of Object.entries(INTENSITY))Object.defineProperties(v,{name:{get:()=>t('int.'+k)},desc:{get:()=>t('intDesc.'+k)}});
+// R13-2：比较时日文中点 ・(U+30FB)/･(U+FF65) 视同 ·(U+00B7)；存储不变
+const DOT=/[\u30fb\uff65]/g;
 // R12-3：名称原样保存，只在比较时做 NFKC
-const nk=x=>String(x??'').normalize('NFKC').trim();const inL=(k,name)=>{const n=nk(name);return anyLang(k).some(v=>nk(v)===n);};
+const nk=x=>String(x??'').normalize('NFKC').replace(DOT,'\u00b7').trim();const inL=(k,name)=>{const n=nk(name);return anyLang(k).some(v=>nk(v)===n);};
 export const findTpl=(cat,name)=>TEMPLATES.find(x=>x.cat===cat&&(inL('tpl.'+x.id,name)||inL('tplOld.'+x.id,name)));
 export const isTplName=name=>TEMPLATES.some(x=>inL('tpl.'+x.id,name));
 // 有保质期概念的分类（显示 生产日期+保质期、再买一次）
@@ -86,7 +88,7 @@ export const CUSTOM_PRESET={doc:[14,7,3,1],car:[14,7,3,1]};
 export const OLD_CAT_NAMES={home:['Warranties','Warranty','Garanții','Garanţii','Garantii','Garanție']};
 const builtinNames=k=>[...anyLang('cat.'+k),...(OLD_CAT_NAMES[k]||[])];
 // 名称比较：NFKC、去首尾空格、大小写、变音和 cedilla 都折叠（R10-1）
-const nameKey=x=>String(x??'').normalize('NFKC').toLowerCase().normalize('NFD').replace(/\p{M}/gu,'').replace(/ş/g,'s').replace(/ţ/g,'t').replace(/\s+/g,' ').trim();
+const nameKey=x=>String(x??'').normalize('NFKC').replace(DOT,'\u00b7').toLowerCase().normalize('NFD').replace(/\p{M}/gu,'').replace(/ş/g,'s').replace(/ţ/g,'t').replace(/\s+/g,' ').trim();
 export const catAlias=n=>{const lo=nameKey(n);if(!lo)return null;for(const k of Object.keys(BUILTIN))if(builtinNames(k).some(x=>nameKey(x)===lo))return k;return anyLang('cat.billAlias').includes(n)?'bill':null;};
 
 // ===== 分类注册表：内置 + 自定义（存在 settings.cats），所有模块共用同一个对象 =====
@@ -108,7 +110,7 @@ export function catIdByName(n){n=String(n??'').normalize('NFKC').trim();if(!n)re
 
 // 名称推断分类：词典来自 js/cat-dict.js（由 tools/build-dict.mjs 从分类词典 JSON 生成）
 import {KEYWORDS,PRIORITY,WEAK as WEAK_LIST} from './cat-dict.js';
-export const normName=s=>String(s??'').normalize('NFKC').toLowerCase().normalize('NFD').replace(/\p{M}/gu,'').replace(/ş/g,'s').replace(/ţ/g,'t').replace(/\s+/g,' ').trim();
+export const normName=s=>String(s??'').normalize('NFKC').replace(DOT,'\u00b7').toLowerCase().normalize('NFD').replace(/\p{M}/gu,'').replace(/ş/g,'s').replace(/ţ/g,'t').replace(/\s+/g,' ').trim();
 const WEAKS=new Set(WEAK_LIST);
 let KW=null;const kw=()=>KW||(KW=Object.entries(KEYWORDS).flatMap(([k,ws])=>ws.map(w=>{const n=normName(w);return {k,n,whole:/^[a-z0-9]{1,4}$/.test(n),weak:WEAKS.has(n),re:/^[a-z0-9]{1,4}$/.test(n)?new RegExp(`(^|[^a-z0-9])${n}([^a-z0-9]|$)`):null};})));
 // 返回排好序的候选 [{cat,len,exact,weak}]；learn 为本地学习的「名称→分类」

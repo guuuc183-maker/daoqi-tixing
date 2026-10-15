@@ -1,5 +1,6 @@
 import * as S from './store.js';
 import {VERSION} from './version.js';
+import './fontfit.js';
 import {t,setLang,getLang,detectLang,LANGS,anyLang,fmtDay,fmtDate,fmtMD,fmtTime,fmtMonth,weekdays,weekStart,fmtNum} from './i18n/i18n.js';
 import {CATEGORIES,TEMPLATES,INTENSITY,findTpl,PERISHABLE,CUSTOM_PRESET,applyCats,visibleCats,ICON_SET,COLORS,inferTop2,normName,tplFor,REGIONS,mergeIntoBuiltin,renameDupCustom,isTplName,catAlias} from './templates.js';
 // 默认分类：上次保存的分类 > 条目最多的分类 > 食品
