@@ -560,5 +560,5 @@ export const ro={
  "tpl.bankCard": "Card bancar",
  "tplDocs.bankCard": "Actul de identitate, contactează banca emitentă",
  "form.catLbl": "Categorie",
- "cat.dupRename": "{name} (al meu)"
+ "cat.dupRename": "{name} (a mea)"
 };
