@@ -27,7 +27,7 @@ export function parseCSV(text){const r=rows(text);const res={items:[],errors:[]}
 export function newCatName(c){if(c==null)return null;const n=String(c).normalize('NFKC').trim().slice(0,20);return n&&!catIdByName(n)&&!CUSTOM_ID.test(n)?n:null;}
 export function parseJSON(text){const d=JSON.parse(text);const res={items:[],errors:[],photos:d&&typeof d==='object'&&!Array.isArray(d)&&d.photos&&typeof d.photos==='object'?d.photos:null};
   (Array.isArray(d)?d:d.items||[]).forEach((o,i)=>{const nc=newCatName(o?.cat);const v=normalize({...o});if(v.error)res.errors.push({row:i+1,reason:v.error});else res.items.push(nc?{row:i+1,item:v,newCat:nc}:{row:i+1,item:v});});
-  res.categories=d&&Array.isArray(d.categories)?d.categories:null;return res;}
-export function toJSON(items,photos,categories){const o={app:'daoqi-tixing',version:3,exportedAt:new Date().toISOString(),items};if(categories?.length)o.categories=categories;if(photos)o.photos=photos;return JSON.stringify(o,null,2);}
+  res.categories=d&&Array.isArray(d.categories)?d.categories:null;res.settings=d&&d.settings&&typeof d.settings==='object'&&!Array.isArray(d.settings)?d.settings:null;return res;}
+export function toJSON(items,photos,categories,settings){const o={app:'daoqi-tixing',version:3,exportedAt:new Date().toISOString(),items};if(categories?.length)o.categories=categories;if(settings)o.settings=settings;if(photos)o.photos=photos;return JSON.stringify(o,null,2);}
 export function normalize(o){return sanitize(o);}
 export function download(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}

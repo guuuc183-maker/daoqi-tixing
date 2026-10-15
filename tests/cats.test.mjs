@@ -25,5 +25,5 @@ t('unknown flagged',r2.items[0].newCat==='水族'&&r2.items[0].item.cat==='other
 t('known alias not flagged',!r2.items[1].newCat);
 const j=JSON.parse(toJSON([],null,st.cats.custom));t('json categories',j.categories.length===3);
 t('json parse categories',parseJSON(JSON.stringify(j)).categories.length===3);
-applyCats({});t('reset',!CATEGORIES.c_pet&&CATEGORIES.doc.name!=='我的证件'&&Object.keys(CATEGORIES).length===9);
+applyCats({});t('reset',!CATEGORIES.c_pet&&CATEGORIES.doc.name!=='我的证件'&&Object.keys(CATEGORIES).length===10);
 console.log(`${p} passed ${f} failed`);if(f)process.exit(1);

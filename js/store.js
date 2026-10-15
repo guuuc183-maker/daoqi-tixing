@@ -25,6 +25,6 @@ export function migrate(){let before;try{before=localStorage.getItem(KEY)}catch{
 // 撤销：操作前保存整份快照，只保留最近 1 步
 let snap=null,snapS=null;export function snapshot(){snap=localStorage.getItem(KEY)||'[]';snapS=localStorage.getItem(SKEY)||'{}';}
 export function undo(){if(snap==null)return false;try{localStorage.setItem(KEY,snap);if(snapS!=null){localStorage.setItem(SKEY,snapS);applyCats(settings());}}catch(e){lastSaveFailed=true;globalThis.dispatchEvent?.(new CustomEvent('dq-storage-error',{detail:e}));return false;}snap=null;return true;}
-const DEF={soonDays:30,catIntensity:{},catSoon:{},badge:false,iosTipClosed:false};
+const DEF={soonDays:30,catIntensity:{},catSoon:{},badge:false,iosTipClosed:false,backupEvery:14,region:'all'};
 export function settings(){try{return Object.assign({},DEF,JSON.parse(localStorage.getItem(SKEY)||'{}'))}catch{return {...DEF}}}
 export function saveSettings(s){applyCats(s);try{localStorage.setItem(SKEY,JSON.stringify(s));return true;}catch(e){lastSaveFailed=true;globalThis.dispatchEvent?.(new CustomEvent('dq-storage-error',{detail:e}));return false;}}

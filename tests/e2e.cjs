@@ -66,8 +66,8 @@ const B='http://localhost:8765/daoqi-tixing/';
  await p.evaluate(()=>{const l=JSON.parse(localStorage.getItem('dq.items.v2'));l.find(x=>x.id==='d2').deletedAt=new Date(Date.now()-31*864e5).toISOString();localStorage.setItem('dq.items.v2',JSON.stringify(l));});
  await go('#/');await p.reload();await p.waitForTimeout(300);t(!(await LS()).find(x=>x.id==='d2'),'31天清理');
  // 备份提示
- await p.evaluate(()=>{const s=JSON.parse(localStorage.getItem('dq.settings.v1'));s.lastExportAt=s.firstUseAt=new Date(Date.now()-31*864e5).toISOString();delete s.backupTipAt;localStorage.setItem('dq.settings.v1',JSON.stringify(s));});
- await p.reload();await p.waitForTimeout(300);t(/建议备份/.test(await p.textContent('#view')),'备份提示');
+ await p.evaluate(()=>{const s=JSON.parse(localStorage.getItem('dq.settings.v1'));s.lastBackupAt=s.lastExportAt=s.firstUseAt=new Date(Date.now()-31*864e5).toISOString();delete s.backupTipAt;localStorage.setItem('dq.settings.v1',JSON.stringify(s));});
+ await p.reload();await p.waitForTimeout(300);t(/一键备份/.test(await p.textContent('#view')),'备份提示');
 
  // ---- round1 回归 ----
  await p.evaluate(()=>{window.__x=0});
@@ -197,10 +197,10 @@ const B='http://localhost:8765/daoqi-tixing/';
  {const c7=await br.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});const q=await c7.newPage();q.on('pageerror',e=>errs.push(e.message));q.on('dialog',d=>{q._dlg=d.message();d.accept();});
   const SS=()=>q.evaluate(()=>JSON.parse(localStorage.getItem('dq.settings.v1')||'{}'));const IT=()=>q.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')));
   await q.goto(B+'?demo=1#/settings');await q.waitForTimeout(400);await q.click('a[href="#/catmgr"]');await q.waitForTimeout(300);
-  t(await q.locator('.cm-row').count()===9,'CM 9个内置');
+  t(await q.locator('.cm-row').count()===10,'CM 10个内置');
   await q.click('#catNew');await q.fill('#cName','宠物<i>');await q.click('[data-ic="home"]');await q.click('[data-col="#D94545"]');await q.click('#cSave');await q.waitForTimeout(300);
   const cid=(await SS()).cats.custom[0].id;t(/^c_/.test(cid)&&(await SS()).cats.custom[0].icon==='home','CM 新建保存');
-  t(await q.locator('.cm-row').count()===10&&await q.locator('.cm-row i').count()===0,'CM 名称已转义');
+  t(await q.locator('.cm-row').count()===11&&await q.locator('.cm-row i').count()===0,'CM 名称已转义');
   await q.click(`.cm-row[data-k="${cid}"]`);await q.click('[data-smv="-1"]');await q.waitForTimeout(200);t((await SS()).cats.order.indexOf(cid)===(await SS()).cats.order.length-3&&(await SS()).cats.order.at(-1)==='other','CM 上移');
   await q.click('.cm-row[data-k="doc"]');await q.fill('#cName','护照证件');await q.click('#cSave');await q.waitForTimeout(200);
   await q.click('.cm-row[data-k="car"]');await q.click('#cHide');await q.waitForTimeout(200);
@@ -236,7 +236,7 @@ const B='http://localhost:8765/daoqi-tixing/';
   await q.goto(B+'#/edit/d3');await q.waitForTimeout(300);await q.click('[data-ss=item]');await q.fill('[name=soonDays]','');await q.click('[data-save]');await q.waitForTimeout(250);
   t(/请填写临期天数/.test(await q.textContent('.toast'))&&/#\/edit/.test(q.url()),'N5 留空被拦');
   // N7
-  await q.goto(B+'#/item/d3');await q.waitForTimeout(300);await q.setInputFiles('.ph.add input:not([capture])',__dirname+'/fixtures-photo.jpg').catch(()=>q.setInputFiles('[data-addph]:not([capture])','/workspace/到期提醒/app/tests/fixtures-photo.jpg'));await q.waitForTimeout(1500);
+  await q.goto(B+'#/item/d3');await q.waitForTimeout(300);await q.setInputFiles('[data-addph]:not([capture])','/workspace/到期提醒/app/tests/fixtures-photo.jpg');await q.waitForTimeout(1500);
   const before=await q.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')).find(x=>x.id==='d3').photos);
   await q.click('[data-view]');await q.waitForTimeout(200);t(await q.locator('.viewer [data-rep]').count()===1,'N7 查看器有替换');
   await q.setInputFiles('.viewer [data-rep] input','/workspace/到期提醒/app/tests/fixtures-photo.jpg');await q.waitForTimeout(1500);
@@ -257,7 +257,7 @@ const B='http://localhost:8765/daoqi-tixing/';
   const pill=await q.textContent('.big-cd .pill');t(!/已过期 · 已过期/.test(pill)&&/已超出 · 已过期/.test(pill),'V3 过期胶囊不重复');
   t(await q.textContent('.cd-num [data-count]')===await q.getAttribute('.cd-num [data-count]','data-count')&&+early<+await q.getAttribute('.cd-num [data-count]','data-count'),'V3 大数字滚动');
   await q.goto(B+'#/catmgr');await q.waitForTimeout(300);
-  t(await q.locator('.cm-row [data-drag]').count()===9&&await q.locator('.cm-row .icon-btn').count()===0,'V3 拖拽手柄、无描边按钮');
+  t(await q.locator('.cm-row [data-drag]').count()===10&&await q.locator('.cm-row .icon-btn').count()===0,'V3 拖拽手柄、无描边按钮');
   t(await q.$eval('.cm-row',e=>e.getBoundingClientRect().height)>=70&&await q.$eval('.cm-row',e=>e.getBoundingClientRect().height)<76,'V3 行高70');
   t(!(await q.$eval('#catNew',e=>e.className)).includes('primary'),'V3 新建小按钮');
   // drag doc to below car
@@ -272,4 +272,113 @@ const B='http://localhost:8765/daoqi-tixing/';
   t(await q.$eval('.tabbar a.on i',e=>getComputedStyle(e,'::after').width)==='4px','V3 tab 小点');
   await q.evaluate(()=>{const s=JSON.parse(localStorage.getItem('dq.settings.v1'));s.cats.hidden=['car'];localStorage.setItem('dq.settings.v1',JSON.stringify(s));});await q.goto(B+'#/catmgr');await q.reload();await q.waitForTimeout(300);
   t(/已隐藏/.test(await q.textContent('.cm-row[data-k="car"]')),'V3 隐藏文字标识');await ca.close();}
+
+ // ---- v1.2 ----
+ {const cb=await br.newContext({viewport:{width:390,height:844},acceptDownloads:true,reducedMotion:'reduce'});const q=await cb.newPage();q.on('pageerror',e=>errs.push(e.message));
+  const SS=()=>q.evaluate(()=>JSON.parse(localStorage.getItem('dq.settings.v1')||'{}'));const setS=o=>q.evaluate(o=>{const s=JSON.parse(localStorage.getItem('dq.settings.v1')||'{}');Object.assign(s,o);for(const k in o)if(o[k]===null)delete s[k];localStorage.setItem('dq.settings.v1',JSON.stringify(s));},o);
+  const reqs=[];q.on('request',r=>reqs.push(r.url()));
+  await q.goto(B+'#/');await q.evaluate(()=>{localStorage.clear();localStorage.setItem('dq.settings.v1',JSON.stringify({onboarded:true}));});
+  const mk=n=>q.evaluate(n=>{const l=JSON.parse(localStorage.getItem('dq.items.v2')||'[]');for(let i=0;i<n;i++)l.push({id:'b'+l.length,name:'条目'+l.length,due:'2027-01-0'+(1+i%9),cat:'other',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});localStorage.setItem('dq.items.v2',JSON.stringify(l));},n);
+  const banner=async()=>{await q.goto(B+'#/');await q.reload();await q.waitForTimeout(300);return q.locator('.bk-bar').count();};
+  await mk(4);t(await banner()===0,'BK 4 条无提醒');await mk(1);t(await banner()===1,'BK 5 条出现提醒');
+  const [d1]=await Promise.all([q.waitForEvent('download'),q.click('#bkgo')]);t(/^到期提醒-备份-\d{8}\.json$/.test(d1.suggestedFilename()),'BK 文件名 '+d1.suggestedFilename());await d1.saveAs('/tmp/bk1.json');
+  t(await banner()===0,'BK 备份后消失');await q.goto(B+'#/settings');await q.waitForTimeout(300);t(/今天/.test(await q.textContent('#dsL')),'BK 设置显示今天');
+  await setS({lastBackupAt:new Date(Date.now()-15*864e5).toISOString()});t(await banner()===1,'BK 15 天前出现');
+  await q.click('#bkx');t(await banner()===0,'BK 稍后隐藏');
+  await setS({backupSnoozeUntil:new Date(Date.now()+864e5*0.5).toISOString()});t(await banner()===0,'BK 3 天内不出现');
+  await setS({backupSnoozeUntil:new Date(Date.now()-1000).toISOString()});t(await banner()===1,'BK 第 4 天出现');
+  await setS({lastBackupAt:new Date(Date.now()-1000).toISOString(),backupSnoozeUntil:null});t(await banner()===0,'BK 刚备份无提醒');
+  await q.waitForTimeout(50);await mk(10);t(await banner()===1,'BK 改动 10 条出现');
+  await setS({backupEvery:0,lastBackupAt:null});t(await banner()===0,'BK 关闭后不出现');
+  // 完整备份往返：demo 数据 + 回收站 + 照片 + 设置
+  await q.evaluate(()=>{localStorage.clear();});await q.goto(B+'?demo=1#/item/d3');await q.waitForTimeout(400);
+  await q.setInputFiles('[data-addph]:not([capture])','/workspace/到期提醒/app/tests/fixtures-photo.jpg');await q.waitForTimeout(1500);
+  await q.goto(B+'#/item/d5');await q.waitForTimeout(300);await q.click('#del');await q.waitForTimeout(300);
+  await setS({theme:'dark',soonDays:14,catSoon:{food:5},region:'cn',cats:{custom:[{id:'c_yj',name:'烟酒',icon:'box',color:'#D94545'}]}});
+  await q.goto(B+'#/settings');await q.reload();await q.waitForTimeout(400);const nP=await q.textContent('#dsP');t(nP==='1','BK 数据安全照片数 '+nP);
+  const [d2]=await Promise.all([q.waitForEvent('download'),q.click('#bkNow')]);await d2.saveAs('/tmp/bk2.json');
+  const src=await q.evaluate(()=>({items:JSON.parse(localStorage.getItem('dq.items.v2')),s:JSON.parse(localStorage.getItem('dq.settings.v1'))}));
+  const j=JSON.parse(require('fs').readFileSync('/tmp/bk2.json','utf8'));t(j.items.length===src.items.length&&Object.keys(j.photos||{}).length===1&&j.settings&&j.categories.length===1,'BK 备份内容完整');
+  const c2=await br.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});const r=await c2.newPage();r.on('pageerror',e=>errs.push(e.message));
+  await r.goto(B+'#/settings');await r.evaluate(()=>localStorage.setItem('dq.settings.v1',JSON.stringify({onboarded:true})));await r.reload();await r.waitForTimeout(300);
+  await r.setInputFiles('#imp','/tmp/bk2.json');await r.waitForTimeout(400);t(/完整备份/.test(await r.textContent('.imp')),'BK 预览识别完整备份');await r.click('#impGo');await r.waitForTimeout(1500);
+  const dst=await r.evaluate(()=>({items:JSON.parse(localStorage.getItem('dq.items.v2')),s:JSON.parse(localStorage.getItem('dq.settings.v1'))}));
+  t(dst.items.length===src.items.length&&dst.items.filter(i=>i.deletedAt).length===src.items.filter(i=>i.deletedAt).length&&dst.items.filter(i=>i.deletedAt).length===1,'BK 恢复条目数和回收站');
+  t(dst.s.theme==='dark'&&dst.s.soonDays===14&&dst.s.catSoon.food===5&&dst.s.region==='cn'&&dst.s.cats.custom.length===1,'BK 恢复设置和自定义分类');
+  await r.goto(B+'#/item/d3');await r.waitForTimeout(800);t(await r.$$eval('.ph img',e=>e.filter(x=>x.naturalWidth>0).length)===1,'BK 恢复照片');
+  // round4 P1：再导入同名不同 id 分类 → 合并，不重复；无引用的不建
+  const j2=JSON.parse(JSON.stringify(j));j2.categories=[{id:'c_other1',name:'烟酒',icon:'box',color:'#000000'},{id:'c_unused',name:'无人用',icon:'box',color:'#000000'}];j2.items=[{id:'n1',name:'白酒',due:'2027-05-01',cat:'c_other1'}];delete j2.settings;delete j2.photos;
+  require('fs').writeFileSync('/tmp/bk3.json',JSON.stringify(j2));await r.goto(B+'#/settings');await r.waitForTimeout(300);await r.setInputFiles('#imp','/tmp/bk3.json');await r.waitForTimeout(300);await r.click('#impGo');await r.waitForTimeout(400);
+  const d3=await r.evaluate(()=>({items:JSON.parse(localStorage.getItem('dq.items.v2')),s:JSON.parse(localStorage.getItem('dq.settings.v1'))}));
+  t(d3.s.cats.custom.length===1&&d3.items.find(i=>i.id==='n1').cat==='c_yj','R4-P1 分类按名称合并、无引用不建');await c2.close();
+  // 推断：面包/手动优先/O1/学习/地区/中国模板/P2
+  await q.evaluate(()=>{localStorage.clear();localStorage.setItem('dq.settings.v1',JSON.stringify({onboarded:true}));});await q.goto(B+'#/new');await q.reload();await q.waitForTimeout(300);
+  t(await q.inputValue('[name=cat]')==='other','INF 首次默认其他');
+  await q.fill('[name=name]','测试面包');await q.click('#dueT');await q.waitForTimeout(200);t(await q.inputValue('[name=cat]')==='food'&&/按名称推断/.test(await q.textContent('#catSug'))&&/3 天/.test(await q.textContent('.soon-seg')),'INF 测试面包→食品，阈值跟随');
+  await q.fill('[name=name]','xyz');await q.click('#dueT');await q.waitForTimeout(200);t(await q.inputValue('[name=cat]')==='other','INF O1 推断不出回到默认');
+  for(const [n,c] of [['布洛芬','med'],['RCA 交强险','car'],['pașaport','doc'],['Netflix','bill'],['港澳通行证','doc'],['年检','car']]){await q.fill('[name=name]',n);await q.click('#dueT');await q.waitForTimeout(150);t(await q.inputValue('[name=cat]')===c,`INF ${n}→${c}`);}
+  await q.goto(B+'#/');await q.goto(B+'#/new');await q.waitForTimeout(300);await q.click('[data-cat="car"]');await q.fill('[name=name]','牛奶');await q.click('#dueT');await q.waitForTimeout(150);t(await q.inputValue('[name=cat]')==='car','INF 手动选车辆后不覆盖');
+  await q.fill('#dueT','01.12.2026');await q.click('[data-save]');await q.waitForTimeout(300);t((await SS()).lastCat==='car','INF 记住上次分类');
+  // 学习：推断为 food，用户改成 shop 保存 → 下次「牛奶」推断 shop
+  await q.goto(B+'#/');await q.goto(B+'#/new');await q.waitForTimeout(300);await q.fill('[name=name]','牛奶');await q.click('#dueT');await q.waitForTimeout(150);
+  await q.selectOption('[name=cat]','shop');await q.waitForTimeout(150);await q.fill('#dueT','01.12.2026');await q.click('[data-save]');await q.waitForTimeout(300);
+  await q.goto(B+'#/');await q.goto(B+'#/new');await q.waitForTimeout(300);await q.fill('[name=name]','牛奶');await q.click('#dueT');await q.waitForTimeout(150);t(await q.inputValue('[name=cat]')==='shop','INF 学习用户纠正');
+  // P2：先输入名称再点分类 chip，名称不清空
+  await q.goto(B+'#/');await q.goto(B+'#/new');await q.waitForTimeout(300);await q.fill('[name=name]','我的东西');await q.click('[data-cat="food"]');await q.waitForTimeout(150);t(await q.inputValue('[name=name]')==='我的东西','R4-P2 名称保留');
+  // 中国模板 + 地区
+  await q.click('[data-cat="doc"]');await q.waitForTimeout(150);const tp=await q.$$eval('.tpl [data-tpl]',e=>e.map(x=>x.dataset.tpl));t(tp.filter(x=>/中国·|港澳|台|居住证|审验/.test(x)).length===9&&await q.locator('.tpl-grp').count()>=2,'CN 9 个证件模板+分组');
+  await q.click('[data-cat="car"]');await q.waitForTimeout(150);t(['交强险','商业车险','机动车年检（私家车）'].every(n=>q.locator(`[data-tpl="${n}"]`).count()),'CN 车辆模板');
+  t(await q.locator('[data-tpl="交强险"]').count()===1&&await q.locator('[data-tpl="商业车险"]').count()===1&&await q.locator('[data-tpl="机动车年检（私家车）"]').count()===1,'CN 3 个车辆模板');
+  await setS({region:'cn'});await q.goto(B+'#/');await q.goto(B+'#/new?cat=doc');await q.reload();await q.waitForTimeout(300);const tp2=await q.$$eval('.tpl [data-tpl]',e=>e.map(x=>x.dataset.tpl));t(!tp2.includes('居留卡')&&tp2.includes('中国·驾驶证')&&tp2.includes('营业执照'),'CN 常用地区=中国');
+  await q.click('[data-tpl="中国·驾驶证"]');await q.waitForTimeout(150);t(/强/.test(await q.textContent('.seg [data-int].on')),'CN 驾驶证强度强');await q.fill('#dueT','01.12.2030');await q.click('[data-save]');await q.waitForTimeout(400);
+  t(/gov\.cn/.test(await q.textContent('main, body'))&&await q.locator('a.ext[target=_blank][rel*=noopener]').count()===1,'CN 详情有官方链接');
+  await q.goto(B+'#/settings');await q.waitForTimeout(300);t(/国内安卓手机可能收不到推送/.test(await q.textContent('.push-note'))&&await q.locator('.push-note input[type=checkbox]').count()===0,'P2-H 推送说明');
+  const foreign=reqs.filter(u=>!u.startsWith('http://localhost:8765/')&&!u.startsWith('data:')&&!u.startsWith('blob:'));t(foreign.length===0,'P2-J 只有同源请求 '+foreign.slice(0,3));
+  await cb.close();}
+ // P2-J 静态扫描：app 下除 README、SVG xmlns 和模板官方链接（url: 字段）外不能出现外部 URL
+ {const fs=require('fs'),path=require('path');const root='/workspace/到期提醒/app';const bad=[];
+  const walk=d=>{for(const f of fs.readdirSync(d)){if(['tests','tools','.git','node_modules'].includes(f))continue;const p=path.join(d,f);if(fs.statSync(p).isDirectory())walk(p);else if(/\.(js|html|css|json|svg|webmanifest)$/.test(f)&&f!=='README.md'){
+    fs.readFileSync(p,'utf8').split('\n').forEach((l,i)=>{for(const m of l.matchAll(/https?:\/\/[^\s'"`)]+/g)){const u=m[0];if(/^http:\/\/www\.w3\.org\/2000\/svg/.test(u))continue;if(f==='templates.js'&&/url:"/.test(l.slice(Math.max(0,m.index-6),m.index)))continue;bad.push(p+':'+(i+1)+' '+u);}});}}};
+  walk(root);t(bad.length===0,'P2-J 外部 URL 扫描 '+bad.slice(0,3));}
+
+ // ---- v1.2 设计 + 日用品 + 手动选择保护 ----
+ {const cd=await br.newContext({viewport:{width:390,height:844},acceptDownloads:true,reducedMotion:'reduce'});const q=await cd.newPage();q.on('pageerror',e=>errs.push(e.message));
+  const SS=()=>q.evaluate(()=>JSON.parse(localStorage.getItem('dq.settings.v1')||'{}'));const IT=()=>q.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')||'[]'));
+  // 老用户自建「日用品」→ 合并到 daily
+  await q.goto(B+'#/');await q.evaluate(()=>{localStorage.clear();localStorage.setItem('dq.settings.v1',JSON.stringify({onboarded:true,catSoon:{c_ry:7},cats:{custom:[{id:'c_ry',name:'日用品',icon:'box',color:'#000000'}],order:['c_ry','doc']}}));
+    localStorage.setItem('dq.items.v2',JSON.stringify([{id:'a1',name:'抽纸',due:'2027-01-01',cat:'c_ry'},{id:'a2',name:'牛奶',due:'2027-01-01',cat:'food'}]));});
+  await q.reload();await q.waitForTimeout(400);let l=await IT(),ss=await SS();
+  t(l.find(i=>i.id==='a1').cat==='daily'&&!ss.cats.custom.length&&ss.catSoon.daily===7&&ss.cats.order[0]==='daily','DLY 同名自定义合并');
+  await q.goto(B+'#/cats');await q.waitForTimeout(300);t(await q.locator('a.tile[href="#/cat/daily"]').count()===1,'DLY 宫格');
+  await q.goto(B+'#/catrules');await q.waitForTimeout(300);t(await q.locator('select[data-cs=daily]').count()===1&&/日用品 · 7 天 · 标准/.test(await q.textContent('.sum')),'DLY 规则列表');
+  await q.goto(B+'#/settings');await q.waitForTimeout(300);const [dl]=await Promise.all([q.waitForEvent('download'),q.click('#ecsv')]);await dl.saveAs('/tmp/d.csv');t(require('fs').readFileSync('/tmp/d.csv','utf8').includes('日用品'),'DLY CSV 写名称');
+  require('fs').writeFileSync('/tmp/d2.csv','名称,到期日,分类\n洗衣液,2027-02-01,日用品\n');await q.setInputFiles('#imp','/tmp/d2.csv');await q.waitForTimeout(300);t(await q.locator('[data-nc]').count()===0,'DLY 导入识别日用品');await q.click('#impGo');await q.waitForTimeout(300);
+  t((await IT()).find(i=>i.name==='洗衣液').cat==='daily','DLY 导入归 daily');
+  // 手动选择永不被推断覆盖（多种方式 + 多个强关键词 + 保存后核对存储）
+  await q.evaluate(()=>{const s=JSON.parse(localStorage.getItem('dq.settings.v1'));delete s.lastCat;delete s.catLearn;localStorage.setItem('dq.settings.v1',JSON.stringify(s));});
+  await q.goto(B+'#/');await q.goto(B+'#/new');await q.reload();await q.waitForTimeout(300);
+  t(/未选择 · 保存时用『其他』/.test(await q.textContent('.cat-field')),'3S 状态1 未选择');
+  await q.fill('[name=name]','牛奶');await q.click('#dueT');await q.waitForTimeout(150);
+  t(await q.locator('.cat-field.inferred').count()===1&&/按名称推断/.test(await q.textContent('#catSug'))&&/改分类/.test(await q.textContent('#catSug')),'3S 状态2 推断');
+  await q.selectOption('[name=cat]','home');await q.waitForTimeout(150);t(/已手动选择/.test(await q.textContent('#catSug'))&&await q.locator('.cat-field.inferred').count()===0,'3S 状态3 手动');
+  for(const n of ['布洛芬','RCA 交强险','护照','抽纸','Netflix','面包']){await q.fill('[name=name]',n);await q.dispatchEvent('[name=name]','input');await q.click('#dueT');await q.waitForTimeout(120);
+    if(await q.inputValue('[name=cat]')!=='home'){t(false,'MAN 被覆盖 '+n);}}
+  t(await q.inputValue('[name=cat]')==='home','MAN 6 个强关键词都没覆盖');await q.fill('#dueT','01.12.2026');await q.click('[data-save]');await q.waitForTimeout(300);
+  t((await IT()).find(i=>i.name==='面包').cat==='home','MAN 保存后存储仍是手动分类');
+  await q.goto(B+'#/');await q.goto(B+'#/new');await q.waitForTimeout(300);t(/上次使用/.test(await q.textContent('.cat-field')),'3S 有 lastCat 显示上次使用');
+  await q.click('[data-cat="food"]');await q.fill('[name=name]','护照');await q.click('#dueT');await q.waitForTimeout(120);t(await q.inputValue('[name=cat]')==='food','MAN chip 选择后不覆盖');
+  await q.click('[data-cat="doc"]');await q.click('[data-tpl="护照"], [data-tpl="中国·普通护照"]');await q.waitForTimeout(120);t(/来自模板/.test(await q.textContent('#catSug')),'3S 来自模板');
+  // 照片 3 列 + 封面 + 删除角标 + 超出提示
+  await q.goto(B+'#/item/a2');await q.waitForTimeout(300);const PH='/workspace/到期提醒/app/tests/fixtures-photo.jpg';
+  await q.setInputFiles('[data-addph]:not([capture])',[PH,PH,PH,PH,PH]);await q.waitForTimeout(4500);
+  t((await IT()).find(i=>i.id==='a2').photos.length===3,'PH5 选5张只加3张');t(/已满/.test(await q.textContent('.photos .micro'))&&await q.locator('.ph-add3').count()===0,'PH5 已满隐藏添加');
+  t(await q.locator('.thumb3 .cover').count()===1&&await q.$eval('.ph-grid3',e=>getComputedStyle(e).gridTemplateColumns.split(' ').length)===3,'PH5 三列+封面');
+  await q.click('.thumb3 [data-delph]');await q.waitForTimeout(300);t((await IT()).find(i=>i.id==='a2').photos.length===2&&await q.locator('.ph-add3').count()===1,'PH5 角标删除');
+  // 数据安全开关
+  await q.goto(B+'#/settings');await q.waitForTimeout(300);t(await q.locator('#bkSeg.dim').count()===0,'DS 开时 seg 可用');
+  await q.click('label.sw');await q.waitForTimeout(200);t((await SS()).backupEvery===0&&await q.locator('#bkSeg.dim').count()===1,'DS 关闭后 seg 变灰');
+  await q.click('label.sw');await q.waitForTimeout(200);t((await SS()).backupEvery===14,'DS 重新打开恢复 14');
+  await q.click('[data-bke="7"]');await q.waitForTimeout(200);t((await SS()).backupEvery===7,'DS 间隔 7');
+  t(/还没有备份/.test(await q.textContent('.st-pill')),'DS 状态胶囊');
+  await cd.close();}
  console.log(ok,'passed',bad,'failed');console.log('errors',errs);await br.close();})();
