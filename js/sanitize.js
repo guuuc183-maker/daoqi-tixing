@@ -1,6 +1,6 @@
 // 统一的字段白名单校验（导入、读取存储时都会经过这里）
 import {parseInput,valid} from './dates.js';
-import {CATEGORIES,CAT_ALIAS,INTENSITY} from './templates.js';
+import {INTENSITY,catIdByName,CUSTOM_ID} from './templates.js';
 export const LIMITS={name:60,location:40,note:500};
 const ID=/^[A-Za-z0-9_-]{1,64}$/;
 const newId=()=>(globalThis.crypto?.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2));
@@ -13,7 +13,7 @@ export function sanitize(o){
   if(!o||typeof o!=='object')return {error:'不是有效的条目'};
   const name=str(o.name,LIMITS.name);if(!name)return {error:'缺少名称'};
   const due=day(o.due);if(!due)return {error:`到期日格式错误（${str(o.due,20)||'空'}）`};
-  let cat=str(o.cat,20);if(!CATEGORIES[cat])cat=CAT_ALIAS[cat]||'other';
+  let cat=str(o.cat,20);cat=catIdByName(cat)||(CUSTOM_ID.test(cat)?cat:'other');
   const r={id:ID.test(String(o.id||''))?String(o.id):newId(),name,cat,due};
   let src=o.intensitySource==='item'||o.intensitySource==='cat'?o.intensitySource:undefined;
   if(INTENSITY[o.intensity])r.intensity=o.intensity;else if(src==='item')src='cat';

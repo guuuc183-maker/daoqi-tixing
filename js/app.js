@@ -1,5 +1,5 @@
 import * as S from './store.js';
-import {CATEGORIES,TEMPLATES,INTENSITY,findTpl,PERISHABLE,CUSTOM_PRESET} from './templates.js';
+import {CATEGORIES,TEMPLATES,INTENSITY,findTpl,PERISHABLE,CUSTOM_PRESET,applyCats,visibleCats,ICON_SET,COLORS} from './templates.js';
 import {daysLeft,label,todayStr,addDays,addMonths,fmt,nice,valid,parseInput,parse} from './dates.js';
 import {catDefault,effInt,inferSource,remindDays,itemState,todoList,leadDays,effSoon,catSoon,globalSoon} from './logic.js';
 import {icon} from './icons.js';
@@ -14,7 +14,8 @@ const md=s=>{const [,m,d]=s.split('-');return `${+m}月${+d}日`;};
 let afterRoute=null,homeSeg='all', calMonth=null, calSel=null, importState=null;
 const st=()=>S.settings();
 const cat=k=>CATEGORIES[k]||CATEGORIES.other;
-const ci=(k,s=22)=>icon(CATEGORIES[k]?k:'other',s);
+const ci=(k,s=22)=>icon(cat(k).icon||'other',s);
+applyCats(S.settings());
 
 function applyTheme(){const t=st().theme;if(t&&t!=='auto')document.documentElement.dataset.theme=t;else delete document.documentElement.dataset.theme;}
 // 通用 toast / 撤销条（5 秒）
@@ -130,15 +131,15 @@ function todoPage(){const {todo,later}=todoList(S.all(),st());
 
 function cats(){
   const items=enrich();
-  view.innerHTML=`${top('分类')}<section class="grid">${Object.entries(CATEGORIES).map(([k,c])=>{
+  view.innerHTML=`${top('分类',{right:`<a class="btn sm" href="#/catmgr">${icon('gear',16)} 管理</a>`})}<section class="grid">${visibleCats().map(([k,c])=>{
     const l=items.filter(i=>i.cat===k&&!i.handledAt),e=l.filter(i=>i.st==='expired').length,s=l.filter(i=>i.st==='soon').length,next=l.find(i=>i.n>=0)||l[0];
-    return `<a class="tile" href="#/cat/${k}" style="--c:${c.color}"><span class="tile-ic">${ci(k)}</span><b>${c.name}</b>
+    return `<a class="tile" href="#/cat/${k}" style="--c:${c.color}"><span class="tile-ic">${ci(k)}</span><b>${h(c.name)}</b>
     <span class="badges">${e?`<em class="b expired">${e}</em>`:''}${s?`<em class="b soon">${s}</em>`:''}<span class="num cnt">${l.length}</span></span>
     <small class="ell">${next?`最近：${h(next.name)} · ${next.n<0?`已过期 ${-next.n} 天`:next.n===0?'今天到期':`${next.n} 天`}`:'暂无条目'}</small></a>`;}).join('')}</section>`;
 }
 function catList(k){
   const items=enrich().filter(i=>i.cat===k),c=cat(k);
-  view.innerHTML=`${top(c.name,{back:true,right:`<a class="btn sm" href="#/new?cat=${k}">${icon('add',16)} 添加</a>`})}
+  view.innerHTML=`${top(h(c.name),{back:true,right:`<a class="btn sm" href="#/new?cat=${k}">${icon('add',16)} 添加</a>`})}
   <section class="grid photo">${items.map(it=>`<a class="ptile" href="#/item/${h(it.id)}"><span class="pic" style="--c:${c.color}">${ci(k,44)}</span><b class="ell">${h(it.name)}</b>
   <span class="${it.st}"><span class="num">${Math.abs(it.n)}</span> 天${it.n<0?'前':''}${it.qty?` <small class="muted">${it.qty} 件</small>`:''}</span></a>`).join('')||'<div class="empty card">这个分类还没有条目</div>'}</section>`;
 }
@@ -188,7 +189,7 @@ function detail(id){
   view.innerHTML=`${top('',{back:true,right:`<a class="icon-btn" href="#/edit/${h(it.id)}" aria-label="编辑">${icon('edit',20)}</a>`})}
   <section class="card big-cd ${it.st}">
     <span class="tile-ic lg" style="--c:${c.color}">${ci(it.cat,34)}</span>
-    <h2>${h(it.name)}</h2><div class="muted small">${c.name}${it.qty?` · ${it.qty} 件`:''}${it.location?` · ${h(it.location)}`:''}</div>
+    <h2>${h(it.name)}</h2><div class="muted small">${h(c.name)}${it.qty?` · ${it.qty} 件`:''}${it.location?` · ${h(it.location)}`:''}</div>
     <div class="cd-num num">${Math.abs(it.n)}<small>天</small></div>
     <div class="pill ${it.st}">${it.n<0?'已过期':it.n===0?'今天到期':'距离到期'} · ${ST[it.st]}</div>
     <div class="muted small">${nice(it.due)}</div>
@@ -235,22 +236,22 @@ function form(id,q){
   let dueText=it.due||'',chain=false,shelfUnit='d',shelfN=it.shelfDays||'';
   const draw=(focus)=>{const ei=effInt(it,s),per=PERISHABLE.includes(it.cat);
     view.innerHTML=`${top(ex?'编辑':it.rebuyFrom?'再买一次':'新增',{back:true})}
-    ${ex?'':`<div class="micro pad">选择模板</div><div class="chips">${Object.entries(CATEGORIES).map(([k,c])=>`<button data-cat="${k}" class="${it.cat===k?'on':''}">${ci(k,16)}${c.name}</button>`).join('')}</div>
+    ${ex?'':`<div class="micro pad">选择模板</div><div class="chips">${visibleCats().map(([k,c])=>`<button data-cat="${k}" class="${it.cat===k?'on':''}">${ci(k,16)}${h(c.name)}</button>`).join('')}</div>
     <div class="chips tpl ${TEMPLATES.filter(t=>t.cat===it.cat).length<=8?'wrap':''}">${TEMPLATES.filter(t=>t.cat===it.cat).map(t=>`<button data-tpl="${h(t.name)}" class="${it.name===t.name?'on':''}">${ci(t.cat,16)}${h(t.name)}</button>`).join('')}</div>`}
     <form class="card form" id="f" novalidate>
       <label>名称<input name="name" maxlength="60" required value="${h(it.name)}" placeholder="例如：居留卡"></label>
-      <label>分类<select name="cat">${Object.entries(CATEGORIES).map(([k,c])=>`<option value="${k}" ${k===it.cat?'selected':''}>${c.name}</option>`).join('')}</select></label>
+      <label>分类<select name="cat">${Object.entries(CATEGORIES).filter(([k,c])=>!c.hidden||k===it.cat).map(([k,c])=>`<option value="${k}" ${k===it.cat?'selected':''}>${h(c.name)}</option>`).join('')}</select></label>
       ${per?`<div class="two"><label>生产日期<input name="prodDate" id="prod" inputmode="numeric" value="${h(it.prodDate||'')}" placeholder="可选，如 01.10.2026"></label>
         <label>保质期<span class="shelf"><input id="shelfN" type="number" min="1" value="${h(shelfN)}" placeholder="—"><select id="shelfU"><option value="d" ${shelfUnit==='d'?'selected':''}>天</option><option value="m" ${shelfUnit==='m'?'selected':''}>月</option></select></span></label></div>`:''}
       <label>到期日<span class="date-field"><input id="dueT" inputmode="numeric" autocomplete="off" value="${h(dueText)}" placeholder="15.10.2026 或 10/26">
         <button type="button" data-q="clr" class="date-clr" aria-label="清除日期">${icon('add',16)}</button><span class="date-pick">${icon('cal',20)}<input type="date" id="dueP" value="${valid(it.due||'')?it.due:''}" aria-label="选日期"></span></span></label>
       <div id="dueHint" class="hint-l"></div>
       <div class="chips quick">${[['7d','+7天'],['1m','+1月'],['3m','+3月'],['1y','+1年'],['2y','+2年']].map(([k,l])=>`<button type="button" data-q="${k}">${l}</button>`).join('')}</div>
-      <div class="lbl">提醒强度 <span class="src">${it.intensitySource==='item'?`已单独设置 · <a href="#" id="follow">恢复跟随分类</a>`:`跟随分类：${cat(it.cat).name} · ${INTENSITY[catDefault(it.cat,s)].name}`}</span></div>
+      <div class="lbl">提醒强度 <span class="src">${it.intensitySource==='item'?`已单独设置 · <a href="#" id="follow">恢复跟随分类</a>`:`跟随分类：${h(cat(it.cat).name)} · ${INTENSITY[catDefault(it.cat,s)].name}`}</span></div>
       <div class="seg">${Object.entries(INTENSITY).map(([k,v])=>`<button type="button" data-int="${k}" class="${ei===k?'on':''}">${v.name}</button>`).join('')}</div>
       <p class="hint-l">${INTENSITY[ei].desc}</p>
       ${ei==='custom'?`<div class="chips wrap">${[90,60,30,14,7,3,1,0].map(d=>`<button type="button" data-cd="${d}" class="${(it.customDays||[]).includes(d)?'on':''}">${d?d+' 天':'当天'}</button>`).join('')}</div>`:''}
-      <div class="lbl">临期阈值 <span class="src">${it.soonSource==='item'?'已单独设置':`跟随分类：${cat(it.cat).name} · ${catSoon(it.cat,s)} 天`}</span></div>
+      <div class="lbl">临期阈值 <span class="src">${it.soonSource==='item'?'已单独设置':`跟随分类：${h(cat(it.cat).name)} · ${catSoon(it.cat,s)} 天`}</span></div>
       <div class="seg soon-seg"><button type="button" data-ss="cat" class="${it.soonSource!=='item'?'on':''}">跟随分类（${catSoon(it.cat,s)} 天）</button><button type="button" data-ss="item" class="${it.soonSource==='item'?'on':''}">自定义</button></div>
       ${it.soonSource==='item'?`<label class="inline-n">剩余 <input name="soonDays" type="number" min="0" max="3650" value="${h(it.soonDays??'')}" required> 天内算临期</label>`:''}
       <div class="two"><label>续期周期（月）<input name="renewMonths" type="number" min="0" value="${it.renewMonths??''}" placeholder="不重复"></label>
@@ -303,9 +304,9 @@ function form(id,q){
 
 async function exportJSON(all,withPhotos=true){const s=st(),items=all?S.raw():S.all();let photos=null;
   if(withPhotos&&globalThis.indexedDB){try{photos=await P.exportPhotos(items.flatMap(i=>i.photos||[]));}catch{toast('照片读取失败，本次只导出文字数据',false,true);}}
-  download(`到期提醒-${todayStr()}.json`,toJSON(items,photos),'application/json');s.lastExportAt=new Date().toISOString();S.saveSettings(s);}
+  download(`到期提醒-${todayStr()}.json`,toJSON(items,photos,(s.cats?.custom)||[]),'application/json');s.lastExportAt=new Date().toISOString();S.saveSettings(s);}
 function icsSheet(){sheet(`<h3>导出到日历（.ics）</h3><p class="small muted">每条生成一个全天事件，并按提醒天数设好闹钟（当天 09:00）。iPhone：下载后点文件 →「添加到日历」。续期后请重新导出这一条。</p>
-  <label class="small">范围<select id="icsR" class="inp"><option value="">全部（${S.all().length} 条）</option>${Object.entries(CATEGORIES).map(([k,c])=>`<option value="${k}">${c.name}（${S.all().filter(i=>i.cat===k).length}）</option>`).join('')}</select></label>
+  <label class="small">范围<select id="icsR" class="inp"><option value="">全部（${S.all().length} 条）</option>${Object.entries(CATEGORIES).map(([k,c])=>`<option value="${k}">${h(c.name)}（${S.all().filter(i=>i.cat===k).length}）</option>`).join('')}</select></label>
   <label class="check"><input type="checkbox" id="icsH"> 包含已处理的条目</label><button class="btn primary block" id="icsGo">${icon('download',18)}下载 .ics</button>`,w=>{
   w.querySelector('#icsGo').onclick=()=>{const r=w.querySelector('#icsR').value,hd=w.querySelector('#icsH').checked;
     const l=S.all().filter(i=>(!r||i.cat===r)&&(hd||!i.handledAt));download(`到期提醒${r?'-'+cat(r).name:''}.ics`,toICS(l,st()),'text/calendar;charset=utf-8');closeSheet();toast(`已导出 ${l.length} 个日历事件`);};});}
@@ -317,6 +318,7 @@ function importPreview(){const a=importState.a,n=a.add.length+a.upd.length+a.dup
   return `<section class="card imp"><div class="micro">导入预览 · ${h(importState.file)}</div>
   <p>识别 <b class="num">${n}</b> 条${importState.photos?`（含照片 ${Object.keys(importState.photos).length} 张）`:''}：新增 <b class="safe">${a.add.length}</b> · 更新 ${a.upd.length}（同 id）· 疑似重复 <b class="soon">${a.dup.length}</b>（同名+同到期日）· 无法识别 <b class="expired">${a.bad.length}</b></p>
   ${a.bad.length||a.dup.length?`<details><summary class="small">查看明细</summary>${a.bad.map(e=>`<p class="small expired">第 ${e.row} 行：${h(e.reason)}</p>`).join('')}${a.dup.map(e=>`<p class="small soon">第 ${e.row} 行：「${h(e.item.name)} ${h(e.item.due)}」疑似重复</p>`).join('')}</details>`:''}
+  ${(()=>{const nc=[...new Set([...a.add,...a.upd,...a.dup].map(r=>r.newCat).filter(Boolean))];return nc.length?`<p class="small">新分类：${nc.map(n=>`「${h(n)}」`).join('、')}</p><div class="seg"><button data-nc="create" class="${importState.newCat==='create'?'on':''}">自动创建分类</button><button data-nc="other" class="${importState.newCat==='other'?'on':''}">归入「其他」</button></div>`:'';})()}
   ${a.dup.length?`<div class="seg"><button data-dup="skip" class="${importState.dup==='skip'?'on':''}">跳过重复</button><button data-dup="keep" class="${importState.dup==='keep'?'on':''}">仍导入</button></div>`:''}
   <div class="actions"><button class="btn primary" id="impGo">导入</button><button class="btn" id="impNo">取消</button></div></section>`;}
 
@@ -328,11 +330,11 @@ function settings(){
   <div class="micro pad">外观</div><section class="card"><div class="seg">${[['auto','跟随系统'],['light','浅色'],['dark','深色']].map(([k,v])=>`<button data-theme="${k}" class="${(s.theme||'auto')===k?'on':''}">${v}</button>`).join('')}</div></section>
   <div class="micro pad">全局临期阈值（未单独设置的分类）</div><section class="card"><div class="seg">${[7,14,30,60].map(d=>`<button data-soon="${d}" class="${globalSoon(s)==d?'on':''}">${d} 天</button>`).join('')}</div></section>
   <div class="micro pad">分类临期阈值（单条可再单独设置）</div><section class="card kv">${Object.entries(CATEGORIES).map(([k,c])=>{const v=(s.catSoon||{})[k],def=c.soon;
-    return `<div><span class="il" style="color:${c.color}">${ci(k,18)}<em>${c.name}</em></span><select data-cs="${k}" aria-label="${c.name}临期阈值">
+    return `<div><span class="il" style="color:${c.color}">${ci(k,18)}<em>${h(c.name)}</em></span><select data-cs="${k}" aria-label="${h(c.name)}临期阈值">
     <option value="" ${v==null?'selected':''}>默认（${def!=null?def+' 天':'跟随全局 '+globalSoon(s)+' 天'}）</option>
     ${def!=null?`<option value="g" ${v==='g'?'selected':''}>跟随全局（${globalSoon(s)} 天）</option>`:''}
     ${[1,3,7,14,30,60,90,180].map(d=>`<option value="${d}" ${v===d?'selected':''}>${d} 天</option>`).join('')}</select></div>`;}).join('')}</section>
-  <div class="micro pad">分类默认提醒强度（跟随分类的条目立即生效）</div><section class="card kv">${Object.entries(CATEGORIES).map(([k,c])=>`<div><span class="il" style="color:${c.color}">${ci(k,18)}<em>${c.name}</em></span>
+  <div class="micro pad">分类默认提醒强度（跟随分类的条目立即生效）</div><section class="card kv">${Object.entries(CATEGORIES).map(([k,c])=>`<div><span class="il" style="color:${c.color}">${ci(k,18)}<em>${h(c.name)}</em></span>
    <span class="ci-r">${nItem(k)?`<a href="#" data-over="${k}" class="small">覆盖 ${nItem(k)} 条单独设置</a>`:''}<select data-ci="${k}">${Object.entries(INTENSITY).filter(([x])=>x!=='custom').map(([x,v])=>`<option value="${x}" ${catDefault(k,s)===x?'selected':''}>${v.name}</option>`).join('')}</select></span></div>`).join('')}</section>
   <div class="micro pad">提醒与角标</div><section class="card">
    ${badgeOK?`<div class="kv"><div><span>图标角标（待处理数）</span><b><button class="btn sm" id="badge">${s.badge?'已开启 · 关闭':'开启图标角标'}</button></b></div></div>`:''}
@@ -345,16 +347,16 @@ function settings(){
    <button class="btn" id="tpl">${icon('download',18)}下载导入模板</button>
    <label class="check full"><input type="checkbox" id="incTrash"> 导出时包含回收站</label>
    <label class="check full"><input type="checkbox" id="incPh" checked> JSON 包含照片（文件会变大；CSV 不含照片）</label></section>
-  <div class="micro pad">数据</div><section class="card btns"><a class="btn" href="#/trash">${icon('trash',18)}回收站（${tr}）</a><button class="btn" id="obAgain">${icon('sparkle',18)}重新查看引导</button><button class="btn" id="demo">${icon('sparkle',18)}载入示例数据</button><button class="btn danger ghost" id="clear">${icon('trash',18)}清空全部</button></section>
+  <div class="micro pad">数据</div><section class="card btns"><a class="btn" href="#/catmgr">${icon('tabCats',18)}分类管理</a><a class="btn" href="#/trash">${icon('trash',18)}回收站（${tr}）</a><button class="btn" id="obAgain">${icon('sparkle',18)}重新查看引导</button><button class="btn" id="demo">${icon('sparkle',18)}载入示例数据</button><button class="btn danger ghost" id="clear">${icon('trash',18)}清空全部</button></section>
   <div class="micro pad">关于</div><section class="card about"><div class="kv"><div><span>到期提醒</span><b class="ver num">v1.3</b></div></div><p class="small muted" id="persist">数据只保存在本机浏览器</p></section>`;
   if(navigator.storage?.persisted)navigator.storage.persisted().then(p=>{const e=$('#persist');if(e)e.textContent=`数据只保存在本机浏览器 · 存储：${p?'已持久化':'可能被系统清理，请定期导出'}`;});
   view.querySelectorAll('[data-theme]').forEach(b=>b.onclick=()=>{s.theme=b.dataset.theme;S.saveSettings(s);applyTheme();settings();});
   view.querySelectorAll('[data-cs]').forEach(x=>x.onchange=()=>{s.catSoon=s.catSoon||{};const v=x.value;if(v==='')delete s.catSoon[x.dataset.cs];else s.catSoon[x.dataset.cs]=v==='g'?'g':+v;
-    S.saveSettings(s);toast(`${cat(x.dataset.cs).name}临期阈值：${catSoon(x.dataset.cs,s)} 天`);});
+    S.saveSettings(s);toast(`${h(cat(x.dataset.cs).name)}临期阈值：${catSoon(x.dataset.cs,s)} 天`);});
   view.querySelectorAll('[data-soon]').forEach(b=>b.onclick=()=>{s.soonDays=+b.dataset.soon;S.saveSettings(s);settings();});
   view.querySelectorAll('[data-ci]').forEach(x=>x.onchange=()=>{const old=S.all().map(i=>inferSource(i,st()));s.catIntensity[x.dataset.ci]=x.value;S.saveSettings(s);
     // 先固化旧数据的来源，避免改默认后被误判
-    S.replaceAll(S.raw().map(i=>i.deletedAt?i:(old.find(o=>o.id===i.id)||i)));toast(`${cat(x.dataset.ci).name}默认改为「${INTENSITY[x.value].name}」`);settings();});
+    S.replaceAll(S.raw().map(i=>i.deletedAt?i:(old.find(o=>o.id===i.id)||i)));toast(`${h(cat(x.dataset.ci).name)}默认改为「${INTENSITY[x.value].name}」`);settings();});
   view.querySelectorAll('[data-over]').forEach(a=>a.onclick=e=>{e.preventDefault();const k=a.dataset.over,v=catDefault(k,s),cnt=nItem(k);
     if(!confirm(`将覆盖 ${cnt} 条单独设置，全部改为跟随分类（${INTENSITY[v].name}），可撤销。继续？`))return;
     act(`已覆盖 ${cnt} 条单独设置`,()=>S.replaceAll(S.raw().map(i=>i.cat===k&&!i.deletedAt?{...inferSource(i,s),intensitySource:'cat',intensity:undefined}:i)));settings();});
@@ -365,16 +367,55 @@ function settings(){
   $('#ejson').onclick=()=>exportJSON($('#incTrash').checked,$('#incPh').checked);
   $('#tpl').onclick=()=>download('到期提醒-导入模板.csv',TEMPLATE_CSV,'text/csv;charset=utf-8');
   $('#imp').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const t=await f.text();const res=/\.json$/i.test(f.name)||/^\s*[\[{]/.test(t)?parseJSON(t):parseCSV(t);
-    importState={file:f.name,a:analyzeImport(res),dup:'skip',photos:res.photos};settings();window.scrollTo(0,0);}catch(err){toast('导入失败：'+err.message);}};
+    importState={file:f.name,a:analyzeImport(res),dup:'skip',photos:res.photos,categories:res.categories,newCat:'create'};settings();window.scrollTo(0,0);}catch(err){toast('导入失败：'+err.message);}};
   view.querySelectorAll('[data-dup]').forEach(b=>b.onclick=()=>{importState.dup=b.dataset.dup;settings();});
+  view.querySelectorAll('[data-nc]').forEach(b=>b.onclick=()=>{importState.newCat=b.dataset.nc;settings();});
   $('#impNo')&&($('#impNo').onclick=()=>{importState=null;settings();});
-  $('#impGo')&&($('#impGo').onclick=()=>{const a=importState.a,l=[...a.add,...a.upd,...(importState.dup==='keep'?a.dup.map(r=>({...r,item:{...r.item,id:undefined}})):[])].map(r=>inferSource(r.item,s));
-    const ph=importState.photos;importState=null;act(`已导入 ${l.length} 条`,()=>S.merge(l));
+  $('#impGo')&&($('#impGo').onclick=()=>{const a=importState.a,rows=[...a.add,...a.upd,...(importState.dup==='keep'?a.dup.map(r=>({...r,item:{...r.item,id:undefined}})):[])];
+    S.snapshot();const cs=st();cs.cats=cs.cats||{};cs.cats.custom=cs.cats.custom||[];
+    for(const d of importState.categories||[])if(d&&/^c_[a-z0-9]{1,24}$/.test(d.id)&&!CATEGORIES[d.id])cs.cats.custom.push({id:d.id,name:String(d.name||'').slice(0,20),icon:d.icon,color:d.color});
+    if(importState.newCat==='create'){const made={};for(const r of rows)if(r.newCat){if(!made[r.newCat]){const id='c_'+Math.random().toString(36).slice(2,10);made[r.newCat]=id;cs.cats.custom.push({id,name:r.newCat,icon:'box',color:COLORS[cs.cats.custom.length%COLORS.length]});}r.item.cat=made[r.newCat];}}
+    S.saveSettings(cs);applyCats(cs);const l=rows.map(r=>inferSource(r.item,cs));
+    const ph=importState.photos;importState=null;S.merge(l);if(!S.lastSaveFailed){toast(`已导入 ${l.length} 条`,true);updateBadge();}
     if(ph&&!S.lastSaveFailed&&globalThis.indexedDB){P.importPhotos(ph,l.flatMap(i=>i.photos||[])).then(n=>{if(n)toast(`已导入 ${l.length} 条，照片 ${n} 张`);}).catch(photoErr);}settings();});
   $('#obAgain').onclick=onboarding;
   $('#demo').onclick=()=>{act('已载入示例数据',seed);settings();};
   $('#clear').onclick=async()=>{if(!n)return;await exportJSON();act(`已清空 ${n} 条（已自动下载备份，可在回收站恢复）`,()=>S.softDelete(S.all().map(i=>i.id)));settings();};
 }
+// 分类管理：新建 / 改名 / 图标与颜色 / 排序 / 隐藏内置 / 删除自定义
+function catMgr(){const s=st(),cnt=k=>S.all().filter(i=>i.cat===k).length,keys=Object.keys(CATEGORIES);
+  view.innerHTML=`${top('分类管理',{back:true,right:`<button class="btn sm primary" id="catNew">${icon('add',16)} 新建</button>`})}
+  <p class="hint">内置分类可以改名或隐藏；自定义分类可以改图标、颜色或删除。临期阈值和提醒强度在「设置」里按分类调整。</p>
+  <section class="card list catmgr">${keys.map((k,i)=>{const c=CATEGORIES[k];return `<div class="row cm-row ${c.hidden?'is-hidden':''}" data-k="${h(k)}">
+   <span class="ic" style="--c:${c.color}">${ci(k)}</span><span class="grow"><b class="ell">${h(c.name)}</b><small>${c.builtin?'内置':'自定义'} · ${cnt(k)} 条${c.hidden?' · 已隐藏':''}</small></span>
+   <span class="cm-act"><button class="icon-btn sm" data-mv="-1" ${i?'':'disabled'} aria-label="上移">${icon('back',16)}</button><button class="icon-btn sm" data-mv="1" ${i<keys.length-1?'':'disabled'} aria-label="下移">${icon('chev',16)}</button>
+   <button class="icon-btn sm" data-edit aria-label="编辑">${icon('edit',16)}</button></span></div>`;}).join('')}</section>`;
+  const save=(msg,f)=>{const x=st();x.cats=x.cats||{};f(x.cats,x);act(msg,()=>S.saveSettings(x));catMgr();};
+  view.querySelectorAll('.cm-row [data-mv]').forEach(b=>b.onclick=()=>{const k=b.closest('[data-k]').dataset.k,d=+b.dataset.mv;save('已调整顺序',c=>{const o=Object.keys(CATEGORIES),i=o.indexOf(k),j=i+d;[o[i],o[j]]=[o[j],o[i]];c.order=o;});});
+  view.querySelectorAll('.cm-row [data-edit]').forEach(b=>b.onclick=()=>catSheet(b.closest('[data-k]').dataset.k));
+  $('#catNew').onclick=()=>catSheet(null);}
+function catSheet(k){const c=k?CATEGORIES[k]:{name:'',icon:'box',color:COLORS[0],custom:true};let ic=c.icon,col=c.color;const n=k?S.all().filter(i=>i.cat===k).length:0;
+  sheet(`<h3>${k?'编辑分类':'新建分类'}</h3><label class="small">名称<input id="cName" class="inp" maxlength="20" value="${h(c.name)}" placeholder="例如：宠物"></label>
+   ${c.builtin?'':`<div class="small muted">图标</div><div class="ic-pick">${ICON_SET.map(x=>`<button type="button" data-ic="${x}" class="${x===ic?'on':''}" aria-label="${x}">${icon(x,20)}</button>`).join('')}</div>
+   <div class="small muted">颜色</div><div class="col-pick">${COLORS.map(x=>`<button type="button" data-col="${x}" class="${x===col?'on':''}" style="--c:${x}" aria-label="${x}"></button>`).join('')}</div>`}
+   <button class="btn primary block" id="cSave">保存</button>
+   ${k&&c.builtin&&k!=='other'?`<button class="btn block" id="cHide">${c.hidden?'取消隐藏':'隐藏这个分类'}</button>`:''}
+   ${k&&c.custom?`<button class="btn danger ghost block" id="cDel">${icon('trash',18)}删除分类</button>`:''}`,w=>{
+   w.querySelectorAll('[data-ic]').forEach(b=>b.onclick=()=>{ic=b.dataset.ic;w.querySelectorAll('[data-ic]').forEach(x=>x.classList.toggle('on',x===b));});
+   w.querySelectorAll('[data-col]').forEach(b=>b.onclick=()=>{col=b.dataset.col;w.querySelectorAll('[data-col]').forEach(x=>x.classList.toggle('on',x===b));});
+   w.querySelector('#cSave').onclick=()=>{const name=w.querySelector('#cName').value.normalize('NFKC').trim().slice(0,20);if(!name)return toast('请填写分类名称');
+     if(Object.entries(CATEGORIES).some(([id,x])=>id!==k&&x.name===name))return toast('已有同名分类');
+     const x=st();x.cats=x.cats||{};x.cats.custom=x.cats.custom||[];x.cats.names=x.cats.names||{};
+     if(!k){const id='c_'+Math.random().toString(36).slice(2,10);x.cats.custom.push({id,name,icon:ic,color:col});}
+     else if(c.builtin)x.cats.names[k]=name;else{const d=x.cats.custom.find(d=>d.id===k);Object.assign(d,{name,icon:ic,color:col});}
+     closeSheet();act(k?'分类已更新':`已新建分类「${name}」`,()=>S.saveSettings(x));catMgr();};
+   w.querySelector('#cHide')&&(w.querySelector('#cHide').onclick=()=>{const x=st();x.cats=x.cats||{};const hd=new Set(x.cats.hidden||[]);hd.has(k)?hd.delete(k):hd.add(k);x.cats.hidden=[...hd];
+     closeSheet();act(hd.has(k)?`已隐藏「${c.name}」`:`已显示「${c.name}」`,()=>S.saveSettings(x));catMgr();});
+   w.querySelector('#cDel')&&(w.querySelector('#cDel').onclick=()=>{if(!confirm(`删除分类「${c.name}」？${n?`其中的 ${n} 条会移到「其他」。`:''}可以撤销。`))return;
+     closeSheet();act(`已删除分类「${c.name}」${n?`，${n} 条已移到「其他」`:''}`,()=>{
+       S.replaceAll(S.raw().map(i=>i.cat===k?{...i,cat:'other'}:i));const x=st();x.cats.custom=(x.cats.custom||[]).filter(d=>d.id!==k);x.cats.order=(x.cats.order||[]).filter(o=>o!==k);
+       if(x.catSoon)delete x.catSoon[k];if(x.catIntensity)delete x.catIntensity[k];S.saveSettings(x);});catMgr();});});}
+
 function trashPage(){const l=S.trash().sort((a,b)=>b.deletedAt.localeCompare(a.deletedAt));
   view.innerHTML=`${top('回收站',{back:true,right:l.length?`<button class="btn sm danger" id="empty">清空回收站</button>`:''})}
   <p class="hint">删除的条目保留 30 天后自动清除</p>
@@ -435,11 +476,11 @@ function updateBadge(){const s=st();if(!('setAppBadge' in navigator))return;
 
 document.querySelectorAll('#tabbar [data-ic]').forEach(e=>e.innerHTML=e.dataset.ic==='add'?icon('add',20,'',2.25):icon(e.dataset.ic,24));
 function route(){
-  applyTheme();closeSheet();document.querySelector('.viewer')?.remove();const [path,qs]=(location.hash.slice(1)||'/').split('?'),q=new URLSearchParams(qs),p=path.split('/').filter(Boolean);
-  const tab={'':'home',todo:'home',cats:'cats',cat:'cats',cal:'cal',settings:'settings',trash:'settings',new:'new'}[p[0]||'']||'';
+  applyTheme();applyCats(st());closeSheet();document.querySelector('.viewer')?.remove();const [path,qs]=(location.hash.slice(1)||'/').split('?'),q=new URLSearchParams(qs),p=path.split('/').filter(Boolean);
+  const tab={'':'home',todo:'home',cats:'cats',cat:'cats',cal:'cal',settings:'settings',trash:'settings',catmgr:'cats',new:'new'}[p[0]||'']||'';
   document.querySelectorAll('#tabbar a').forEach(a=>a.classList.toggle('on',a.dataset.tab===tab));
   view.classList.remove('in');window.scrollTo(0,0);
-  const r={'':home,todo:todoPage,cats,cat:()=>catList(p[1]),cal,item:()=>detail(p[1]),new:()=>form(null,q),edit:()=>form(p[1],q),settings,trash:trashPage}[p[0]||''];
+  const r={'':home,todo:todoPage,cats,cat:()=>catList(p[1]),cal,item:()=>detail(p[1]),new:()=>form(null,q),edit:()=>form(p[1],q),settings,trash:trashPage,catmgr:catMgr}[p[0]||''];
   try{(r||home)();}catch(err){console.warn(err);view.innerHTML=`${top('出错了')}<section class="card"><p class="small">这一页显示失败：${h(err.message)}</p><p class="small muted">数据没有丢失。可以先到设置里导出备份。</p><a class="btn" href="#/settings">去设置</a></section>`;}
   enter();
   if(afterRoute){const f=afterRoute;afterRoute=null;f();}

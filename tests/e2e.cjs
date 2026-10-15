@@ -192,4 +192,30 @@ const B='http://localhost:8765/daoqi-tixing/';
   await q.evaluate(()=>{const l=JSON.parse(localStorage.getItem('dq.items.v2'));l.forEach(x=>{x.handledAt='2026-10-15';x.renewAsked=true;});localStorage.setItem('dq.items.v2',JSON.stringify(l));});
   await q.goto(B+'#/');await q.reload();await q.waitForTimeout(400);t(/全部已处理/.test(await q.textContent('.all-clear'))&&await q.locator('.gold-ring').count()===1,'V2 全部已处理金色环');
   await q.goto(B+'#/settings');await q.waitForTimeout(300);t(await q.locator('.about .ver').count()===1,'V2 关于版本号');await c6.close();}
+
+ // ---- 自定义分类 ----
+ {const c7=await br.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});const q=await c7.newPage();q.on('pageerror',e=>errs.push(e.message));q.on('dialog',d=>{q._dlg=d.message();d.accept();});
+  const SS=()=>q.evaluate(()=>JSON.parse(localStorage.getItem('dq.settings.v1')||'{}'));const IT=()=>q.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')));
+  await q.goto(B+'?demo=1#/settings');await q.waitForTimeout(400);await q.click('a[href="#/catmgr"]');await q.waitForTimeout(300);
+  t(await q.locator('.cm-row').count()===9,'CM 9个内置');
+  await q.click('#catNew');await q.fill('#cName','宠物<i>');await q.click('[data-ic="home"]');await q.click('[data-col="#D94545"]');await q.click('#cSave');await q.waitForTimeout(300);
+  const cid=(await SS()).cats.custom[0].id;t(/^c_/.test(cid)&&(await SS()).cats.custom[0].icon==='home','CM 新建保存');
+  t(await q.locator('.cm-row').count()===10&&await q.locator('.cm-row i').count()===0,'CM 名称已转义');
+  await q.click(`.cm-row[data-k="${cid}"] [data-mv="-1"]`);await q.waitForTimeout(200);t((await SS()).cats.order.indexOf(cid)===(await SS()).cats.order.length-2,'CM 上移');
+  await q.click('.cm-row[data-k="doc"] [data-edit]');await q.fill('#cName','护照证件');await q.click('#cSave');await q.waitForTimeout(200);
+  await q.click('.cm-row[data-k="car"] [data-edit]');await q.click('#cHide');await q.waitForTimeout(200);
+  await q.goto(B+'#/cats');await q.waitForTimeout(300);t(await q.locator('a.tile[href="#/cat/car"]').count()===0,'CM 隐藏后网格无车辆');
+  t(/护照证件/.test(await q.textContent('a.tile[href="#/cat/doc"]')),'CM 内置改名');t(await q.locator(`a.tile[href="#/cat/${cid}"]`).count()===1,'CM 网格有自定义');
+  await q.goto(B+'#/new');await q.waitForTimeout(300);t(await q.locator(`[data-cat="${cid}"]`).count()===1&&await q.locator('[data-cat="car"]').count()===0,'CM 表单分类');
+  await q.evaluate(id=>{const l=JSON.parse(localStorage.getItem('dq.items.v2'));l[0].cat=id;l[1].cat=id;localStorage.setItem('dq.items.v2',JSON.stringify(l));},cid);
+  await q.goto(B+`#/cat/${cid}`);await q.waitForTimeout(300);t(await q.locator('.top h1 i').count()===0,'CM 分类页标题转义');
+  await q.goto(B+'#/settings');await q.waitForTimeout(300);t(await q.locator(`select[data-soon="${cid}"],select[data-ci="${cid}"],[data-k="${cid}"]`).count()>0||(await q.content()).includes(cid),'CM 设置有阈值');
+  await q.goto(B+'#/catmgr');await q.waitForTimeout(300);await q.click(`.cm-row[data-k="${cid}"] [data-edit]`);await q.click('#cDel');await q.waitForTimeout(300);
+  t(/移到「其他」/.test(q._dlg||''),'CM 删除确认提示');let l=await IT();t(l[0].cat==='other'&&l[1].cat==='other'&&!(await SS()).cats.custom.length,'CM 删除→其他');
+  await q.click('.toast button');await q.waitForTimeout(300);l=await IT();t(l[0].cat===cid&&(await SS()).cats.custom.length===1,'CM 删除撤销');
+  await q.goto(B+'#/settings');await q.waitForTimeout(300);
+  fs.writeFileSync('/tmp/nc.csv','名称,到期日,分类\n鱼食,2026-12-01,水族\n猫砂,2026-12-02,'+'宠物<i>'+'\n');
+  await q.setInputFiles('#imp','/tmp/nc.csv');await q.waitForTimeout(400);t(/水族/.test(await q.textContent('.imp'))&&await q.locator('[data-nc]').count()===2,'CM 导入预览新分类');
+  await q.click('#impGo');await q.waitForTimeout(400);const ss=await SS();const aq=ss.cats.custom.find(d=>d.name==='水族');l=await IT();
+  t(aq&&l.find(x=>x.name==='鱼食').cat===aq.id&&l.find(x=>x.name==='猫砂').cat===cid,'CM 导入自动创建/按名匹配');await c7.close();}
  console.log(ok,'passed',bad,'failed');console.log('errors',errs);await br.close();})();

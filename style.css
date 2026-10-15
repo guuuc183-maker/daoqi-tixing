@@ -370,3 +370,18 @@ input,select,button,textarea{font:inherit;color:inherit}
 .cnt{font-family:inherit;font-weight:700;font-size:18px}
 .kv>div{min-height:52px;padding:8px 0}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* 分类管理 */
+.cm-row .grow{display:flex;flex-direction:column;min-width:0}
+.cm-row small{opacity:.65;font-size:12px}
+.cm-row.is-hidden{opacity:.55}
+.cm-act{display:flex;gap:2px}
+.cm-act [data-mv] svg{transform:rotate(90deg)}
+.icon-btn.sm{width:32px;height:32px}
+.icon-btn.sm:disabled{opacity:.25}
+.ic-pick{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:6px 0 12px}
+.ic-pick button{height:40px;border-radius:10px;border:1px solid var(--line,#e5e0d8);background:transparent;display:grid;place-items:center;color:inherit}
+.ic-pick button.on{border-color:var(--accent,#d9773b);background:color-mix(in srgb,var(--accent,#d9773b) 12%,transparent)}
+.col-pick{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 14px}
+.col-pick button{width:30px;height:30px;border-radius:50%;border:2px solid transparent;background:var(--c);box-shadow:inset 0 0 0 2px var(--surface,#fff)}
+.col-pick button.on{border-color:var(--c)}

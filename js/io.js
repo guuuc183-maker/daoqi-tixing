@@ -1,9 +1,11 @@
 // CSV / JSON 导入导出
 import {parseInput} from './dates.js';
 import {sanitize} from './sanitize.js';
+import {CATEGORIES,catIdByName,CUSTOM_ID} from './templates.js';
 export const FIELDS=['id','name','cat','due','intensity','intensitySource','soonSource','soonDays','customDays','renewMonths','qty','location','note','prodDate','shelfDays','handledAt','snoozeUntil','renewAsked','history','deletedAt','createdAt','updatedAt'];
 const esc=v=>{v=v==null?'':Array.isArray(v)?(v.length&&typeof v[0]==='object'?JSON.stringify(v):v.join('/')):String(v);return /[",\n\r]/.test(v)?`"${v.replace(/"/g,'""')}"`:v;};
-export function toCSV(items){return '\ufeff'+[FIELDS.join(','),...items.map(it=>FIELDS.map(f=>esc(it[f])).join(','))].join('\r\n');}
+// CSV 中分类写名称（导入时按名称或 id 识别）
+export function toCSV(items){return '\ufeff'+[FIELDS.join(','),...items.map(it=>FIELDS.map(f=>esc(f==='cat'?(CATEGORIES[it.cat]?.name||it.cat):it[f])).join(','))].join('\r\n');}
 export const TEMPLATE_CSV='\ufeff名称,分类,到期日,数量,位置,备注\r\n居留卡,证件,15.03.2027,,,IGI 预约\r\n牛奶,食品,20.10.2026,2,冰箱,\r\n';
 // 自动判断分隔符（, 或 ;），罗马尼亚版 Excel 默认用分号
 export function sniff(t){const line=t.replace(/^\ufeff/,'').split(/\r?\n/)[0]||'';let c=0,sc=0,q=false;for(const ch of line){if(ch=='"')q=!q;else if(!q){if(ch==',')c++;else if(ch==';')sc++;}}return sc>c?';':',';}
@@ -20,9 +22,12 @@ const key=h=>{h=h.trim();return ALIAS[h]||ALIAS[h.toLowerCase()]||h;};
 // 返回 {items:[{row,item}], errors:[{row,reason}]}
 export function parseCSV(text){const r=rows(text);const res={items:[],errors:[]};if(!r.length)return res;const head=r[0].map(key);
   r.slice(1).forEach((c,i)=>{const line=i+2;if(!c.some(x=>x.trim()))return;const o={};head.forEach((h,j)=>{if(c[j]!==undefined&&c[j]!=='')o[h]=c[j];});
-    const v=normalize(o);if(v.error)res.errors.push({row:line,reason:v.error});else res.items.push({row:line,item:v});});return res;}
+    const nc=newCatName(o.cat);const v=normalize(o);if(v.error)res.errors.push({row:line,reason:v.error});else res.items.push(nc?{row:line,item:v,newCat:nc}:{row:line,item:v});});return res;}
+// 不认识的分类名（不是现有名称/id/别名）
+export function newCatName(c){if(c==null)return null;const n=String(c).normalize('NFKC').trim().slice(0,20);return n&&!catIdByName(n)&&!CUSTOM_ID.test(n)?n:null;}
 export function parseJSON(text){const d=JSON.parse(text);const res={items:[],errors:[],photos:d&&typeof d==='object'&&!Array.isArray(d)&&d.photos&&typeof d.photos==='object'?d.photos:null};
-  (Array.isArray(d)?d:d.items||[]).forEach((o,i)=>{const v=normalize({...o});if(v.error)res.errors.push({row:i+1,reason:v.error});else res.items.push({row:i+1,item:v});});return res;}
-export function toJSON(items,photos){const o={app:'daoqi-tixing',version:3,exportedAt:new Date().toISOString(),items};if(photos)o.photos=photos;return JSON.stringify(o,null,2);}
+  (Array.isArray(d)?d:d.items||[]).forEach((o,i)=>{const nc=newCatName(o?.cat);const v=normalize({...o});if(v.error)res.errors.push({row:i+1,reason:v.error});else res.items.push(nc?{row:i+1,item:v,newCat:nc}:{row:i+1,item:v});});
+  res.categories=d&&Array.isArray(d.categories)?d.categories:null;return res;}
+export function toJSON(items,photos,categories){const o={app:'daoqi-tixing',version:3,exportedAt:new Date().toISOString(),items};if(categories?.length)o.categories=categories;if(photos)o.photos=photos;return JSON.stringify(o,null,2);}
 export function normalize(o){return sanitize(o);}
 export function download(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}

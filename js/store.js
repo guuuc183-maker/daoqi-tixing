@@ -1,5 +1,6 @@
 // 本地存储层（v2 可替换为云端）。删除为软删除（deletedAt），回收站保留 30 天
 import {sanitize} from './sanitize.js';
+import {applyCats} from './templates.js';
 const KEY='dq.items.v2', SKEY='dq.settings.v1', SCHEMA=2;
 export function raw(){let l;try{l=JSON.parse(localStorage.getItem(KEY))}catch{l=null}return Array.isArray(l)?l.map(sanitize).filter(x=>!x.error):[];}
 export const all=()=>raw().filter(x=>!x.deletedAt);
@@ -22,8 +23,8 @@ export function replaceAll(l){return save(l);}
 // 启动迁移：把清洗后的数据写回一次（固定 id、补齐新字段）
 export function migrate(){let before;try{before=localStorage.getItem(KEY)}catch{return false}if(before==null)return true;const l=raw(),after=JSON.stringify(l);return after===before?true:save(l);}
 // 撤销：操作前保存整份快照，只保留最近 1 步
-let snap=null;export function snapshot(){snap=localStorage.getItem(KEY)||'[]';}
-export function undo(){if(snap==null)return false;try{localStorage.setItem(KEY,snap)}catch(e){lastSaveFailed=true;globalThis.dispatchEvent?.(new CustomEvent('dq-storage-error',{detail:e}));return false;}snap=null;return true;}
+let snap=null,snapS=null;export function snapshot(){snap=localStorage.getItem(KEY)||'[]';snapS=localStorage.getItem(SKEY)||'{}';}
+export function undo(){if(snap==null)return false;try{localStorage.setItem(KEY,snap);if(snapS!=null){localStorage.setItem(SKEY,snapS);applyCats(settings());}}catch(e){lastSaveFailed=true;globalThis.dispatchEvent?.(new CustomEvent('dq-storage-error',{detail:e}));return false;}snap=null;return true;}
 const DEF={soonDays:30,catIntensity:{},catSoon:{},badge:false,iosTipClosed:false};
 export function settings(){try{return Object.assign({},DEF,JSON.parse(localStorage.getItem(SKEY)||'{}'))}catch{return {...DEF}}}
-export function saveSettings(s){try{localStorage.setItem(SKEY,JSON.stringify(s));return true;}catch(e){lastSaveFailed=true;globalThis.dispatchEvent?.(new CustomEvent('dq-storage-error',{detail:e}));return false;}}
+export function saveSettings(s){applyCats(s);try{localStorage.setItem(SKEY,JSON.stringify(s));return true;}catch(e){lastSaveFailed=true;globalThis.dispatchEvent?.(new CustomEvent('dq-storage-error',{detail:e}));return false;}}

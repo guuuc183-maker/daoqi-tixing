@@ -1,5 +1,5 @@
 // 分类与模板。lead=建议办理提前量（天），docs=所需材料（参考，请以官方为准）
-export const CATEGORIES={
+const BUILTIN={
   doc:{name:'证件',color:'#3D7BE0',intensity:'strong',soon:90},
   car:{name:'车辆',color:'#7A5AF0',intensity:'strong',soon:30},
   food:{name:'食品',color:'#E08A1E',intensity:'standard',soon:3},
@@ -42,3 +42,20 @@ export const PERISHABLE=['food','med','shop','cosm'];
 // 自定义档的分类预设
 export const CUSTOM_PRESET={doc:[14,7,3,1],car:[14,7,3,1]};
 export const CAT_ALIAS={'证件':'doc','车辆':'car','食品':'food','药品':'med','化妆品':'cosm','店内商品':'shop','订阅账单':'bill','订阅':'bill','家居保修':'home','其他':'other'};
+
+// ===== 分类注册表：内置 + 自定义（存在 settings.cats），所有模块共用同一个对象 =====
+export const ICON_SET=['doc','car','food','med','cosm','shop','bill','home','other','box','bell','cal','hourglass','sparkle','gear','tabCats','check','renew'];
+export const COLORS=['#3D7BE0','#7A5AF0','#E08A1E','#E0507A','#C0569E','#0C9C6B','#1E9FB0','#8A6A4A','#67717A','#D94545','#2F8F4E','#B5832A'];
+export const CUSTOM_ID=/^c_[a-z0-9]{1,24}$/;
+export const CATEGORIES={};
+export function applyCats(st={}){const c=(st&&st.cats)||{};for(const k of Object.keys(CATEGORIES))delete CATEGORIES[k];
+  const names=c.names||{},hidden=Array.isArray(c.hidden)?c.hidden:[],all={};
+  for(const [k,v] of Object.entries(BUILTIN))all[k]={...v,icon:k,builtin:true,name:typeof names[k]==='string'&&names[k].trim()?names[k].trim().slice(0,20):v.name,hidden:k!=='other'&&hidden.includes(k)};
+  for(const d of Array.isArray(c.custom)?c.custom:[])if(d&&CUSTOM_ID.test(d.id)&&!all[d.id])
+    all[d.id]={name:String(d.name||'').normalize('NFKC').trim().slice(0,20)||'未命名',icon:ICON_SET.includes(d.icon)?d.icon:'box',color:/^#[0-9a-fA-F]{6}$/.test(d.color)?d.color:'#67717A',intensity:'standard',custom:true};
+  const order=(Array.isArray(c.order)?c.order:[]).filter((k,i,a)=>all[k]&&a.indexOf(k)===i);for(const k of Object.keys(all))if(!order.includes(k))order.push(k);
+  for(const k of order)CATEGORIES[k]=all[k];return CATEGORIES;}
+applyCats();
+export const visibleCats=()=>Object.entries(CATEGORIES).filter(([,c])=>!c.hidden);
+export function catIdByName(n){n=String(n??'').normalize('NFKC').trim();if(!n)return null;if(CATEGORIES[n])return n;
+  const e=Object.entries(CATEGORIES).find(([,c])=>c.name===n);if(e)return e[0];return CAT_ALIAS[n]||null;}
