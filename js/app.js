@@ -1,5 +1,6 @@
 import * as S from './store.js';
-import {CATEGORIES,TEMPLATES,INTENSITY,findTpl,PERISHABLE,CUSTOM_PRESET,applyCats,visibleCats,ICON_SET,COLORS} from './templates.js';
+import {CATEGORIES,TEMPLATES,INTENSITY,findTpl,PERISHABLE,CUSTOM_PRESET,applyCats,visibleCats,ICON_SET,COLORS,inferCat} from './templates.js';
+const defaultCat=s=>CATEGORIES[s.lastCat]&&!CATEGORIES[s.lastCat].hidden?s.lastCat:'other';
 import {daysLeft,label,todayStr,addDays,addMonths,fmt,nice,valid,parseInput,parse} from './dates.js';
 import {catDefault,effInt,inferSource,remindDays,itemState,todoList,leadDays,effSoon,catSoon,globalSoon} from './logic.js';
 import {icon} from './icons.js';
@@ -80,17 +81,18 @@ function photoBlock(ids=[],inForm=false){ids=ids||[];const full=ids.length>=P.MA
   return `<section class="${inForm?'photo-field':'card'} photos"><div class="micro">照片 · ${ids.length}/${P.MAX_PHOTOS}</div><div class="ph-grid">
    ${ids.map(id=>`<button type="button" class="ph" data-view="${h(id)}" aria-label="查看照片"><img data-ph="${h(id)}" alt=""></button>`).join('')}
    ${full?'':`<label class="ph add">${icon('add',20)}<span>拍照</span><input type="file" accept="image/*" capture="environment" data-addph hidden></label>
-   <label class="ph add">${icon('upload',20)}<span>相册</span><input type="file" accept="image/*" data-addph hidden></label>`}</div>
+   <label class="ph add">${icon('upload',20)}<span>相册</span><input type="file" accept="image/*" multiple data-addph hidden></label>`}</div>
    ${full?'<p class="small muted">每条最多 3 张照片</p>':''}</section>`;}
 function photoErr(e){if(P.isQuota(e))toast('存储空间已满，照片没有保存。请删除一些照片或导出备份后再试',false,true);else toast(e?.message||'照片添加失败',false,true);}
-function bindPhotos(root,getIds,onAdd,onDel){
+function bindPhotos(root,getIds,onAdd,onDel,onRep){
   root.querySelectorAll('[data-addph]').forEach(inp=>inp.onchange=async()=>{const fs=[...inp.files];inp.value='';
     for(const f of fs){if(getIds().length>=P.MAX_PHOTOS){toast('每条最多 3 张照片');break;}try{toast('正在压缩照片…');await onAdd(f);}catch(e){photoErr(e);break;}}});
-  root.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>viewer(b.dataset.view,onDel));}
-function viewer(pid,onDel){document.querySelector('.viewer')?.remove();const v=document.createElement('div');v.className='viewer';v.setAttribute('role','dialog');
-  v.innerHTML=`<img data-ph="${h(pid)}" data-kind="full" alt="照片"><div class="viewer-bar"><button class="btn" data-x>关闭</button><button class="btn danger" data-del>${icon('trash',18)}删除</button></div>`;
+  root.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>viewer(b.dataset.view,onDel,onRep&&(async(pid,f)=>{try{toast('正在压缩照片…');await onRep(pid,f);}catch(e){photoErr(e);}})));}
+function viewer(pid,onDel,onRep){document.querySelector('.viewer')?.remove();const v=document.createElement('div');v.className='viewer';v.setAttribute('role','dialog');
+  v.innerHTML=`<img data-ph="${h(pid)}" data-kind="full" alt="照片"><div class="viewer-bar"><button class="btn" data-x>关闭</button>${onRep?`<label class="btn" data-rep>${icon('renew',18)}替换<input type="file" accept="image/*" hidden></label>`:''}<button class="btn danger" data-del>${icon('trash',18)}删除</button></div>`;
   document.body.appendChild(v);hydrate(v);const close=()=>v.remove();v.querySelector('[data-x]').onclick=close;v.onclick=e=>{if(e.target===v)close();};
-  v.querySelector('[data-del]').onclick=()=>{close();onDel(pid);};}
+  v.querySelector('[data-del]').onclick=()=>{close();onDel(pid);};
+  const ri=v.querySelector('[data-rep] input');if(ri){ri.onclick=e=>e.stopPropagation();ri.onchange=()=>{const f=ri.files[0];if(!f)return;close();onRep(pid,f);};}}
 
 function home(){
   const s=st(),items=enrich(),act=items.filter(i=>!i.handledAt);
@@ -215,7 +217,8 @@ function detail(id){
   <button class="btn danger ghost" id="del">${icon('trash',18)}删除</button>`;
   $('#renew').onclick=()=>renewFlow(id,()=>detail(id));
   bindPhotos(view,()=>S.get(id).photos||[],async f=>{const pid=await P.addPhoto(id,f);if(!S.patch(id,x=>{x.photos=[...(x.photos||[]),pid].slice(0,P.MAX_PHOTOS);}))return;toast('照片已添加');detail(id);},
-    pid=>{act('已删除照片',()=>S.patch(id,x=>{x.photos=(x.photos||[]).filter(p=>p!==pid);}));detail(id);});hydrate(view);
+    pid=>{act('已删除照片',()=>S.patch(id,x=>{x.photos=(x.photos||[]).filter(p=>p!==pid);}));detail(id);},
+    async(pid,f)=>{const np=await P.addPhoto(id,f);act('照片已替换',()=>S.patch(id,x=>{x.photos=(x.photos||[]).map(p=>p===pid?np:p);}));detail(id);});hydrate(view);
   $('#handled')&&($('#handled').onclick=()=>{act('已停止提醒',()=>S.patch(id,x=>{x.handledAt=todayStr();delete x.snoozeUntil;}));detail(id);});
   $('#unhandle')&&($('#unhandle').onclick=()=>{act('已恢复提醒',()=>S.patch(id,x=>{delete x.handledAt;delete x.renewAsked;}));detail(id);});
   $('#rebuy')&&($('#rebuy').onclick=()=>{const raw=S.get(id);const created=(raw.prodDate||raw.createdAt||todayStr()).slice(0,10);
@@ -223,14 +226,15 @@ function detail(id){
     sessionStorage.setItem('dq.prefill',JSON.stringify({cat:raw.cat,name:raw.name,intensity:raw.intensity,intensitySource:raw.intensitySource,customDays:raw.customDays,location:raw.location,qty:raw.qty,shelfDays:shelf,due:addDays(todayStr(),shelf),rebuyFrom:id}));
     location.hash='#/new';});
   $('#ics1').onclick=()=>download(`${it.name}.ics`,toICS([S.get(id)],s),'text/calendar;charset=utf-8');
-  $('#del').onclick=()=>{act(`已删除「${it.name}」`,()=>S.softDelete([id]));location.hash='#/';};
+  $('#del').onclick=()=>{act(`已删除「${it.name}」`,()=>S.softDelete([id]));if(!S.lastSaveFailed)location.hash='#/';};
 }
 
 function form(id,q){
   const ex=id?S.get(id):null,s=st();
   let pre=null;if(!ex){try{pre=JSON.parse(sessionStorage.getItem('dq.prefill'))}catch{}sessionStorage.removeItem('dq.prefill');}
-  const it=ex?inferSource({...ex},s):Object.assign({cat:q.get('cat')||'doc',name:'',due:'',intensitySource:'cat',soonSource:'cat',customDays:[],renewMonths:'',qty:'',location:'',note:'',prodDate:'',shelfDays:''},pre||{});
+  const it=ex?inferSource({...ex},s):Object.assign({cat:q.get('cat')||defaultCat(s),name:'',due:'',intensitySource:'cat',soonSource:'cat',customDays:[],renewMonths:'',qty:'',location:'',note:'',prodDate:'',shelfDays:''},pre||{});
   if(pre&&q.get('cat'))it.cat=q.get('cat');
+  let picked=!!(ex||q.get('cat')||q.get('tpl')||pre?.cat||pre?.name),sug=null;
   if(!it.id)it.id=S.uid();if(pre)it.photos=[];
   {const tq=q.get('tpl'),t=tq&&TEMPLATES.find(x=>x.name===tq);if(t&&!ex){it.cat=t.cat;it.name=t.name;it.renewMonths=t.renew||'';}}
   let dueText=it.due||'',chain=false,shelfUnit='d',shelfN=it.shelfDays||'';
@@ -240,6 +244,7 @@ function form(id,q){
     <div class="chips tpl ${TEMPLATES.filter(t=>t.cat===it.cat).length<=8?'wrap':''}">${TEMPLATES.filter(t=>t.cat===it.cat).map(t=>`<button data-tpl="${h(t.name)}" class="${it.name===t.name?'on':''}">${ci(t.cat,16)}${h(t.name)}</button>`).join('')}</div>`}
     <form class="card form" id="f" novalidate>
       <label>名称<input name="name" maxlength="60" required value="${h(it.name)}" placeholder="例如：居留卡"></label>
+      <div id="catSug" class="hint-l sug">${sug?`按名称建议分类：<b>${h(cat(sug).name)}</b>${it.cat===sug?' · 已应用，可在下面修改':` <button type="button" class="btn sm" data-sug>使用</button>`}`:''}</div>
       <label>分类<select name="cat">${Object.entries(CATEGORIES).filter(([k,c])=>!c.hidden||k===it.cat).map(([k,c])=>`<option value="${k}" ${k===it.cat?'selected':''}>${h(c.name)}</option>`).join('')}</select></label>
       ${per?`<div class="two"><label>生产日期<input name="prodDate" id="prod" inputmode="numeric" value="${h(it.prodDate||'')}" placeholder="可选，如 01.10.2026"></label>
         <label>保质期<span class="shelf"><input id="shelfN" type="number" min="1" value="${h(shelfN)}" placeholder="—"><select id="shelfU"><option value="d" ${shelfUnit==='d'?'selected':''}>天</option><option value="m" ${shelfUnit==='m'?'selected':''}>月</option></select></span></label></div>`:''}
@@ -278,22 +283,27 @@ function form(id,q){
       const base=chain&&it.due?it.due:(parseInput($('#prod')?.value)||todayStr());const n=+k.slice(0,-1),u=k.slice(-1);
       setDue(u==='d'?addDays(base,n):addMonths(base,u==='m'?n:n*12));chain=true;});
     hint();if(focus==='due'){dueT.focus();}
-    view.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{sync();it.cat=b.dataset.cat;it.name='';draw();});
-    f.querySelector('[name=cat]').onchange=()=>{sync();draw();};
-    view.querySelectorAll('[data-tpl]').forEach(b=>b.onclick=()=>{sync();const t=findTpl(it.cat,b.dataset.tpl);it.name=t.name==='自定义'?'':t.name;it.renewMonths=t.renew||'';draw('due');});
+    view.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{sync();it.cat=b.dataset.cat;it.name='';picked=true;sug=null;draw();});
+    f.querySelector('[name=cat]').onchange=()=>{sync();picked=true;sug=null;draw();};
+    // 名称推断分类：仅在用户没有明确选过分类时作为建议
+    const nameI=f.querySelector('[name=name]'),showSug=()=>{const g=$('#catSug');if(!g)return;g.innerHTML=sug&&sug!==it.cat?`按名称建议分类：<b>${h(cat(sug).name)}</b> · 离开输入框后应用`:'';};
+    if(!ex){nameI.oninput=()=>{if(picked)return;const g=inferCat(nameI.value);sug=g&&!CATEGORIES[g]?.hidden?g:null;showSug();};
+      nameI.onchange=()=>{if(picked||!sug||sug===it.cat)return;sync();it.cat=sug;draw();};}
+    $('[data-sug]')&&($('[data-sug]').onclick=()=>{sync();it.cat=sug;draw();});
+    view.querySelectorAll('[data-tpl]').forEach(b=>b.onclick=()=>{sync();picked=true;sug=null;const t=findTpl(it.cat,b.dataset.tpl);it.name=t.name==='自定义'?'':t.name;it.renewMonths=t.renew||'';draw('due');});
     view.querySelectorAll('[data-int]').forEach(b=>b.onclick=()=>{sync();it.intensity=b.dataset.int;it.intensitySource='item';
       if(it.intensity==='custom'&&!(it.customDays||[]).length)it.customDays=(CUSTOM_PRESET[it.cat]||[7,1]).slice();draw();});
     $('#follow')&&($('#follow').onclick=e=>{e.preventDefault();sync();it.intensitySource='cat';delete it.intensity;draw();});
-    bindPhotos(view,()=>it.photos||[],async f=>{sync();const pid=await P.addPhoto(it.id,f);it.photos=[...(it.photos||[]),pid].slice(0,P.MAX_PHOTOS);draw();},pid=>{sync();it.photos=(it.photos||[]).filter(p=>p!==pid);draw();});hydrate(view);
+    bindPhotos(view,()=>it.photos||[],async f=>{sync();const pid=await P.addPhoto(it.id,f);it.photos=[...(it.photos||[]),pid].slice(0,P.MAX_PHOTOS);draw();},pid=>{sync();it.photos=(it.photos||[]).filter(p=>p!==pid);draw();},async(pid,f)=>{sync();const np=await P.addPhoto(it.id,f);it.photos=(it.photos||[]).map(p=>p===pid?np:p);draw();});hydrate(view);
     view.querySelectorAll('[data-ss]').forEach(b=>b.onclick=()=>{sync();it.soonSource=b.dataset.ss;if(it.soonSource==='item'&&(it.soonDays===''||it.soonDays==null))it.soonDays=catSoon(it.cat,s);draw();});
     view.querySelectorAll('[data-cd]').forEach(b=>b.onclick=()=>{sync();const d=+b.dataset.cd,cd=it.customDays||[];it.customDays=cd.includes(d)?cd.filter(x=>x!==d):[...cd,d];draw();});
     const save=more=>{sync();hint();const due=parseInput(dueT.value);if(!it.name.trim())return toast('请填写名称');if(!due)return toast('请填写有效的到期日');
       it.due=due;it.name=it.name.trim().slice(0,60);if(it.intensitySource==='cat')delete it.intensity;
       if(ex&&ex.due!==due){delete it.handledAt;delete it.snoozeUntil;delete it.renewAsked;}
-      if(it.soonSource==='item'){const v=Number(it.soonDays);if(!Number.isInteger(v)||v<0||v>3650)return toast('临期天数要是 0–3650 的整数');it.soonDays=v;}else{it.soonSource='cat';delete it.soonDays;}
+      if(it.soonSource==='item'){if(String(it.soonDays??'').trim()==='')return toast('请填写临期天数，或选「跟随分类」');const v=Number(it.soonDays);if(!Number.isInteger(v)||v<0||v>3650)return toast('临期天数要是 0–3650 的整数');it.soonDays=v;}else{it.soonSource='cat';delete it.soonDays;}
       for(const k of ['renewMonths','qty','shelfDays'])it[k]=it[k]===''||it[k]==null?'':Number(it[k]);
       it.prodDate=parseInput(it.prodDate)||'';const from=it.rebuyFrom;delete it.rebuyFrom;
-      const saved=S.upsert(it);if(!saved)return;updateBadge();
+      const saved=S.upsert(it);if(!saved)return;updateBadge();if(!ex){const x=st();if(x.lastCat!==it.cat){x.lastCat=it.cat;S.saveSettings(x);}}
       if(more){toast('已保存，继续添加');sessionStorage.setItem('dq.prefill',JSON.stringify({cat:it.cat,intensity:it.intensity,intensitySource:it.intensitySource,customDays:it.customDays,location:it.location}));route();return;}
       if(from&&S.get(from)&&!S.get(from).deletedAt){afterRoute=()=>sheet(`<h3>旧的这批用完了吗？</h3><p class="small muted">「${h(S.get(from).name)}」到期 ${h(S.get(from).due)}</p><div class="actions"><button class="btn primary" id="used">用完了，移入回收站</button><button class="btn" id="keep">还有，保留</button></div>`,w=>{
           w.querySelector('#used').onclick=()=>{closeSheet();act('旧批次已移入回收站',()=>S.softDelete([from]));};w.querySelector('#keep').onclick=closeSheet;});location.hash='#/item/'+saved.id;return;}
@@ -492,6 +502,8 @@ S.migrate();S.purgeOld();
 if(globalThis.indexedDB)P.cleanup(S.raw().flatMap(i=>i.photos||[])).catch(()=>{});{const s=st();if(!s.firstUseAt){s.firstUseAt=new Date().toISOString();S.saveSettings(s);}}
 navigator.storage?.persist?.().catch(()=>{});
 {const qs=new URLSearchParams(location.search);if(qs.has('demo')){if(!S.raw().length)seed();const s=st();s.onboarded=true;S.saveSettings(s);}}
+// N4：已有数据的老用户升级后不再弹引导
+if(!st().onboarded&&S.raw().length){const s=st();s.onboarded=true;S.saveSettings(s);}
 if(!st().onboarded)onboarding();
 addEventListener('hashchange',route);route();updateBadge();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){updateBadge();if(!location.hash.startsWith('#/new')&&!location.hash.startsWith('#/edit'))route();}});

@@ -218,4 +218,35 @@ const B='http://localhost:8765/daoqi-tixing/';
   await q.setInputFiles('#imp','/tmp/nc.csv');await q.waitForTimeout(400);t(/水族/.test(await q.textContent('.imp'))&&await q.locator('[data-nc]').count()===2,'CM 导入预览新分类');
   await q.click('#impGo');await q.waitForTimeout(400);const ss=await SS();const aq=ss.cats.custom.find(d=>d.name==='水族');l=await IT();
   t(aq&&l.find(x=>x.name==='鱼食').cat===aq.id&&l.find(x=>x.name==='猫砂').cat===cid,'CM 导入自动创建/按名匹配');await c7.close();}
+
+ // ---- round3 N4–N8 + 删除失败 + 默认/推断分类 ----
+ {const c8=await br.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});const q=await c8.newPage();q.on('pageerror',e=>errs.push(e.message));
+  const SS=()=>q.evaluate(()=>JSON.parse(localStorage.getItem('dq.settings.v1')||'{}'));
+  await q.goto(B+'?demo=1#/new');await q.waitForTimeout(400);
+  t(await q.$$eval('.form input[type=file]',e=>e.every(x=>x.offsetWidth===0)),'N6 表单文件框隐藏');
+  t(await q.$$eval('.form input[type=file]',e=>e.filter(x=>x.multiple).length===1&&!e.find(x=>x.capture&&x.multiple)),'N8 相册 multiple，拍照单张');
+  t(await q.inputValue('[name=cat]')!=='doc','默认分类不是证件');
+  await q.fill('[name=name]','牛奶');await q.waitForTimeout(100);t(/食品/.test(await q.textContent('#catSug')),'推断建议显示');
+  await q.click('#dueT');await q.waitForTimeout(200);t(await q.inputValue('[name=cat]')==='food','推断离开后应用');
+  await q.fill('[name=name]','护照 X');await q.click('#dueT');await q.waitForTimeout(200);t(await q.inputValue('[name=cat]')==='doc','推断再次更新');
+  await q.selectOption('[name=cat]','home');await q.waitForTimeout(150);await q.fill('[name=name]','布洛芬');await q.click('#dueT');await q.waitForTimeout(200);t(await q.inputValue('[name=cat]')==='home','明确选择后不覆盖');
+  await q.fill('#dueT','01.12.2026');await q.click('[data-save]');await q.waitForTimeout(400);t((await SS()).lastCat==='home','记住上次分类');
+  await q.goto(B+'#/');await q.goto(B+'#/new');await q.waitForTimeout(300);t(await q.inputValue('[name=cat]')==='home','新增默认上次分类');
+  // N5
+  await q.goto(B+'#/edit/d3');await q.waitForTimeout(300);await q.click('[data-ss=item]');await q.fill('[name=soonDays]','');await q.click('[data-save]');await q.waitForTimeout(250);
+  t(/请填写临期天数/.test(await q.textContent('.toast'))&&/#\/edit/.test(q.url()),'N5 留空被拦');
+  // N7
+  await q.goto(B+'#/item/d3');await q.waitForTimeout(300);await q.setInputFiles('.ph.add input:not([capture])',__dirname+'/fixtures-photo.jpg').catch(()=>q.setInputFiles('[data-addph]:not([capture])','/workspace/到期提醒/app/tests/fixtures-photo.jpg'));await q.waitForTimeout(1500);
+  const before=await q.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')).find(x=>x.id==='d3').photos);
+  await q.click('[data-view]');await q.waitForTimeout(200);t(await q.locator('.viewer [data-rep]').count()===1,'N7 查看器有替换');
+  await q.setInputFiles('.viewer [data-rep] input','/workspace/到期提醒/app/tests/fixtures-photo.jpg');await q.waitForTimeout(1500);
+  const after=await q.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')).find(x=>x.id==='d3').photos);t(before.length===1&&after.length===1&&after[0]!==before[0],'N7 替换照片');
+  // 删除失败留在详情
+  await q.evaluate(()=>{const o=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k==='dq.items.v2')throw new DOMException('full','QuotaExceededError');return o.call(this,k,v);};});
+  await q.click('#del');await q.waitForTimeout(300);t(/#\/item\/d3/.test(q.url())&&/存储/.test(await q.textContent('.toast')),'删除失败留在详情页');
+  await c8.close();
+  // N4 老用户
+  const c9=await br.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});const r=await c9.newPage();
+  await r.addInitScript(()=>{if(!localStorage.getItem('dq.items.v2'))localStorage.setItem('dq.items.v2',JSON.stringify([{id:'old1',name:'旧条目',due:'2027-01-01',cat:'doc'}]));});
+  await r.goto(B+'#/');await r.waitForTimeout(500);t(await r.locator('.onboard,.ob').count()===0,'N4 老用户不弹引导');await c9.close();}
  console.log(ok,'passed',bad,'failed');console.log('errors',errs);await br.close();})();

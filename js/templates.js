@@ -59,3 +59,19 @@ applyCats();
 export const visibleCats=()=>Object.entries(CATEGORIES).filter(([,c])=>!c.hidden);
 export function catIdByName(n){n=String(n??'').normalize('NFKC').trim();if(!n)return null;if(CATEGORIES[n])return n;
   const e=Object.entries(CATEGORIES).find(([,c])=>c.name===n);if(e)return e[0];return CAT_ALIAS[n]||null;}
+
+// 名称关键词 → 分类（中文 / 罗马尼亚语 / 英语）；自定义分类名称优先
+export const CAT_KEYWORDS={
+  food:['牛奶','酸奶','面包','鸡蛋','蛋','肉','鱼','奶酪','黄油','饺子','水果','蔬菜','果汁','罐头','零食','辣酱','lapte','pâine','paine','ouă','oua','brânză','branza','carne','iaurt','unt','milk','bread','egg','cheese','yogurt','butter','meat','juice'],
+  med:['药','布洛芬','维生素','胶囊','片剂','药膏','眼药水','处方','疫苗','ibuprofen','paracetamol','aspirin','medicine','vitamin','pills','medicament','vitamine','pastile','sirop','unguent','reteta','rețetă'],
+  car:['RCA','ITP','CASCO','保险','交强险','年检','汽车','车险','驾照','公路费','rovinieta','rovinietă','asigurare','permis','mașin','masin','auto','car insurance','inspection','driving licen'],
+  doc:['护照','居留','身份证','签证','证件','户口','pașaport','pasaport','buletin','carte de identitate','permis de ședere','permis de sedere','viză','viza','passport','visa','residence','id card'],
+  cosm:['面霜','精华','防晒','口红','面膜','乳液','化妆','香水','cremă','crema','ruj','parfum','sunscreen','lipstick','serum','cream','mascara'],
+  bill:['会员','订阅','话费','宽带','账单','网费','netflix','spotify','abonament','factură','factura','subscription','bill','icloud','youtube'],
+  home:['保修','滤芯','电池','烟雾报警','灭火器','空调','热水器','garanție','garantie','filtru','baterie','warranty','filter','battery','boiler'],
+};
+export function inferCat(name){const n=String(name||'').normalize('NFKC').trim().toLowerCase();if(!n)return null;
+  for(const [k,c] of Object.entries(CATEGORIES))if(c.custom&&c.name&&n.includes(c.name.toLowerCase()))return k;
+  let best=null,len=0;for(const [k,ws] of Object.entries(CAT_KEYWORDS)){if(!CATEGORIES[k])continue;for(const w of ws){const lw=w.toLowerCase();
+    const hit=/^[a-z]{2,5}$/.test(lw)?new RegExp(`(^|[^a-z])${lw}([^a-z]|$)`).test(n):n.includes(lw);if(hit&&lw.length>len){best=k;len=lw.length;}}}
+  return best;}
