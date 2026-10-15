@@ -47,7 +47,7 @@ export const TEMPLATES=[
   {id:'roRovinieta',cat:'car',region:'ro',renew:12,lead:3},
   {id:'roCasco',cat:'car',region:'ro',renew:12,lead:14},
   {id:'roPad',cat:'home',region:'ro',renew:12,lead:30,url:"https://www.paidromania.ro"},
-  {id:'roHealthCard',cat:'doc',region:'ro',renew:60,lead:30,url:"https://cnas.ro"},
+  {id:'roHealthCard',cat:'doc',region:'ro',renew:84,lead:30,url:"https://cnas.ro"},
   {id:'bankCard',cat:'doc',renew:48,lead:30},
   ...SHELF.map(x=>({id:x.id,cat:'food',renew:0,lead:x.days<=3?0:x.days<=7?1:2,shelfDays:x.days,shelfLevelId:x.level,src:x.src})),
   {id:'frozen',cat:'food',renew:0,lead:7},

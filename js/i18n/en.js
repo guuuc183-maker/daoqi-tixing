@@ -570,7 +570,7 @@ export const en={
  "tplShort.cnPassport": "Passport",
  "tplShort.cnDriving": "Licence",
  "tplShort.cnCompulsory": "Compulsory ins.",
- "tplShort.cnCommercial": "Commercial ins.",
+ "tplShort.cnCommercial": "Commercial",
  "tplShort.cnInspection": "Station test",
  "tplShort.cnMedical": "Medical ins.",
  "tplShort.roRovinieta": "Rovinieta",
