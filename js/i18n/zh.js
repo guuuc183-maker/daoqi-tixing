@@ -144,7 +144,7 @@ export const zh={
  "tpl.cnDrivingCheck": "驾驶证审验",
  "tplDocs.cnDrivingCheck": "请以当地公安、出入境、车管所官方为准。大中型客货车等每个记分周期结束后 30 日内审验；小型车一般在换证时审验（公安部令第 172 号第七十二条）。",
  "tpl.cnCompulsory": "交强险",
- "tplDocs.cnCompulsory": "请以当地公安、出入境、车管所官方为准。保险期间 1 年。",
+ "tplDocs.cnCompulsory": "以保单为准。保险期间一般 1 年。",
  "tpl.cnCommercial": "商业车险",
  "tplDocs.cnCommercial": "请以当地公安、出入境、车管所官方为准。一般 1 年，以保单为准。",
  "tpl.cnInspection": "私家车年检·上线检验（9 座及以下）",
