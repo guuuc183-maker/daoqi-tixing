@@ -1,4 +1,5 @@
 // 到期计算模块：日期一律按本地日历日 YYYY-MM-DD
+import {t,fmtFull} from './i18n/i18n.js';
 export const todayStr=()=>fmt(new Date());
 export function fmt(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 export function parse(s){const [y,m,d]=String(s).split('-').map(Number);return new Date(y,(m||1)-1,d||1);}
@@ -9,14 +10,13 @@ export function addMonths(s,n){const d=parse(s);const day=d.getDate();d.setDate(
   const last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(day,last));return fmt(d);}
 // 状态：expired / soon(≤阈值) / safe
 export function status(n,soon=30){return n<0?'expired':n<=soon?'soon':'safe';}
-export function label(n){return n<0?`过期 ${-n} 天`:n===0?'今天到期':`还剩 ${n} 天`;}
-const W='日一二三四五六';
-export function nice(s){const d=parse(s);return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 周${W[d.getDay()]}`;}
+export function label(n){return n<0?t('lbl.expired',{n:-n}):n===0?t('reason.today'):t('lbl.left',{n});}
+export const nice=s=>fmtFull(s);
 const mk=(y,m,d)=>{if(y<100)y+=2000;const dt=new Date(y,m-1,d);return dt.getFullYear()===y&&dt.getMonth()===m-1&&dt.getDate()===d?fmt(dt):null;};
 const lastDay=(y,m)=>{if(y<100)y+=2000;return m>=1&&m<=12?fmt(new Date(y,m,0)):null;};
 // 识别键盘输入的日期：2026-10-15 / 15.10.2026 / 15/10/26 / 151026 / 15102026 / 20261015 / 10/26（月/年→当月最后一天）
-export function parseInput(s){s=String(s||'').normalize('NFKC').replace(/[。．]/g,'.').trim().replace(/\s+/g,'');let m;if(!s)return null;
-  if(m=s.match(/^(\d{4})[-./年](\d{1,2})[-./月](\d{1,2})日?$/))return mk(+m[1],+m[2],+m[3]);
+export function parseInput(s){s=String(s||'').normalize('NFKC').replace(/[\u3002\uff0e]/g,'.').trim().replace(/\s+/g,'');let m;if(!s)return null;
+  if(m=s.match(/^(\d{4})[-./\u5e74](\d{1,2})[-./\u6708](\d{1,2})\u65e5?$/))return mk(+m[1],+m[2],+m[3]);
   if(m=s.match(/^(\d{1,2})[-./](\d{1,2})[-./](\d{2}|\d{4})$/))return mk(+m[3],+m[2],+m[1]);
   if(m=s.match(/^(\d{1,2})[./](\d{2}|\d{4})$/)){const yy=new Date().getFullYear()%100;
     // 4 位年份或 ≥ 今年的 2 位年份 → 月/年；否则当作 日.月（今年，已过则明年）

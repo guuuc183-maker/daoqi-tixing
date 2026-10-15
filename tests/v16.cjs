@@ -1,7 +1,7 @@
 // v1.6.0 验收（v1.6-v1.7迭代计划.md §二 + UX/v1.6-交互与文案.md）。点击数用计数器记录
 const {chromium}=require('playwright-core');const B='http://localhost:8765/daoqi-tixing/';
 (async()=>{const br=await chromium.launch({executablePath:'/usr/bin/google-chrome'});let ok=0,bad=0;const errs=[];const t=(c,m)=>{if(c)ok++;else{bad++;console.log('FAIL',m);}};
- const ctx=async(o={})=>{const c=await br.newContext({viewport:{width:390,height:844},acceptDownloads:true,...o});c.setDefaultTimeout(5000);const q=await c.newPage();q.on('pageerror',e=>errs.push(e.message));let clicks=0;q.tap=async s=>{clicks++;await q.click(s);};q.clicks=()=>clicks;q.reset=()=>{clicks=0;};return [c,q];};
+ const ctx=async(o={})=>{const c=await br.newContext({locale:'zh-CN',viewport:{width:390,height:844},acceptDownloads:true,...o});c.setDefaultTimeout(5000);const q=await c.newPage();q.on('pageerror',e=>errs.push(e.message));let clicks=0;q.tap=async s=>{clicks++;await q.click(s);};q.clicks=()=>clicks;q.reset=()=>{clicks=0;};return [c,q];};
  const today=(n=0)=>{const d=new Date();d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
  const IT=q=>q.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')||'[]'));
  // 1 老用户 3 次点击加牛奶 + 保存在首屏 + 回到原页
@@ -10,7 +10,7 @@ const {chromium}=require('playwright-core');const B='http://localhost:8765/daoqi
   await q.tap('a[data-tab=new]');await q.waitForTimeout(300);
   const sb=await q.$eval('#saveTop',e=>{const r=e.getBoundingClientRect();return [r.top,r.bottom,innerHeight,scrollY];});t(sb[0]>=0&&sb[1]<=sb[2]&&sb[3]===0,'U1 保存在 390×844 首屏 '+sb);
   t(/最近/.test(await q.textContent('.tpl-recent').then(()=>q.textContent('.micro.pad'))),'U1 最近行');
-  await q.tap('.tpl-recent [data-tpl="牛奶"]');await q.waitForTimeout(200);t(await q.inputValue('#dueP')===today(7),'U1 牛奶自动 +7 天');
+  await q.tap('.tpl-recent [data-tpl]:text-is("牛奶")');await q.waitForTimeout(200);t(await q.inputValue('#dueP')===today(7),'U1 牛奶自动 +7 天');
   t(/以包装日期为准/.test(await q.textContent('.shelf-note')),'U1 保质期提示');
   await q.tap('#saveTop');await q.waitForTimeout(400);t(q.clicks()===3,'U1 3 次点击 '+q.clicks());
   const milk=(await IT(q)).filter(i=>i.name==='牛奶').pop();t(milk.due===today(7)&&milk.cat==='food','U1 保存正确');t(/#\/$/.test(q.url()),'U1 回到首页 '+q.url());
@@ -56,7 +56,7 @@ const {chromium}=require('playwright-core');const B='http://localhost:8765/daoqi
  {const [c,q]=await ctx();await q.goto(B+'#/');await q.waitForTimeout(500);t(await q.locator('.ob1').count()===1&&await q.locator('.ob-track,[data-ob=next]').count()===0,'U4 引导 1 屏');
   t(/提前 7 天，提醒 1 次/.test(await q.textContent('.ob1 .lvls'))&&/提前 60 天起，共 14 次/.test(await q.textContent('.ob1 .lvls')),'U4 强度说明');
   q.reset();await q.tap('[data-ob=add]');await q.waitForTimeout(300);t(/#\/new/.test(q.url()),'U4 加第一条进新增页');
-  await q.tap('[data-tpl="居留卡"]');await q.fill('#dueT','15.10.2027');await q.tap('#saveTop');await q.waitForTimeout(400);t(q.clicks()<=4&&(await IT(q)).length===1,'U4 首次录入 ≤4 次点击 '+q.clicks());
+  await q.tap('[data-tpl]:text-is("居留卡")');await q.fill('#dueT','15.10.2027');await q.tap('#saveTop');await q.waitForTimeout(400);t(q.clicks()<=4&&(await IT(q)).length===1,'U4 首次录入 ≤4 次点击 '+q.clicks());
   await q.reload();await q.waitForTimeout(400);t(await q.locator('.ob1').count()===0,'U4 onboarded 刷新不出现');await c.close();}
  // U5 设置首屏备份 + 无 JSON/照片选项
  {const [c,q]=await ctx();await q.goto(B+'?demo=1#/settings');await q.waitForTimeout(400);

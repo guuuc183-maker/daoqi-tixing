@@ -1,0 +1,62 @@
+# 模板三语（id, zh, ro, en）+ 材料说明三语。ro/en 由开发初译，待百科全书核对（见 i18n-校对/ro-核对表.md 补充段）
+CNPRE=('请以当地公安、出入境、车管所官方为准。','Verifică la autoritățile oficiale din China (poliție, imigrări, permise auto). ','Check with the official Chinese authorities (police, exit-entry, vehicle office). ')
+T=[
+# id, zh, ro, en, docs zh, docs ro, docs en
+('cnId','中国·居民身份证','China · carte de identitate','China · resident ID card','16–25 岁 10 年；26–45 岁 20 年；46 岁以上长期；未满 16 岁 5 年。默认按成人 10 年预填。','16–25 ani: 10 ani; 26–45 ani: 20 de ani; peste 46 de ani: nelimitat; sub 16 ani: 5 ani. Precompletat pentru adulți: 10 ani.','Age 16–25: 10 years; 26–45: 20 years; 46+: no expiry; under 16: 5 years. Prefilled for adults: 10 years.'),
+('cnPassport','中国·普通护照','China · pașaport','China · passport','未满 16 岁 5 年；16 岁以上 10 年；有效期不足 6 个月可申请换发。默认按成人 10 年预填。','Sub 16 ani: 5 ani; peste 16 ani: 10 ani; poți cere unul nou cu mai puțin de 6 luni rămase. Precompletat pentru adulți: 10 ani.','Under 16: 5 years; 16+: 10 years; you can renew when less than 6 months remain. Prefilled for adults: 10 years.'),
+('cnHkMacau','往来港澳通行证','Permis Hong Kong / Macao','Hong Kong / Macao permit','未满 16 岁 5 年；16 岁以上 10 年；签注另算。默认按成人 10 年预填。','Sub 16 ani: 5 ani; peste 16 ani: 10 ani; viza (endorsement) separat. Precompletat pentru adulți: 10 ani.','Under 16: 5 years; 16+: 10 years; endorsements are separate. Prefilled for adults: 10 years.'),
+('cnHkEndorse','港澳签注','Viză Hong Kong / Macao','Hong Kong / Macao endorsement','按签注类型（次数和有效期不同），到期日请按签注填写。（待核实）','Depinde de tipul vizei (număr de intrări și valabilitate); completează data de pe viză. (de verificat)','Depends on the endorsement type (entries and validity); enter the date on the endorsement. (to be verified)'),
+('cnTaiwan','大陆居民往来台湾通行证','Permis pentru Taiwan','Mainland travel permit for Taiwan','有效期 5 年或 10 年。（待核实）','Valabil 5 sau 10 ani. (de verificat)','Valid for 5 or 10 years. (to be verified)'),
+('cnTaiwanCompat','台胞证','Permis pentru rezidenții din Taiwan','Taiwan compatriot permit','台湾居民来往大陆通行证，有效期 5 年。（待核实）','Permis de călătorie pentru rezidenții din Taiwan, valabil 5 ani. (de verificat)','Travel permit for Taiwan residents, valid for 5 years. (to be verified)'),
+('cnResidence','居住证','Permis de reședință (China)','Residence permit (China)','按年签注（居住证暂行条例）。（待核实）','Se vizează anual. (de verificat)','Endorsed every year. (to be verified)'),
+('cnDriving','中国·驾驶证','China · permis de conducere','China · driving licence','6 年 → 10 年 → 长期；有效期满前 90 日内申请换证，换证时一并审验（公安部令第 172 号）。','6 ani → 10 ani → nelimitat; reînnoiești în ultimele 90 de zile, cu verificare la schimb (Ordinul MPS nr. 172).','6 years → 10 years → no expiry; renew within 90 days before expiry, checked at renewal (MPS Order No. 172).'),
+('cnDrivingCheck','驾驶证审验','Verificare permis (China)','Licence review (China)','大中型客货车等每个记分周期结束后 30 日内审验；小型车一般在换证时审验（公安部令第 172 号第七十二条）。','Pentru autobuze și camioane: în 30 de zile după fiecare ciclu de puncte; pentru autoturisme, de obicei la schimbarea permisului (Ordinul MPS nr. 172, art. 72).','Buses and trucks: within 30 days after each points cycle; cars: usually at licence renewal (MPS Order No. 172, Art. 72).'),
+('cnCompulsory','交强险','Asigurare obligatorie (China)','Compulsory motor insurance (China)','保险期间一般 1 年。（待核实）','De obicei 1 an. (de verificat)','Usually 1 year. (to be verified)'),
+('cnCommercial','商业车险','Asigurare auto facultativă (China)','Commercial car insurance (China)','一般 1 年，以保单为准。','De obicei 1 an; vezi polița.','Usually 1 year; see your policy.'),
+('cnInspection','机动车年检（私家车）','Inspecție auto (China)','Vehicle inspection (China)','自注册之日起第 6、10 年上线检验；10 年内每 2 年申领检验标志；超过 10 年每年检验。','Inspecție la 6 și 10 ani de la înmatriculare; până la 10 ani, ecuson la fiecare 2 ani; după 10 ani, anual.','Inspected at years 6 and 10 after registration; sticker every 2 years up to 10 years; yearly after 10 years.'),
+('roPermit','居留卡','Permis de ședere','Residence permit','一般 1 年（工作或家庭团聚），长期居留最长 5 年；到期前至少 30 天申请延期。护照、租房合同/住址证明、工作合同或在读证明、医保、照片、规费收据（请以 IGI 官方为准）','De obicei 1 an (muncă sau reîntregirea familiei), rezidență pe termen lung până la 5 ani; cere prelungirea cu cel puțin 30 de zile înainte. Pașaport, contract de închiriere / dovada adresei, contract de muncă sau adeverință de student, asigurare medicală, fotografii, chitanța taxei (verifică la IGI)','Usually 1 year (work or family), long-term residence up to 5 years; apply to extend at least 30 days before expiry. Passport, lease / proof of address, work contract or student certificate, health insurance, photos, fee receipt (check with IGI)'),
+('roPassport','护照','Pașaport','Passport','旧护照、照片、申请表；可在使馆/领馆预约（请以使馆官网为准）','Pașaportul vechi, fotografii, cerere; programare la ambasadă / consulat (verifică pe site-ul ambasadei)','Old passport, photos, application form; book at the embassy / consulate (check the embassy website)'),
+('roDriving','驾照','Permis de conducere','Driving licence','旧驾照、身份证件、体检证明、照片','Permisul vechi, act de identitate, aviz medical, fotografie','Old licence, ID, medical certificate, photo'),
+('roId','身份证','Carte de identitate','ID card','18–25 岁 7 年，25–55 岁 10 年，55 岁以上长期有效（默认按 10 年预填）。旧证件、照片','18–25 ani: 7 ani; 25–55 ani: 10 ani; peste 55 de ani: nelimitat (precompletat: 10 ani). Actul vechi, fotografie','Age 18–25: 7 years; 25–55: 10 years; over 55: no expiry (prefilled: 10 years). Old ID, photo'),
+('bizLicence','营业执照','Certificat de înregistrare','Business licence','公司文件、注册处要求材料','Actele firmei, documentele cerute de registru','Company documents, papers required by the registry'),
+('lease','租约','Contract de închiriere','Lease','与房东确认续约或提前通知退租','Confirmă prelungirea cu proprietarul sau anunță din timp plecarea','Confirm renewal with the landlord or give notice in time'),
+('roRca','RCA 交强险','Asigurare RCA','RCA car insurance','行驶证（talon）、身份证件；比价后续保','Talon, act de identitate; compară ofertele înainte să reînnoiești','Registration (talon), ID; compare offers before renewing'),
+('roItp','ITP 车检','ITP','ITP inspection','乘用车新车 3 年，之后每 2 年，车龄超过 12 年每年一次。行驶证、有效 RCA','Autoturism nou: după 3 ani, apoi la 2 ani; peste 12 ani, anual. Talon, RCA valabil','New car: after 3 years, then every 2 years; over 12 years, yearly. Registration, valid RCA'),
+('roRovinieta','Rovinieta 公路费','Rovinietă','Road vignette (Rovinieta)','车牌号、底盘号，可网上购买','Număr de înmatriculare, serie de șasiu; se cumpără online','Plate number, VIN; can be bought online'),
+('roCasco','CASCO 车损险','CASCO','CASCO insurance','保单、车辆照片','Polița, fotografii ale mașinii','Policy, photos of the car'),
+('frozen','冷冻食品','Congelate','Frozen food','','',''),
+('meds','常备药','Medicamente de bază','Home medicine','','',''),
+('vitamins','维生素','Vitamine','Vitamins','','',''),
+('cream','面霜','Cremă de față','Face cream','','',''),
+('sunscreen','防晒霜','Protecție solară','Sunscreen','','',''),
+('lipstick','口红','Ruj','Lipstick','','',''),
+('perfume','香水','Parfum','Perfume','','',''),
+('lensSol','隐形眼镜护理液','Soluție lentile','Lens solution','','',''),
+('shopItem','店内商品','Produs din magazin','Store product','','',''),
+('phonePlan','手机套餐','Abonament telefon','Phone plan','','',''),
+('videoSub','视频会员','Abonament video','Video subscription','','',''),
+('domain','域名/服务器','Domeniu / server','Domain / server','','',''),
+('warranty','家电保修','Garanție electrocasnic','Appliance warranty','','',''),
+('gasCheck','燃气检查','Verificare gaze','Gas inspection','','',''),
+('tickets','春节机票','Bilete de avion de sărbători','Holiday flights','','',''),
+('custom','自定义','Personalizat','Custom','','',''),
+]
+# 保质期模板：id, zh, ro, en, note zh, ro, en
+SH=[
+('milk','牛奶','Lapte','Milk','鲜奶（巴氏）：未开封按包装 use by（经验值 5–7 天）；开封后冷藏 3–4 天','Lapte pasteurizat: nedesfăcut, după data de pe ambalaj (de obicei 5–7 zile); desfăcut, 3–4 zile la frigider','Pasteurised milk: unopened, follow the use-by date (usually 5–7 days); opened, 3–4 days in the fridge'),
+('uht','UHT 牛奶（开封后）','Lapte UHT (desfăcut)','UHT milk (opened)','常温奶未开封按包装；开封后冷藏 5–7 天','Nedesfăcut, după ambalaj; desfăcut, 5–7 zile la frigider','Unopened, follow the pack; opened, 5–7 days in the fridge'),
+('eggs','鸡蛋','Ouă','Eggs','带壳生蛋冷藏 3–5 周；欧盟/英国 best before ≤ 产蛋后 28 天，最好按蛋盒日期','Ouă crude în coajă: 3–5 săptămâni la frigider; în UE, data minimă ≤ 28 de zile de la ouat; urmează data de pe cutie','Raw eggs in shell: 3–5 weeks in the fridge; EU/UK best before ≤ 28 days after laying; follow the box date'),
+('yogurt','酸奶','Iaurt','Yogurt','未开封按包装（约 1–3 周）','Nedesfăcut, după ambalaj (cam 1–3 săptămâni)','Unopened, follow the pack (about 1–3 weeks)'),
+('formula','奶粉（开罐后）','Lapte praf (deschis)','Formula (opened)','开罐后 4 周，以罐上说明为准；不要冷藏','4 săptămâni după deschidere, vezi cutia; nu la frigider','4 weeks after opening, see the tin; do not refrigerate'),
+('breastMilk','母乳（冷冻）','Lapte matern (congelat)','Breast milk (frozen)','室温 ≤4 小时；冷藏 ≤4 天；冷冻约 6 个月最佳、最长 12 个月；解冻后 24 小时内用完','Cameră ≤4 ore; frigider ≤4 zile; congelat ideal 6 luni, maxim 12; după decongelare, în 24 de ore','Room temperature ≤4 hours; fridge ≤4 days; frozen best within 6 months, up to 12; use within 24 hours after thawing'),
+('mince','绞肉 / 禽肉（冷藏）','Carne tocată / pasăre (frigider)','Mince / poultry (fridge)','冷藏 1–2 天；冷冻 3–12 个月','Frigider 1–2 zile; congelator 3–12 luni','Fridge 1–2 days; freezer 3–12 months'),
+('meat','整块肉（冷藏）','Carne bucată (frigider)','Whole cuts (fridge)','整块红肉冷藏 3–5 天；冷冻 3–12 个月','Carne roșie bucată: frigider 3–5 zile; congelator 3–12 luni','Whole red meat: fridge 3–5 days; freezer 3–12 months'),
+('fish','鱼（冷藏）','Pește (frigider)','Fish (fridge)','鱼冷藏 1–3 天；冷冻 2–8 个月（视鱼种）','Frigider 1–3 zile; congelator 2–8 luni (după specie)','Fridge 1–3 days; freezer 2–8 months (by species)'),
+('shrimp','虾（冷藏）','Creveți (frigider)','Shrimp (fridge)','虾冷藏 3–5 天；冷冻 2–8 个月','Frigider 3–5 zile; congelator 2–8 luni','Fridge 3–5 days; freezer 2–8 months'),
+('canned','罐头 / 午餐肉（开罐后）','Conserve (deschise)','Canned food (opened)','低酸罐头开罐后冷藏 3–4 天；高酸罐头（番茄、水果）未开 12–18 个月、开罐后 5–7 天','Conserve cu aciditate mică: 3–4 zile la frigider după deschidere; acide (roșii, fructe): 12–18 luni închise, 5–7 zile deschise','Low-acid cans: 3–4 days in the fridge once opened; high-acid (tomato, fruit): 12–18 months unopened, 5–7 days opened'),
+('sausage','火腿肠（冷藏型）','Cârnați (de frigider)','Sausages (chilled)','冷藏型未开封 2 周、开封后 1 周；常温型按包装','La frigider: 2 săptămâni nedesfăcuți, 1 săptămână desfăcuți; cei de cămară, după ambalaj','Chilled: 2 weeks unopened, 1 week opened; shelf-stable, follow the pack'),
+('leftovers','剩菜','Resturi de mâncare','Leftovers','冷藏 3–4 天（EFSA 建议 48 小时内）；冷冻 3–4 个月；常温超过 2 小时要扔','Frigider 3–4 zile (EFSA: în 48 de ore); congelator 3–4 luni; aruncă după 2 ore la temperatura camerei','Fridge 3–4 days (EFSA: within 48 hours); freezer 3–4 months; discard after 2 hours at room temperature'),
+]
+LEVEL={'已核实':('verified','已核实','Verificat','Verified'),'部分':('partial','部分核实','Parțial verificat','Partly verified'),'未核实':('unverified','未核实','Neverificat','Unverified')}
+CATS=[('doc','证件','Acte','Documents'),('car','车辆','Mașină','Car'),('food','食品','Alimente','Food'),('med','药品','Medicamente','Medicine'),('cosm','化妆品','Cosmetice','Cosmetics'),('daily','日用品','Uz casnic','Household'),('shop','店内商品','Magazin','Store items'),('bill','订阅账单','Abonamente','Subscriptions'),('home','家居保修','Garanții','Warranties'),('other','其他','Altele','Other')]
+INT=[('light','轻','Discret','Light','提前 7 天提醒一次','O dată, cu 7 zile înainte','Once, 7 days before'),('standard','标准','Normal','Standard','提前 30 / 7 / 1 天各一次','Cu 30 / 7 / 1 zile înainte','30 / 7 / 1 days before'),('strong','强','Insistent','Strong','提前 60 天起逐渐加密，最后一周每天提醒，点「搞定」才停','De la 60 de zile, tot mai des; zilnic în ultima săptămână, până apeși „Gata”','From 60 days, more and more often; daily in the last week until you tap Done'),('custom','自定义','Personalizat','Custom','自选提前天数','Alegi tu zilele','Pick your own days')]

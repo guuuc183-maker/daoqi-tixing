@@ -1,6 +1,6 @@
 // 细线图标：24px 网格，stroke 1.5，currentColor
 const P={
- daily:'<circle cx="8" cy="9" r="4.5"/><circle cx="8" cy="9" r="1.3"/><path d="M8 4.5h8.5a4.5 4.5 0 0 1 4 2.4M20.5 9v11.5h-8.5v-7"/><path d="M14.5 17h3.5"/>',
+ globe:'<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.3 2.4 3.5 5.2 3.5 8.5s-1.2 6.1-3.5 8.5c-2.3-2.4-3.5-5.2-3.5-8.5s1.2-6.1 3.5-8.5z"/>',daily:'<circle cx="8" cy="9" r="4.5"/><circle cx="8" cy="9" r="1.3"/><path d="M8 4.5h8.5a4.5 4.5 0 0 1 4 2.4M20.5 9v11.5h-8.5v-7"/><path d="M14.5 17h3.5"/>',
  camera:'<path d="M4 8.5A2 2 0 0 1 6 6.5h2l1.5-2h5l1.5 2h2a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.5"/>',
  photos:'<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M20.5 15.5l-4.5-4.5-8.5 8.5"/>',
  doc:'<rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="11" r="2"/><path d="M5.8 16c.6-1.4 1.8-2.1 3.2-2.1s2.6.7 3.2 2.1M14.5 10h4M14.5 13.5h3"/>',

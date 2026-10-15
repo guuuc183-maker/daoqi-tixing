@@ -2,14 +2,14 @@ const {chromium}=require('playwright-core');const {execSync}=require('child_proc
 const link=t=>{execSync(`find ${t}/ -type f -not -path '*/.git*' -exec touch {} +`);execSync(`ln -sfn ${t} /tmp/srv/daoqi-tixing`);};const CUR=process.argv[2];
 (async()=>{let ok=0,bad=0;const t=(c,m)=>{if(c)ok++;else{bad++;console.log('FAIL',m);}};
  for(const [old,cache] of [['/tmp/old-52bb514','dq-v11'],['/tmp/old-26ff34d','dq-v12'],['/tmp/old-cc45d79','dq-v13']]){link(old);
-  const ctx=await chromium.launchPersistentContext('/tmp/mig-prof-'+cache,{executablePath:'/usr/bin/google-chrome',viewport:{width:390,height:844}});const q=ctx.pages()[0]||await ctx.newPage();
+  const ctx=await chromium.launchPersistentContext('/tmp/mig-prof-'+cache,{executablePath:'/usr/bin/google-chrome',locale:'zh-CN',viewport:{width:390,height:844}});const q=ctx.pages()[0]||await ctx.newPage();
   await q.goto(B+'?demo=1#/');await q.waitForTimeout(1500);t((await q.evaluate(()=>caches.keys())).includes(cache),'旧版缓存 '+cache);
   await q.goto(B+'#/item/d3');await q.waitForTimeout(400);await q.setInputFiles('[data-addph]:not([capture])','/workspace/到期提醒/app/tests/fixtures-photo.jpg');await q.waitForTimeout(1500);
   await q.goto(B+'#/item/d5');await q.waitForTimeout(300);await q.click('#del');await q.waitForTimeout(300);
   await q.evaluate(()=>{const s=JSON.parse(localStorage.getItem('dq.settings.v1'));Object.assign(s,{theme:'dark',soonDays:14,catSoon:{food:5},cats:{custom:[{id:'c_yj',name:'烟酒',icon:'box',color:'#D94545'}]}});localStorage.setItem('dq.settings.v1',JSON.stringify(s));});
   const before=await q.evaluate(()=>({items:localStorage.getItem('dq.items.v2'),s:JSON.parse(localStorage.getItem('dq.settings.v1'))}));
-  link(CUR);await q.reload();for(let i=0;i<20;i++){await q.waitForTimeout(500);const k=await q.evaluate(()=>caches.keys());if(k.length===1&&k[0]==='dq-v1.6.3')break;}await q.reload();await q.waitForTimeout(1000);
-  const keys=await q.evaluate(()=>caches.keys());t(keys.length===1&&keys[0]==='dq-v1.6.3',cache+'→ 缓存只剩 dq-v1.6.3 '+keys);
+  link(CUR);await q.reload();for(let i=0;i<20;i++){await q.waitForTimeout(500);const k=await q.evaluate(()=>caches.keys());if(k.length===1&&k[0]==='dq-v1.7.0')break;}await q.reload();await q.waitForTimeout(1000);
+  const keys=await q.evaluate(()=>caches.keys());t(keys.length===1&&keys[0]==='dq-v1.7.0',cache+'→ 缓存只剩 dq-v1.7.0 '+keys);
   const after=await q.evaluate(()=>({items:localStorage.getItem('dq.items.v2'),s:JSON.parse(localStorage.getItem('dq.settings.v1'))}));
   const bi=JSON.parse(before.items),ai=JSON.parse(after.items);
   t(ai.length===bi.length&&ai.filter(i=>i.deletedAt).length===1&&JSON.stringify(ai.map(i=>[i.id,i.name,i.due,i.cat,i.photos||[]]))===JSON.stringify(bi.map(i=>[i.id,i.name,i.due,i.cat,i.photos||[]])),cache+'→ 条目/回收站/照片引用不变');

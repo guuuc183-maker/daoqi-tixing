@@ -1,4 +1,5 @@
 // 照片：压缩后存 IndexedDB（不放 localStorage）。每条最多 3 张
+import {t} from './i18n/i18n.js';
 export const MAX_PHOTOS=3, LONG_EDGE=1280, QUALITY=.8, THUMB=200;
 const DB='dq-photos', ST='photos';
 let dbp=null;
@@ -13,11 +14,11 @@ export const allKeys=()=>tx('readonly',s=>s.getAllKeys());
 // 读图（按 EXIF 方向摆正）→ 缩放到长边 max → JPEG
 async function decode(file){
   if(globalThis.createImageBitmap){try{return await createImageBitmap(file,{imageOrientation:'from-image'});}catch{}}
-  return await new Promise((res,rej)=>{const u=URL.createObjectURL(file),i=new Image();i.style.imageOrientation='from-image';i.onload=()=>{URL.revokeObjectURL(u);res(i);};i.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('无法读取这张图片'));};i.src=u;});}
+  return await new Promise((res,rej)=>{const u=URL.createObjectURL(file),i=new Image();i.style.imageOrientation='from-image';i.onload=()=>{URL.revokeObjectURL(u);res(i);};i.onerror=()=>{URL.revokeObjectURL(u);rej(new Error(t('err.photoRead')));};i.src=u;});}
 function draw(img,max,q){const w=img.width||img.naturalWidth,h=img.height||img.naturalHeight,k=Math.min(1,max/Math.max(w,h));
   const c=document.createElement('canvas');c.width=Math.max(1,Math.round(w*k));c.height=Math.max(1,Math.round(h*k));const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);
-  return new Promise((res,rej)=>c.toBlob(b=>b?res({blob:b,w:c.width,h:c.height}):rej(new Error('压缩失败')),'image/jpeg',q));}
-export async function compress(file){if(!/^image\//.test(file.type||'image/'))throw new Error('只能添加图片');const img=await decode(file);
+  return new Promise((res,rej)=>c.toBlob(b=>b?res({blob:b,w:c.width,h:c.height}):rej(new Error(t('err.photoCompress'))),'image/jpeg',q));}
+export async function compress(file){if(!/^image\//.test(file.type||'image/'))throw new Error(t('err.photoType'));const img=await decode(file);
   const full=await draw(img,LONG_EDGE,QUALITY),thumb=await draw(img,THUMB,.7);img.close?.();return {full,thumb};}
 export async function addPhoto(itemId,file){const {full,thumb}=await compress(file);
   const id='p'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);

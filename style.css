@@ -592,3 +592,49 @@ details#more[open]>summary{margin-bottom:8px}
 .toast .undo,.toast button{white-space:nowrap;flex:none}
 .btns.col{flex-direction:column;gap:8px}
 .toast{pointer-events:none}.toast button{pointer-events:auto}
+
+/* ===== v1.7 多语言（设计/v1.7-多语言字形检查.md §1/§2/§4 + UX/v1.7-长文本规范.md §3） ===== */
+/* 语言切换 */
+.lang-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}.lang-head b{font-size:15px;font-weight:600}
+.lang-head .gl{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:var(--card-2);color:var(--text2)}
+.lang-seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;background:var(--card-2);border:1px solid var(--line);border-radius:12px;padding:3px}
+.lang-seg button{min-width:0;height:44px;border:0;border-radius:10px;background:transparent;color:var(--text2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0 6px;cursor:pointer}
+.lang-seg button b{font-size:14px;font-weight:600;line-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.lang-seg button small{font:600 10px/12px var(--num);letter-spacing:.08em;color:var(--muted)}
+.lang-seg button.on{background:var(--card);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.lang-seg button.on small{color:var(--safe)}
+.lang-hint{font-size:12.5px;color:var(--text2);margin:10px 2px 0;line-height:17px}
+.lang-row{display:flex;align-items:center;gap:12px;height:52px}
+.lang-row .grow b{display:block;font-size:15px;font-weight:600}.lang-row .grow small{font-size:12.5px;color:var(--text2)}
+.lang-row .cur{color:var(--text2);font-size:14px;display:flex;align-items:center;gap:4px}
+:root{--sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans","Helvetica Neue",Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",sans-serif}
+html:lang(ro) body,html:lang(en) body,html:lang(ro) .ob-page h1,html:lang(en) .ob-page h1,html:lang(ro) button,html:lang(en) button,html:lang(ro) input,html:lang(en) input,html:lang(ro) select,html:lang(en) select,html:lang(ro) textarea,html:lang(en) textarea{font-family:var(--sans)}
+.ell{line-height:1.5;padding-block:1px}
+.view.lang-out{opacity:0;transition:opacity 120ms}
+html:lang(ro) h1,html:lang(ro) h2,html:lang(ro) h3,html:lang(ro) p,html:lang(en) h1,html:lang(en) h2,html:lang(en) h3,html:lang(en) p{overflow-wrap:anywhere;hyphens:auto}
+/* 1 待办头 */
+.todo-hero{flex-wrap:wrap}.btn-all{flex:none;margin-left:auto}
+@media (max-width:374px){.todo-hero .t{flex-basis:100%}}
+.todo-hero .t b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* 2 待办行 */
+.todo-row{display:grid;grid-template-columns:minmax(96px,1fr) auto;align-items:center;column-gap:8px}
+.todo-main{min-width:96px}.todo-main .grow{min-width:96px}
+.todo-main b,.todo-main small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.todo-act{width:auto;padding-left:0}
+.todo-act button{flex:none;max-width:96px;min-height:44px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.todo-act .more{width:44px}
+@media (max-width:359px){.todo-main .ic{display:none}.todo-act button[data-a] .ico{display:none}.todo-act button{padding:0 10px}}
+/* 3 分段 */
+.seg button{flex:1 1 0;min-width:0;height:36px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 4 长按钮 */
+.btn{height:auto;min-height:44px;padding-block:10px;line-height:1.25;white-space:normal;text-align:center}
+.btn.sm{min-height:36px;padding-block:6px}
+/* 5 分类宫格 */
+.grid{align-items:stretch}.tile{min-height:132px}
+.tile b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;hyphens:auto;overflow-wrap:anywhere}
+/* 6 kv */
+.kv>div{flex-wrap:wrap}.kv span{flex:1 1 55%}.kv b{flex:1 1 40%}
+/* 7 底栏 */
+.tabbar a span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:64px}
+.nb{white-space:nowrap}
+.form label.cat-field{display:flex;margin-bottom:0}

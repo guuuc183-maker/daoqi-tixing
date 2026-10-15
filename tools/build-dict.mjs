@@ -11,5 +11,7 @@ const seen=new Set(Object.values(cats).flat().map(norm));
 for(const [k,ws] of Object.entries(EXTRA))for(const w of ws)if(!seen.has(norm(w))){(cats[k]=cats[k]||[]).push(w);seen.add(norm(w));}
 const priority=(d._meta?.priority||['doc','car','med','food','cosm','shop','bill','home']);
 const out=`// 自动生成，请勿手改：node tools/build-dict.mjs ${path.basename(src)}\n// 来源 ${path.basename(src)} · ${d._meta?.version||''} · ${d._meta?.date||''}\nexport const DICT_VERSION=${JSON.stringify(d._meta?.version||'')};\nexport const PRIORITY=${JSON.stringify(priority)};\nexport const KEYWORDS=${JSON.stringify(cats)};\n`;
-fs.writeFileSync(path.join(here,'../js/cat-dict.js'),out);
+// 单字弱命中（说明 §8）
+const WEAK=['米','面','蛋','肉','鱼','虾','菜','水','醋','盐','糖','药'];
+fs.writeFileSync(path.join(here,'../js/cat-dict.js'),out+`export const WEAK=${JSON.stringify(WEAK)};\n`);
 console.log('wrote js/cat-dict.js',Object.fromEntries(Object.entries(cats).map(([k,v])=>[k,v.length])));

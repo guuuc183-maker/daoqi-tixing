@@ -3,7 +3,7 @@ const B='http://localhost:8765/daoqi-tixing/';
 (async()=>{const br0=await chromium.launch({executablePath:'/usr/bin/google-chrome'});// 旧用例默认展开「更多设置」（v1.6 默认折叠）；v1.6 验收用例用 br0 原始上下文
 const OPEN_MORE=()=>{new MutationObserver(()=>{const m=document.querySelector('#more:not([data-t]),details.more-set:not([open])');if(m){m.dataset.t=1;if(!m.open)m.open=true;}}).observe(document,{childList:true,subtree:true});};
 const br={newContext:async o=>{const c=await br0.newContext(o);c.setDefaultTimeout(5000);await c.addInitScript(OPEN_MORE);await c.addInitScript(()=>{new MutationObserver(()=>{const b=document.querySelector('.sheet #askOk');const h=document.querySelector('.sheet h3');if(b&&h&&/^将覆盖/.test(h.textContent)&&!b.dataset.auto){b.dataset.auto=1;setTimeout(()=>b.click(),30);}}).observe(document,{childList:true,subtree:true});});return c;},close:()=>br0.close()};
- const c=await br.newContext({viewport:{width:390,height:844},acceptDownloads:true,reducedMotion:'reduce'});const p=await c.newPage();const errs=[];
+ const c=await br.newContext({locale:'zh-CN',viewport:{width:390,height:844},acceptDownloads:true,reducedMotion:'reduce'});const p=await c.newPage();const errs=[];
  p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>m.type()==='error'&&errs.push(m.text()));p.on('dialog',d=>d.accept());
  let ok=0,bad=0;const t=(c,m)=>{if(c)ok++;else{bad++;console.log('FAIL',m);}};
  const go=async h=>{await p.goto(B+h);await p.waitForTimeout(350);};
@@ -96,7 +96,7 @@ const br={newContext:async o=>{const c=await br0.newContext(o);c.setDefaultTimeo
  await go('#/item/'+nid);await p.click('#handled');await p.waitForTimeout(200);t(/存不下了/.test(await p.textContent('.toast')),'R#7 存储满提示');
 
  // ---- 引导页 / 空状态 / 动效 ----
- {const c2=await br.newContext({viewport:{width:390,height:844}});await c2.addInitScript(()=>{window.__perm=0;if(window.Notification){const o=Notification.requestPermission;Notification.requestPermission=function(){window.__perm++;return o.apply(this,arguments)}}});const q=await c2.newPage();q.on('pageerror',e=>errs.push(e.message));q.on('console',m=>m.type()==='error'&&errs.push(m.text()));
+ {const c2=await br.newContext({locale:'zh-CN',viewport:{width:390,height:844}});await c2.addInitScript(()=>{window.__perm=0;if(window.Notification){const o=Notification.requestPermission;Notification.requestPermission=function(){window.__perm++;return o.apply(this,arguments)}}});const q=await c2.newPage();q.on('pageerror',e=>errs.push(e.message));q.on('console',m=>m.type()==='error'&&errs.push(m.text()));
   await q.goto(B);await q.waitForTimeout(500);t(await q.locator('.ob').isVisible(),'OB 首次显示引导');
   t(await q.locator('.ob1').count()===1,'OB 1 屏');t(await q.evaluate(()=>window.__perm)===0,'OB 未自动请求权限');
   await q.click('[data-ob=skip]');await q.waitForTimeout(400);t(await q.locator('.ob').count()===0,'OB 跳过关闭');
@@ -115,7 +115,7 @@ const br={newContext:async o=>{const c=await br0.newContext(o);c.setDefaultTimeo
   await c2.close();}
 
  // ---- 临期阈值 / round2 ----
- {const c3=await br.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});const q=await c3.newPage();q.on('pageerror',e=>errs.push(e.message));q.on('console',m=>m.type()==='error'&&errs.push(m.text()));
+ {const c3=await br.newContext({locale:'zh-CN',viewport:{width:390,height:844},reducedMotion:'reduce'});const q=await c3.newPage();q.on('pageerror',e=>errs.push(e.message));q.on('console',m=>m.type()==='error'&&errs.push(m.text()));
   const L3=()=>q.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')));
   // N2：非法 id 启动时写回，详情可打开
   await q.goto(B+'?demo=1');await q.evaluate(()=>{const l=JSON.parse(localStorage.getItem('dq.items.v2'));l.push({id:'a b',name:'旧非法id',due:'2026-12-06'});localStorage.setItem('dq.items.v2',JSON.stringify(l));});
@@ -145,7 +145,7 @@ const br={newContext:async o=>{const c=await br0.newContext(o);c.setDefaultTimeo
 
  // ---- 照片 ----
  {const PH=require('path').join(__dirname,'fixtures-photo.jpg');
-  const c4=await br.newContext({viewport:{width:390,height:844},reducedMotion:'reduce',acceptDownloads:true});const q=await c4.newPage();q.on('pageerror',e=>errs.push(e.message));q.on('console',m=>m.type()==='error'&&errs.push(m.text()));
+  const c4=await br.newContext({locale:'zh-CN',viewport:{width:390,height:844},reducedMotion:'reduce',acceptDownloads:true});const q=await c4.newPage();q.on('pageerror',e=>errs.push(e.message));q.on('console',m=>m.type()==='error'&&errs.push(m.text()));
   const L4=()=>q.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')));
   const rec=id=>q.evaluate(id=>new Promise(r=>{const o=indexedDB.open('dq-photos',1);o.onsuccess=()=>{const g=o.result.transaction('photos').objectStore('photos').get(id);g.onsuccess=()=>{const x=g.result;r(x?{w:x.w,h:x.h,size:x.blob.size,type:x.blob.type,thumb:x.thumb.size}:null)}}}),id);
   await q.goto(B+'?demo=1#/item/d7');await q.waitForTimeout(400);
@@ -175,14 +175,14 @@ const br={newContext:async o=>{const c=await br0.newContext(o);c.setDefaultTimeo
   t(!((await L4()).find(x=>x.id==='d4').photos||[]).length,'PH 存储满不写入引用');
   await c4.close();
   // 导入到新设备恢复照片
-  const c5=await br.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});const r5=await c5.newPage();r5.on('pageerror',e=>errs.push(e.message));
+  const c5=await br.newContext({locale:'zh-CN',viewport:{width:390,height:844},reducedMotion:'reduce'});const r5=await c5.newPage();r5.on('pageerror',e=>errs.push(e.message));
   await r5.goto(B+'?demo=1#/settings');await r5.evaluate(()=>localStorage.setItem('dq.items.v2','[]'));await r5.reload();await r5.waitForTimeout(400);
   await r5.setInputFiles('#imp','/tmp/ph.json');await r5.waitForTimeout(400);t(/含照片 3 张/.test(await r5.textContent('.imp')),'PH 导入预览显示照片数');
   await r5.click('#impGo');await r5.waitForTimeout(1500);await r5.goto(B+'#/item/d7');await r5.waitForTimeout(800);
   t(await r5.$$eval('.ph img',e=>e.filter(x=>x.naturalWidth>0).length)===3,'PH 导入后照片恢复');await c5.close();}
 
  // ---- 走查 v2 ----
- {const c6=await br.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});const q=await c6.newPage();q.on('pageerror',e=>errs.push(e.message));
+ {const c6=await br.newContext({locale:'zh-CN',viewport:{width:390,height:844},reducedMotion:'reduce'});const q=await c6.newPage();q.on('pageerror',e=>errs.push(e.message));
   await q.goto(B+'?demo=1#/');await q.waitForTimeout(400);t(await q.locator('.todo-act .more svg').count()>0,'V2 ⋯ 为 SVG');
   t(await q.$eval('.ico',e=>e.getAttribute('stroke-width'))==='1.75','V2 图标线宽 1.75');
   t(parseFloat(await q.$eval('.ring-txt .big',e=>getComputedStyle(e).fontSize))>=24,'V2 环内数字');
@@ -194,7 +194,7 @@ const br={newContext:async o=>{const c=await br0.newContext(o);c.setDefaultTimeo
   await q.goto(B+'#/settings');await q.waitForTimeout(300);t(await q.locator('.about .ver').count()===1,'V2 关于版本号');await c6.close();}
 
  // ---- 自定义分类 ----
- {const c7=await br.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});const q=await c7.newPage();q.on('pageerror',e=>errs.push(e.message));q.on('dialog',d=>{q._dlg=d.message();d.accept();});
+ {const c7=await br.newContext({locale:'zh-CN',viewport:{width:390,height:844},reducedMotion:'reduce'});const q=await c7.newPage();q.on('pageerror',e=>errs.push(e.message));q.on('dialog',d=>{q._dlg=d.message();d.accept();});
   const SS=()=>q.evaluate(()=>JSON.parse(localStorage.getItem('dq.settings.v1')||'{}'));const IT=()=>q.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')));
   await q.goto(B+'?demo=1#/settings');await q.waitForTimeout(400);await q.click('a[href="#/catmgr"]');await q.waitForTimeout(300);
   t(await q.locator('.cm-row').count()===10,'CM 10个内置');
@@ -220,7 +220,7 @@ const br={newContext:async o=>{const c=await br0.newContext(o);c.setDefaultTimeo
   t(aq&&l.find(x=>x.name==='鱼食').cat===aq.id&&l.find(x=>x.name==='猫砂').cat===cid,'CM 导入自动创建/按名匹配');await c7.close();}
 
  // ---- round3 N4–N8 + 删除失败 + 默认/推断分类 ----
- {const c8=await br.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});const q=await c8.newPage();q.on('pageerror',e=>errs.push(e.message));
+ {const c8=await br.newContext({locale:'zh-CN',viewport:{width:390,height:844},reducedMotion:'reduce'});const q=await c8.newPage();q.on('pageerror',e=>errs.push(e.message));
   const SS=()=>q.evaluate(()=>JSON.parse(localStorage.getItem('dq.settings.v1')||'{}'));
   await q.goto(B+'?demo=1#/new');await q.waitForTimeout(400);
   t(await q.$$eval('.form input[type=file]',e=>e.every(x=>x.offsetWidth===0)),'N6 表单文件框隐藏');
@@ -246,12 +246,12 @@ const br={newContext:async o=>{const c=await br0.newContext(o);c.setDefaultTimeo
   await q.click('#del');await q.waitForTimeout(300);t(/#\/item\/d3/.test(q.url())&&/存不下|存储/.test(await q.textContent('.toast')),'删除失败留在详情页');
   await c8.close();
   // N4 老用户
-  const c9=await br.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});const r=await c9.newPage();
+  const c9=await br.newContext({locale:'zh-CN',viewport:{width:390,height:844},reducedMotion:'reduce'});const r=await c9.newPage();
   await r.addInitScript(()=>{if(!localStorage.getItem('dq.items.v2'))localStorage.setItem('dq.items.v2',JSON.stringify([{id:'old1',name:'旧条目',due:'2027-01-01',cat:'doc'}]));});
   await r.goto(B+'#/');await r.waitForTimeout(500);t(await r.locator('.onboard,.ob').count()===0,'N4 老用户不弹引导');await c9.close();}
 
  // ---- 走查-v3 ----
- {const ca=await br.newContext({viewport:{width:390,height:844}});const q=await ca.newPage();q.on('pageerror',e=>errs.push(e.message));
+ {const ca=await br.newContext({locale:'zh-CN',viewport:{width:390,height:844}});const q=await ca.newPage();q.on('pageerror',e=>errs.push(e.message));
   await q.goto(B+'?demo=1#/');await q.waitForTimeout(400);const ex=await q.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')).find(x=>x.due<'2026-10-15').id);
   await q.goto(B+'#/item/'+ex);await q.waitForTimeout(80);const early=await q.textContent('.cd-num [data-count]');await q.waitForTimeout(800);
   const pill=await q.textContent('.big-cd .pill');t(!/已过期 · 已过期/.test(pill)&&/已超出 · 已过期/.test(pill),'V3 过期胶囊不重复');
@@ -274,7 +274,7 @@ const br={newContext:async o=>{const c=await br0.newContext(o);c.setDefaultTimeo
   t(/已隐藏/.test(await q.textContent('.cm-row[data-k="car"]')),'V3 隐藏文字标识');await ca.close();}
 
  // ---- v1.2 ----
- {const cb=await br.newContext({viewport:{width:390,height:844},acceptDownloads:true,reducedMotion:'reduce'});const q=await cb.newPage();q.on('pageerror',e=>errs.push(e.message));
+ {const cb=await br.newContext({locale:'zh-CN',viewport:{width:390,height:844},acceptDownloads:true,reducedMotion:'reduce'});const q=await cb.newPage();q.on('pageerror',e=>errs.push(e.message));
   const SS=()=>q.evaluate(()=>JSON.parse(localStorage.getItem('dq.settings.v1')||'{}'));const setS=o=>q.evaluate(o=>{const s=JSON.parse(localStorage.getItem('dq.settings.v1')||'{}');Object.assign(s,o);for(const k in o)if(o[k]===null)delete s[k];localStorage.setItem('dq.settings.v1',JSON.stringify(s));},o);
   const reqs=[];q.on('request',r=>reqs.push(r.url()));
   await q.goto(B+'#/');await q.evaluate(()=>{localStorage.clear();localStorage.setItem('dq.settings.v1',JSON.stringify({onboarded:true}));});
@@ -299,7 +299,7 @@ const br={newContext:async o=>{const c=await br0.newContext(o);c.setDefaultTimeo
   const [d2]=await Promise.all([q.waitForEvent('download'),q.click('#bkNow')]);await d2.saveAs('/tmp/bk2.json');
   const src=await q.evaluate(()=>({items:JSON.parse(localStorage.getItem('dq.items.v2')),s:JSON.parse(localStorage.getItem('dq.settings.v1'))}));
   const j=JSON.parse(require('fs').readFileSync('/tmp/bk2.json','utf8'));t(j.items.length===src.items.length&&Object.keys(j.photos||{}).length===1&&j.settings&&j.categories.length===1,'BK 备份内容完整');
-  const c2=await br.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});const r=await c2.newPage();r.on('pageerror',e=>errs.push(e.message));
+  const c2=await br.newContext({locale:'zh-CN',viewport:{width:390,height:844},reducedMotion:'reduce'});const r=await c2.newPage();r.on('pageerror',e=>errs.push(e.message));
   await r.goto(B+'#/settings');await r.evaluate(()=>localStorage.setItem('dq.settings.v1',JSON.stringify({onboarded:true})));await r.reload();await r.waitForTimeout(300);
   await r.setInputFiles('#imp','/tmp/bk2.json');await r.waitForTimeout(400);t(/完整备份/.test(await r.textContent('.imp')),'BK 预览识别完整备份');await r.click('#impGo');await r.waitForTimeout(1500);
   const dst=await r.evaluate(()=>({items:JSON.parse(localStorage.getItem('dq.items.v2')),s:JSON.parse(localStorage.getItem('dq.settings.v1'))}));
@@ -326,11 +326,11 @@ const br={newContext:async o=>{const c=await br0.newContext(o);c.setDefaultTimeo
   // P2：先输入名称再点分类 chip，名称不清空
   await q.goto(B+'#/');await q.goto(B+'#/new');await q.waitForTimeout(300);await q.fill('[name=name]','我的东西');await q.click('[data-cat="food"]');await q.waitForTimeout(150);t(await q.inputValue('[name=name]')==='我的东西','R4-P2 名称保留');
   // 中国模板 + 地区
-  await q.click('[data-cat="doc"]');await q.waitForTimeout(150);const tp=await q.$$eval('.tpl [data-tpl]',e=>e.map(x=>x.dataset.tpl));t(tp.filter(x=>/中国·|港澳|台|居住证|审验/.test(x)).length===9&&await q.locator('.tpl-grp').count()>=2,'CN 9 个证件模板+分组');
-  await q.click('[data-cat="car"]');await q.waitForTimeout(150);t(['交强险','商业车险','机动车年检（私家车）'].every(n=>q.locator(`[data-tpl="${n}"]`).count()),'CN 车辆模板');
-  t(await q.locator('[data-tpl="交强险"]').count()===1&&await q.locator('[data-tpl="商业车险"]').count()===1&&await q.locator('[data-tpl="机动车年检（私家车）"]').count()===1,'CN 3 个车辆模板');
-  await setS({region:'cn'});await q.goto(B+'#/');await q.goto(B+'#/new?cat=doc');await q.reload();await q.waitForTimeout(300);const tp2=await q.$$eval('.tpl [data-tpl]',e=>e.map(x=>x.dataset.tpl));t(!tp2.includes('居留卡')&&tp2.includes('中国·驾驶证')&&tp2.includes('营业执照'),'CN 常用地区=中国');
-  await q.click('[data-tpl="中国·驾驶证"]');await q.waitForTimeout(150);t(/强/.test(await q.textContent('.seg [data-int].on')),'CN 驾驶证强度强');await q.fill('#dueT','01.12.2030');await q.click('[data-save]');await q.waitForTimeout(400);{const id=await q.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')).find(i=>i.name==='中国·驾驶证').id);await q.goto(B+'#/item/'+id);await q.waitForTimeout(300);}
+  await q.click('[data-cat="doc"]');await q.waitForTimeout(150);const tp=await q.$$eval('.tpl [data-tpl]',e=>e.map(x=>x.textContent.trim()));t(tp.filter(x=>/中国·|港澳|台|居住证|审验/.test(x)).length===9&&await q.locator('.tpl-grp').count()>=2,'CN 9 个证件模板+分组');
+  await q.click('[data-cat="car"]');await q.waitForTimeout(150);t(['交强险','商业车险','机动车年检（私家车）'].every(n=>q.locator(`[data-tpl]:text-is("${n}")`).count()),'CN 车辆模板');
+  t(await q.locator('[data-tpl]:text-is("交强险")').count()===1&&await q.locator('[data-tpl]:text-is("商业车险")').count()===1&&await q.locator('[data-tpl]:text-is("机动车年检（私家车）")').count()===1,'CN 3 个车辆模板');
+  await setS({region:'cn'});await q.goto(B+'#/');await q.goto(B+'#/new?cat=doc');await q.reload();await q.waitForTimeout(300);const tp2=await q.$$eval('.tpl [data-tpl]',e=>e.map(x=>x.textContent.trim()));t(!tp2.includes('居留卡')&&tp2.includes('中国·驾驶证')&&tp2.includes('营业执照'),'CN 常用地区=中国');
+  await q.click('[data-tpl]:text-is("中国·驾驶证")');await q.waitForTimeout(150);t(/强/.test(await q.textContent('.seg [data-int].on')),'CN 驾驶证强度强');await q.fill('#dueT','01.12.2030');await q.click('[data-save]');await q.waitForTimeout(400);{const id=await q.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')).find(i=>i.name==='中国·驾驶证').id);await q.goto(B+'#/item/'+id);await q.waitForTimeout(300);}
   t(/gov\.cn/.test(await q.textContent('main, body'))&&await q.locator('a.ext[target=_blank][rel*=noopener]').count()===1,'CN 详情有官方链接');
   await q.goto(B+'#/settings');await q.waitForTimeout(300);t(/国内安卓手机可能收不到推送/.test(await q.textContent('.push-note'))&&await q.locator('.push-note input[type=checkbox]').count()===0,'P2-H 推送说明');
   const foreign=reqs.filter(u=>!u.startsWith('http://localhost:8765/')&&!u.startsWith('data:')&&!u.startsWith('blob:'));t(foreign.length===0,'P2-J 只有同源请求 '+foreign.slice(0,3));
@@ -342,7 +342,7 @@ const br={newContext:async o=>{const c=await br0.newContext(o);c.setDefaultTimeo
   walk(root);t(bad.length===0,'P2-J 外部 URL 扫描 '+bad.slice(0,3));}
 
  // ---- v1.2 设计 + 日用品 + 手动选择保护 ----
- {const cd=await br.newContext({viewport:{width:390,height:844},acceptDownloads:true,reducedMotion:'reduce'});const q=await cd.newPage();q.on('pageerror',e=>errs.push(e.message));
+ {const cd=await br.newContext({locale:'zh-CN',viewport:{width:390,height:844},acceptDownloads:true,reducedMotion:'reduce'});const q=await cd.newPage();q.on('pageerror',e=>errs.push(e.message));
   const SS=()=>q.evaluate(()=>JSON.parse(localStorage.getItem('dq.settings.v1')||'{}'));const IT=()=>q.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')||'[]'));
   // 老用户自建「日用品」→ 合并到 daily
   await q.goto(B+'#/');await q.evaluate(()=>{localStorage.clear();localStorage.setItem('dq.settings.v1',JSON.stringify({onboarded:true,catSoon:{c_ry:7},cats:{custom:[{id:'c_ry',name:'日用品',icon:'box',color:'#000000'}],order:['c_ry','doc']}}));
@@ -367,7 +367,7 @@ const br={newContext:async o=>{const c=await br0.newContext(o);c.setDefaultTimeo
   t((await IT()).find(i=>i.name==='面包').cat==='home','MAN 保存后存储仍是手动分类');
   await q.goto(B+'#/');await q.goto(B+'#/new');await q.waitForTimeout(300);t(/· 默认/.test(await q.textContent('.cat-field'))&&!/上次使用/.test(await q.textContent('.cat-field')),'N9 有 lastCat 也显示「X · 默认」');
   await q.click('[data-cat="food"]');await q.fill('[name=name]','护照');await q.click('#dueT');await q.waitForTimeout(120);t(await q.inputValue('[name=cat]')==='food','MAN chip 选择后不覆盖');
-  await q.click('[data-cat="doc"]');await q.click('[data-tpl="护照"], [data-tpl="中国·普通护照"]');await q.waitForTimeout(120);t(/来自模板/.test(await q.textContent('#catSug')),'3S 来自模板');
+  await q.click('[data-cat="doc"]');await q.click('[data-tpl]:text-is("护照"), [data-tpl]:text-is("中国·普通护照")');await q.waitForTimeout(120);t(/来自模板/.test(await q.textContent('#catSug')),'3S 来自模板');
   // 照片 3 列 + 封面 + 删除角标 + 超出提示
   await q.goto(B+'#/item/a2');await q.waitForTimeout(300);const PH='/workspace/到期提醒/app/tests/fixtures-photo.jpg';
   await q.setInputFiles('[data-addph]:not([capture])',[PH,PH,PH,PH,PH]);await q.waitForTimeout(4500);
