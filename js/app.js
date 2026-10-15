@@ -1,6 +1,7 @@
 import * as S from './store.js';
 import {CATEGORIES,TEMPLATES,INTENSITY,remindDays,findTpl} from './templates.js';
 import {daysLeft,status,label,todayStr,addDays,addMonths,parse,fmt,nice,valid} from './dates.js';
+import {icon} from './icons.js';
 import {toCSV,parseCSV,parseJSON,toJSON,download} from './io.js';
 
 const $=s=>document.querySelector(s), view=$('#view');
@@ -12,9 +13,10 @@ function applyTheme(){const t=S.settings().theme;if(t&&t!=='auto')document.docum
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),1900);}
 function enrich(){const soon=S.settings().soonDays;return S.all().map(it=>{const n=daysLeft(it.due);return {...it,n,st:status(n,soon)};}).sort((a,b)=>a.n-b.n);}
 const cat=k=>CATEGORIES[k]||CATEGORIES.other;
-function top(title,{back=false,right=''}={}){return `<header class="top">${back?`<button class="icon-btn" data-back aria-label="返回">‹</button>`:''}<h1>${title}</h1><div class="grow"></div>${right}</header>`;}
+const ci=(k,s=22)=>icon(CATEGORIES[k]?k:'other',s);
+function top(title,{back=false,right=''}={}){return `<header class="top">${back?`<button class="icon-btn" data-back aria-label="返回">${icon('back',20)}</button>`:''}<h1>${title}</h1><div class="grow"></div>${right}</header>`;}
 function row(it){return `<a class="row" href="#/item/${it.id}">
-  <span class="ic" style="--c:${cat(it.cat).color}">${cat(it.cat).icon}</span>
+  <span class="ic" style="--c:${cat(it.cat).color}">${ci(it.cat)}</span>
   <span class="grow"><b class="ell">${h(it.name)}</b><small>${it.due}${it.qty?` · ${it.qty} 件`:''}${it.location?` · ${h(it.location)}`:''}</small></span>
   <span class="cd ${it.st}"><span class="num">${it.n<0?-it.n:it.n}</span><small>${it.n<0?'天前过期':it.n===0?'今天':'天'}</small></span></a>`;}
 function ring(pct,size=148,w=14){const r=(size-w)/2,c=2*Math.PI*r;return `<svg class="ring" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
@@ -39,7 +41,7 @@ function home(){
       <a href="#/" data-seg="safe" class="stat"><span class="dot safe"></span><span class="num">${c.safe}</span><small>安全</small></a>
     </div>
   </section>
-  ${todo.length?`<section class="card todo"><div class="micro">今日待处理 · ${todo.length}</div>${todo.slice(0,4).map(it=>`<a href="#/item/${it.id}" class="todo-row"><span>${cat(it.cat).icon} ${h(it.name)}</span><span class="${it.st}">${label(it.n)}</span></a>`).join('')}</section>`:''}
+  ${todo.length?`<section class="card todo"><div class="micro">今日待处理 · ${todo.length}</div>${todo.slice(0,4).map(it=>`<a href="#/item/${it.id}" class="todo-row"><span class="il" style="color:${cat(it.cat).color}">${ci(it.cat,18)}<em>${h(it.name)}</em></span><span class="${it.st}">${label(it.n)}</span></a>`).join('')}</section>`:''}
   <div class="seg" role="tablist">${[['all','全部'],['soon','临期'],['expired','已过期'],['safe','安全']].map(([k,n])=>`<button data-seg="${k}" class="${homeSeg===k?'on':''}">${n}</button>`).join('')}</div>
   <section class="card list">${shown.map(row).join('')||`<div class="empty">${items.length?'这一栏没有条目':'还没有条目<br><a href="#/new">添加第一条</a> 或在设置里载入示例数据'}</div>`}</section>`;
   view.querySelectorAll('[data-seg]').forEach(b=>b.onclick=e=>{e.preventDefault();homeSeg=b.dataset.seg;home();});
@@ -49,14 +51,14 @@ function cats(){
   const items=enrich();
   view.innerHTML=`${top('分类')}<section class="grid">${Object.entries(CATEGORIES).map(([k,c])=>{
     const l=items.filter(i=>i.cat===k&&!i.handled),e=l.filter(i=>i.st==='expired').length,s=l.filter(i=>i.st==='soon').length,next=l.find(i=>i.n>=0);
-    return `<a class="tile" href="#/cat/${k}" style="--c:${c.color}"><span class="tile-ic">${c.icon}</span><b>${c.name}</b>
+    return `<a class="tile" href="#/cat/${k}" style="--c:${c.color}"><span class="tile-ic">${ci(k)}</span><b>${c.name}</b>
     <span class="badges">${e?`<em class="b expired">${e}</em>`:''}${s?`<em class="b soon">${s}</em>`:''}<span class="num cnt">${l.length}</span></span>
     <small class="ell">${next?`最近：${h(next.name)} · ${next.n} 天`:'暂无条目'}</small></a>`;}).join('')}</section>`;
 }
 function catList(k){
   const items=enrich().filter(i=>i.cat===k),c=cat(k);
-  view.innerHTML=`${top(c.icon+' '+c.name,{back:true,right:`<a class="btn sm" href="#/new?cat=${k}">＋ 添加</a>`})}
-  <section class="grid photo">${items.map(it=>`<a class="ptile" href="#/item/${it.id}"><span class="pic" style="--c:${c.color}">${c.icon}</span><b class="ell">${h(it.name)}</b>
+  view.innerHTML=`${top(c.name,{back:true,right:`<a class="btn sm" href="#/new?cat=${k}">${icon('add',16)} 添加</a>`})}
+  <section class="grid photo">${items.map(it=>`<a class="ptile" href="#/item/${it.id}"><span class="pic" style="--c:${c.color}">${ci(k,44)}</span><b class="ell">${h(it.name)}</b>
   <span class="${it.st}"><span class="num">${Math.abs(it.n)}</span> 天${it.n<0?'前':''}${it.qty?` <small class="muted">${it.qty} 件</small>`:''}</span></a>`).join('')||'<div class="empty card">这个分类还没有条目</div>'}</section>`;
 }
 
@@ -69,7 +71,7 @@ function cal(){
     cells+=`<button data-d="${ds}" class="${ds===today?'today':''} ${ds===calSel?'sel':''}"><span class="num">${d}</span><span class="dots">${l.slice(0,3).map(i=>`<i class="${i.st}"></i>`).join('')}</span></button>`;}
   const monthItems=items.filter(i=>i.due.startsWith(calMonth)), list=calSel?(by[calSel]||[]):monthItems;
   view.innerHTML=`${top('日历')}<section class="card cal">
-   <div class="cal-head"><button class="icon-btn" data-mv="-1">‹</button><b class="num">${y} 年 ${m} 月</b><button class="icon-btn" data-mv="1">›</button></div>
+   <div class="cal-head"><button class="icon-btn" data-mv="-1">${icon('back',20)}</button><b class="num">${y} 年 ${m} 月</b><button class="icon-btn" data-mv="1">${icon('chev',20)}</button></div>
    <div class="cal-grid wk">${[...'日一二三四五六'].map(w=>`<span>${w}</span>`).join('')}</div><div class="cal-grid">${cells}</div>
    <div class="micro center">本月到期 ${monthItems.length} 项</div></section>
   <div class="micro pad">${calSel?nice(calSel):'本月到期'}</div>
@@ -82,16 +84,16 @@ function detail(id){
   const it=enrich().find(i=>i.id===id);if(!it){location.hash='#/';return;}
   const c=cat(it.cat),tpl=findTpl(it.cat,it.name),plan=remindDays(it).filter(d=>d>=0);
   const lead=tpl?.lead;
-  view.innerHTML=`${top('',{back:true,right:`<a class="icon-btn" href="#/edit/${it.id}" aria-label="编辑">✎</a>`})}
+  view.innerHTML=`${top('',{back:true,right:`<a class="icon-btn" href="#/edit/${it.id}" aria-label="编辑">${icon('edit',20)}</a>`})}
   <section class="card big-cd ${it.st}">
-    <span class="tile-ic lg" style="--c:${c.color}">${c.icon}</span>
+    <span class="tile-ic lg" style="--c:${c.color}">${ci(it.cat,34)}</span>
     <h2>${h(it.name)}</h2><div class="muted small">${c.name}${it.qty?` · ${it.qty} 件`:''}${it.location?` · ${h(it.location)}`:''}</div>
     <div class="cd-num num">${Math.abs(it.n)}<small>天</small></div>
     <div class="pill ${it.st}">${it.n<0?'已过期':it.n===0?'今天到期':'距离到期'} · ${ST[it.st]}</div>
     <div class="muted small">${nice(it.due)}</div>
-    ${it.handled?'<div class="pill safe">✓ 已处理，提醒已停止</div>':''}
+    ${it.handled?`<div class="pill safe">${icon('check',14)} 已处理，提醒已停止</div>`:''}
   </section>
-  <div class="actions"><button class="btn primary" id="renew">已续期</button>${it.intensity==='strong'&&!it.handled?'<button class="btn" id="handled">已处理</button>':''}</div>
+  <div class="actions"><button class="btn primary" id="renew">${icon('renew',20)}已续期</button>${it.intensity==='strong'&&!it.handled?`<button class="btn" id="handled">${icon('check',20)}已处理</button>`:''}</div>
   <section class="card kv">
     <div><span>提醒强度</span><b>${INTENSITY[it.intensity]?.name||'标准'}</b></div>
     <div><span>提前提醒</span><b>${it.intensity==='strong'?'提前 60 天起，最后一周每天':plan.length?plan.map(d=>d===0?'当天':d+' 天').join(' / '):'无'}</b></div>
@@ -101,7 +103,7 @@ function detail(id){
   </section>
   ${tpl?.docs?`<section class="card"><div class="micro">办理材料（参考）</div><p class="small">${h(tpl.docs)}</p></section>`:''}
   ${it.note?`<section class="card"><div class="micro">备注</div><p class="small">${h(it.note)}</p></section>`:''}
-  <button class="btn danger ghost" id="del">删除</button>`;
+  <button class="btn danger ghost" id="del">${icon('trash',18)}删除</button>`;
   $('#renew').onclick=()=>{let months=it.renewMonths;
     if(!months){const v=prompt('续期多少个月？（例如 12）','12');if(!v)return;months=Number(v);if(!months)return;}
     const base=it.n<0?todayStr():it.due;const nx=addMonths(base,months);const raw=S.get(id);raw.due=nx;raw.handled=false;raw.renewMonths=raw.renewMonths||months;
@@ -116,11 +118,11 @@ function form(id,q){
   if(!it.intensity)it.intensity=st.catIntensity[it.cat]||cat(it.cat).intensity;
   const draw=()=>{
     view.innerHTML=`${top(ex?'编辑':'新增',{back:true})}
-    ${ex?'':`<div class="micro pad">选择模板</div><div class="chips">${Object.entries(CATEGORIES).map(([k,c])=>`<button data-cat="${k}" class="${it.cat===k?'on':''}">${c.icon} ${c.name}</button>`).join('')}</div>
-    <div class="chips tpl">${TEMPLATES.filter(t=>t.cat===it.cat).map(t=>`<button data-tpl="${h(t.name)}" class="${it.name===t.name?'on':''}">${h(t.name)}</button>`).join('')}</div>`}
+    ${ex?'':`<div class="micro pad">选择模板</div><div class="chips">${Object.entries(CATEGORIES).map(([k,c])=>`<button data-cat="${k}" class="${it.cat===k?'on':''}">${ci(k,16)}${c.name}</button>`).join('')}</div>
+    <div class="chips tpl">${TEMPLATES.filter(t=>t.cat===it.cat).map(t=>`<button data-tpl="${h(t.name)}" class="${it.name===t.name?'on':''}">${ci(t.cat,16)}${h(t.name)}</button>`).join('')}</div>`}
     <form class="card form" id="f">
       <label>名称<input name="name" required value="${h(it.name)}" placeholder="例如：居留卡"></label>
-      <label>分类<select name="cat">${Object.entries(CATEGORIES).map(([k,c])=>`<option value="${k}" ${k===it.cat?'selected':''}>${c.icon} ${c.name}</option>`).join('')}</select></label>
+      <label>分类<select name="cat">${Object.entries(CATEGORIES).map(([k,c])=>`<option value="${k}" ${k===it.cat?'selected':''}>${c.name}</option>`).join('')}</select></label>
       <label>到期日<input type="date" name="due" required value="${it.due}"></label>
       <div class="lbl">提醒强度</div>
       <div class="seg">${Object.entries(INTENSITY).map(([k,v])=>`<button type="button" data-int="${k}" class="${it.intensity===k?'on':''}">${v.name}</button>`).join('')}</div>
@@ -147,14 +149,14 @@ function settings(){
   view.innerHTML=`${top('设置')}
   <div class="micro pad">外观</div><section class="card"><div class="seg">${[['auto','跟随系统'],['light','浅色'],['dark','深色']].map(([k,v])=>`<button data-theme="${k}" class="${(st.theme||'auto')===k?'on':''}">${v}</button>`).join('')}</div></section>
   <div class="micro pad">临期阈值</div><section class="card"><div class="seg">${[7,14,30,60].map(d=>`<button data-soon="${d}" class="${st.soonDays==d?'on':''}">${d} 天</button>`).join('')}</div></section>
-  <div class="micro pad">按分类统一提醒强度（新建条目默认值）</div><section class="card kv">${Object.entries(CATEGORIES).map(([k,c])=>`<div><span>${c.icon} ${c.name}</span>
+  <div class="micro pad">按分类统一提醒强度（新建条目默认值）</div><section class="card kv">${Object.entries(CATEGORIES).map(([k,c])=>`<div><span class="il" style="color:${c.color}">${ci(k,18)}<em>${c.name}</em></span>
    <select data-ci="${k}">${Object.entries(INTENSITY).filter(([x])=>x!=='custom').map(([x,v])=>`<option value="${x}" ${(st.catIntensity[k]||c.intensity)===x?'selected':''}>${v.name}</option>`).join('')}</select></div>`).join('')}
    <button class="btn sm" id="applyAll">应用到该分类已有条目</button></section>
   <div class="micro pad">备份 · 共 ${n} 条</div><section class="card btns">
-   <button class="btn" id="ecsv">导出 CSV</button><button class="btn" id="ejson">导出 JSON</button>
-   <label class="btn">导入 CSV / JSON<input type="file" id="imp" accept=".csv,.json,text/csv,application/json" hidden></label></section>
-  <div class="micro pad">通知</div><section class="card"><p class="small muted">浏览器推送、邮件兜底与家人同时提醒将在第二阶段提供。目前请打开 App 查看首页「今日待处理」。</p></section>
-  <div class="micro pad">数据</div><section class="card btns"><button class="btn" id="demo">载入示例数据</button><button class="btn danger ghost" id="clear">清空全部</button></section>
+   <button class="btn" id="ecsv">${icon('download',18)}导出 CSV</button><button class="btn" id="ejson">${icon('download',18)}导出 JSON</button>
+   <label class="btn">${icon('upload',18)}导入 CSV / JSON<input type="file" id="imp" accept=".csv,.json,text/csv,application/json" hidden></label></section>
+  <div class="micro pad">通知</div><section class="card il-row">${icon('bell',22)}<p class="small muted">浏览器推送、邮件兜底与家人同时提醒将在第二阶段提供。目前请打开 App 查看首页「今日待处理」。</p></section>
+  <div class="micro pad">数据</div><section class="card btns"><button class="btn" id="demo">${icon('sparkle',18)}载入示例数据</button><button class="btn danger ghost" id="clear">${icon('trash',18)}清空全部</button></section>
   <p class="hint">数据只保存在本机浏览器 · v1</p>`;
   view.querySelectorAll('[data-theme]').forEach(b=>b.onclick=()=>{st.theme=b.dataset.theme;S.saveSettings(st);applyTheme();settings();});
   view.querySelectorAll('[data-soon]').forEach(b=>b.onclick=()=>{st.soonDays=+b.dataset.soon;S.saveSettings(st);settings();});
@@ -186,6 +188,7 @@ function seed(){const t=todayStr(),D=n=>addDays(t,n);
    {id:'d14',cat:'food',name:'鸡蛋',due:D(0),intensity:'light',qty:10,location:'冰箱'},
   ]);}
 
+document.querySelectorAll('#tabbar [data-ic]').forEach(e=>e.innerHTML=icon(e.dataset.ic,e.dataset.ic==='add'?22:24));
 function route(){
   applyTheme();const [path,qs]=(location.hash.slice(1)||'/').split('?'),q=new URLSearchParams(qs),p=path.split('/').filter(Boolean);
   const tab={'':'home',cats:'cats',cat:'cats',cal:'cal',settings:'settings',new:'new'}[p[0]||'']||'';

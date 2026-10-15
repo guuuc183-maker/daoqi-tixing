@@ -9,20 +9,21 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="到期提醒">
 <link rel="manifest" href="./manifest.json">
-<link rel="apple-touch-icon" href="./icons/icon-192.png">
-<link rel="icon" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="./icons/icon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
 <link rel="stylesheet" href="./style.css">
 <title>到期提醒</title>
 </head>
 <body>
 <div class="shell">
   <nav class="tabbar" id="tabbar">
-    <div class="side-brand">到期提醒</div>
-    <a href="#/" data-tab="home"><i>◎</i><span>首页</span></a>
-    <a href="#/cats" data-tab="cats"><i>▦</i><span>分类</span></a>
-    <a href="#/new" class="tab-add" data-tab="new"><i>＋</i><span>添加</span></a>
-    <a href="#/cal" data-tab="cal"><i>▤</i><span>日历</span></a>
-    <a href="#/settings" data-tab="settings"><i>⚙︎</i><span>设置</span></a>
+    <div class="side-brand"><img src="./icons/icon.svg" alt="" width="28" height="28">到期提醒</div>
+    <a href="#/" data-tab="home"><i data-ic="tabHome"></i><span>首页</span></a>
+    <a href="#/cats" data-tab="cats"><i data-ic="tabCats"></i><span>分类</span></a>
+    <a href="#/new" class="tab-add" data-tab="new"><i data-ic="add"></i><span>添加</span></a>
+    <a href="#/cal" data-tab="cal"><i data-ic="cal"></i><span>日历</span></a>
+    <a href="#/settings" data-tab="settings"><i data-ic="gear"></i><span>设置</span></a>
   </nav>
   <main id="view" class="view"></main>
 </div>

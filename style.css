@@ -136,3 +136,13 @@ input,select,button,textarea{font:inherit;color:inherit}
 }
 .toast{position:fixed;left:50%;bottom:calc(96px + var(--safe-b));transform:translateX(-50%);background:var(--cta-bg);color:var(--cta-fg);padding:10px 18px;border-radius:12px;font-size:14px;z-index:20;animation:rise .3s var(--ease)}
 .big-cd h2{color:var(--text)}.big-cd.safe,.big-cd.soon,.big-cd.expired{color:var(--text)}.pill.safe{color:var(--safe)}.pill.soon{color:var(--soon)}.pill.expired{color:var(--expired)}
+/* 线性图标 */
+.ico{display:block;flex:none}
+.ic,.tile-ic,.pic{color:var(--c)}
+.tabbar a i{display:grid;place-items:center;height:26px}
+.btn .ico{margin-right:2px}.chips button{display:inline-flex;align-items:center;gap:6px}.chips button .ico{opacity:.85}
+.il{display:inline-flex;align-items:center;gap:8px}.il em{font-style:normal;color:var(--text)}
+.il-row{display:flex;gap:12px;align-items:flex-start;color:var(--text2)}.il-row p{margin:0}
+.pill{display:inline-flex;align-items:center;gap:4px}
+.side-brand{align-items:center;gap:10px}.side-brand img{border-radius:8px}
+@media (min-width:900px){.side-brand{display:flex}}

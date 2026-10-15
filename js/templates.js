@@ -1,13 +1,13 @@
 // 分类与模板。lead=建议办理提前量（天），docs=所需材料（参考，请以官方为准）
 export const CATEGORIES={
-  doc:{name:'证件',icon:'🪪',color:'#3D7BE0',intensity:'strong'},
-  car:{name:'车辆',icon:'🚗',color:'#7A5AF0',intensity:'standard'},
-  food:{name:'食品',icon:'🥫',color:'#E08A1E',intensity:'light'},
-  med:{name:'药品',icon:'💊',color:'#E0507A',intensity:'standard'},
-  shop:{name:'店内商品',icon:'🏪',color:'#0C9C6B',intensity:'light'},
-  bill:{name:'订阅账单',icon:'💳',color:'#1E9FB0',intensity:'standard'},
-  home:{name:'家居保修',icon:'🛠️',color:'#8A6A4A',intensity:'light'},
-  other:{name:'其他',icon:'📌',color:'#67717A',intensity:'standard'},
+  doc:{name:'证件',color:'#3D7BE0',intensity:'strong'},
+  car:{name:'车辆',color:'#7A5AF0',intensity:'standard'},
+  food:{name:'食品',color:'#E08A1E',intensity:'light'},
+  med:{name:'药品',color:'#E0507A',intensity:'standard'},
+  shop:{name:'店内商品',color:'#0C9C6B',intensity:'light'},
+  bill:{name:'订阅账单',color:'#1E9FB0',intensity:'standard'},
+  home:{name:'家居保修',color:'#8A6A4A',intensity:'light'},
+  other:{name:'其他',color:'#67717A',intensity:'standard'},
 };
 export const TEMPLATES=[
   {cat:'doc',name:'居留卡',renew:60,lead:45,docs:'护照、租房合同/住址证明、工作合同或在读证明、医保、照片、规费收据（请以 IGI 官方为准）'},
