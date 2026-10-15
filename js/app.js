@@ -1,10 +1,10 @@
 import * as S from './store.js';
 import {VERSION} from './version.js';
 import {t,setLang,getLang,detectLang,LANGS,anyLang,fmtDay,fmtDate,fmtMD,fmtTime,fmtMonth,weekdays,weekStart,fmtNum} from './i18n/i18n.js';
-import {CATEGORIES,TEMPLATES,INTENSITY,findTpl,PERISHABLE,CUSTOM_PRESET,applyCats,visibleCats,ICON_SET,COLORS,inferTop2,normName,tplFor,REGIONS,mergeIntoBuiltin,renameDupCustom,isTplName} from './templates.js';
+import {CATEGORIES,TEMPLATES,INTENSITY,findTpl,PERISHABLE,CUSTOM_PRESET,applyCats,visibleCats,ICON_SET,COLORS,inferTop2,normName,tplFor,REGIONS,mergeIntoBuiltin,renameDupCustom,isTplName,catAlias} from './templates.js';
 // 默认分类：上次保存的分类 > 条目最多的分类 > 食品
 const defaultCat=s=>{if(CATEGORIES[s.lastCat]&&!CATEGORIES[s.lastCat].hidden)return s.lastCat;const c={};for(const i of S.all())if(CATEGORIES[i.cat]&&!CATEGORIES[i.cat].hidden)c[i.cat]=(c[i.cat]||0)+1;const top=Object.entries(c).sort((a,b)=>b[1]-a[1])[0];return top?top[0]:'food';};
-import {daysLeft,label,todayStr,addDays,addMonths,fmt,nice,valid,parseInput,parse} from './dates.js';
+import {daysLeft,label,labelFull,todayStr,addDays,addMonths,fmt,nice,valid,parseInput,parse} from './dates.js';
 import {catDefault,effInt,inferSource,remindDays,itemState,todoList,leadDays,effSoon,catSoon,globalSoon} from './logic.js';
 import {icon} from './icons.js';
 import {toCSV,parseCSV,parseJSON,toJSON,download,templateCSV} from './io.js';
@@ -109,7 +109,7 @@ root.querySelectorAll('.todo-row [data-a]').forEach(b=>b.onclick=e=>{e.preventDe
   if(a==='snooze')act(t('todo.snoozeToast',{name:it.name}),()=>S.patch(id,x=>{x.snoozeUntil=addDays(todayStr(),1);}));
   if(a==='noRenew')act(t('todo.noRenewToast'),()=>S.patch(id,x=>{x.renewAsked=true;}));
   if(a==='renew')return renewFlow(id,rerender);
-  if(a==='more'){const snoozed=b.closest('.later');return sheet(`<h3>${h(it.name)}</h3><p class="small muted">${h(label(daysLeft(it.due)))} · ${h(it.due)}</p>
+  if(a==='more'){const snoozed=b.closest('.later');return sheet(`<h3>${h(it.name)}</h3><p class="small muted">${h(labelFull(daysLeft(it.due)))} · ${h(it.due)}</p>
     <div class="sheet-list"><button data-s="renew">${icon('renew',20)}${t('todo.renew')}</button>${snoozed?'':`<button data-s="snooze">${icon('bell',20)}${t('ui.bindTodo.1')}</button>`}<a href="#/item/${h(id)}">${icon('chev',20)}${t('ui.bindTodo.2')}</a></div>`,w=>{
     w.querySelector('[data-s=renew]').onclick=()=>{closeSheet();renewFlow(id,rerender);};
     w.querySelector('[data-s=snooze]')&&(w.querySelector('[data-s=snooze]').onclick=()=>{closeSheet();act(t('todo.snoozeToast',{name:it.name}),()=>S.patch(id,x=>{x.snoozeUntil=addDays(todayStr(),1);}));rerender();});});}
@@ -122,12 +122,17 @@ function enter(){hydrate(view);const kids=[...view.children];kids.forEach((e,i)=
   view.querySelectorAll('.list .row').forEach((e,i)=>{e.classList.add('enter');e.style.setProperty('--i',Math.min(i,8));});
   fillRing();}
 function fillRing(){requestAnimationFrame(()=>requestAnimationFrame(()=>view.querySelectorAll('.ring-fg[data-off]').forEach(c=>c.style.strokeDashoffset=c.dataset.off)));}
-const EMPTY_TPL=['roPermit','roRca','roItp','milk'];
+// v1.7.3：首页/引导/空状态的示例跟地区走（地区 = 设置 > navigator.language 地区码 > 时区）
+const EX={cn:['cnId','cnPassport','cnDriving','cnCompulsory','cnCommercial','cnInspectionMark','cnInspection','cnMedical'],ro:['roPermit','roRca','roItp','roRovinieta'],gen:['passport','carIns','milk','meds']};
+export const exampleIds=r=>r==='cn'?[...EX.cn,'milk']:r==='ro'?[...EX.ro,'milk']:[...EX.gen,...EX.ro,...EX.cn.filter(x=>x!=='cnPassport')];
+// 罗马尼亚专有名词在非罗语界面加一句解释（gloss.*）
+const tplLabel=id=>getLang()!=='ro'&&dictHas('gloss.'+id)?t('gloss.'+id):dictHas('tplShort.'+id)?t('tplShort.'+id):t('tpl.'+id);
+const dictHas=k=>t(k)!==k;
 function emptyState(){return `${top(t('app.name'))}<section class="empty-state">
   <div class="empty-ring">${ring(0,64,6)}</div>
   <h2>${t('empty.title')}</h2><p>${t('empty.sub')}</p>
   <a class="btn sm primary cta" href="#/new">${icon('add',18)}${t('ui.emptyState.1')}</a>
-  <div class="tpl-quick">${EMPTY_TPL.map(id=>TEMPLATES.find(x=>x.id===id)).filter(Boolean).map(x=>`<a href="#/new?tpl=${x.id}">${ci(x.cat,16)}${h(t('tplShort.'+x.id))}</a>`).join('')}</div>
+  <div class="tpl-quick">${exampleIds(regionOf(st())).map(id=>TEMPLATES.find(x=>x.id===id)).filter(Boolean).map(x=>`<a href="#/new?tpl=${x.id}" data-ex="${x.id}">${ci(x.cat,16)}${h(tplLabel(x.id))}</a>`).join('')}</div>
   <p class="small muted empty-restore">${t('ui.emptyState.2')}<button class="link" id="emptyRestore">${t('set.restore')}</button></p></section>`;}
 function bindEmpty(){$('#emptyRestore')&&($('#emptyRestore').onclick=pickRestore);}
 // 照片区块：缩略图 + 拍照/相册
@@ -226,11 +231,11 @@ function todoPage(){const {todo,later}=todoList(S.all(),st());if(!todo.length)se
 
 function cats(){
   const items=enrich();
-  view.innerHTML=`${top(t('tab.cats'),{right:`<a class="btn sm" href="#/catmgr">${icon('gear',16)} ${t('ui.cats.1')}</a>`})}<section class="grid">${visibleCats().map(([k,c])=>{
+  view.innerHTML=`${top(t('tab.cats'),{right:`<a class="btn sm btn-cm" href="#/catmgr" aria-label="${t('ui.cats.1')}">${icon('gear',16)} <span>${t('ui.cats.1')}</span></a>`})}<section class="grid">${visibleCats().map(([k,c])=>{
     const l=items.filter(i=>i.cat===k&&!i.handledAt),e=l.filter(i=>i.st==='expired').length,s=l.filter(i=>i.st==='soon').length,next=l.find(i=>i.n>=0)||l[0];
     return `<a class="tile" href="#/cat/${k}" style="--c:${c.color}"><span class="tile-ic">${ci(k)}</span><b>${h(c.name)}</b>
     <span class="badges">${e?`<em class="b expired">${e}</em>`:''}${s?`<em class="b soon">${s}</em>`:''}<span class="num cnt">${l.length}</span></span>
-    <small class="ell">${next?`${t('ui.cats.2',{name:h(next.name)})} ${next.n<0?`${t('ui.cats.3',{n:-next.n})}`:next.n===0?t('row.today'):`${t('ui.cats.4',{n:next.n})}`}`:t('ui.cats.5')}</small></a>`;}).join('')}</section>`;
+    <small class="ell tile-n ${next?'':'empty'}" ${next?`aria-label="${t('ui.cats.2',{name:h(next.name)})}"`:''}>${next?h(next.name):t('ui.cats.5')}</small><small class="ell tile-d ${next?(next.n<0?'expired':next.st==='soon'||next.n===0?'soon':''):''}">${next?(next.n<0?t('ui.cats.3',{n:-next.n}):next.n===0?t('row.today'):t('ui.cats.4',{n:next.n})):'&nbsp;'}</small></a>`;}).join('')}</section>`;
 }
 function catList(k){
   const items=enrich().filter(i=>i.cat===k),c=cat(k);
@@ -263,7 +268,7 @@ function doRenew(id,months,remember){const it=S.get(id),n=daysLeft(it.due),base=
   act(t('renew.toast',{date:cnDate(nx)}),()=>S.patch(id,x=>{(x.history=x.history||[]).push({from:x.due,to:nx,at:todayStr()});x.due=nx;delete x.handledAt;delete x.snoozeUntil;delete x.renewAsked;if(remember)x.renewMonths=months;}),{label:t('renew.changeDate'),fn:()=>{S.undo();renewFlow(id,route,nx);}});}
 function renewFlow(id,after,preDate){const it=S.get(id);
   if(it.renewMonths){doRenew(id,it.renewMonths);after?.();return;}
-  sheet(`<h3>${t('ui.renewFlow.1',{name:h(it.name)})}</h3><p class="small muted">${t('ui.renewFlow.2',{due:h(it.due)})}${daysLeft(it.due)<0?t('ui.renewFlow.3'):''}</p>
+  sheet(`<h3>${t('ui.renewFlow.1',{name:h(it.name)})}</h3><p class="small muted">${t('ui.renewFlow.2',{due:h(it.due)})}${daysLeft(it.due)<0?t('ui.renewFlow.3'):''}</p>${daysLeft(it.due)<0?`<p class="small exp-full">${h(labelFull(daysLeft(it.due)))}</p>`:''}
    <div class="chips wrap">${[[1,t('ui.renewFlow.4')],[6,t('ui.renewFlow.5')],[12,t('ui.renewFlow.6')],[24,t('ui.renewFlow.7')]].map(([m,l])=>`<button data-m="${m}">${l}</button>`).join('')}</div>
    <label class="small">${t('renew.pickDate')}<input type="date" id="rdate" class="inp" value="${preDate||''}"></label>
    <p class="small expired" id="rerr"></p><label class="check"><input type="checkbox" id="rem" checked> ${t('renew.remember')}</label>
@@ -291,7 +296,7 @@ function detail(id){
     <span class="tile-ic lg" style="--c:${c.color}">${ci(it.cat,34)}</span>
     <h2>${h(it.name)}</h2><div class="muted small">${h(c.name)}${it.qty?` ${t('ui.row.1',{qty:it.qty})}`:''}${it.location?` · ${h(it.location)}`:''}</div>
     <div class="cd-num num"><span data-count="${Math.abs(it.n)}">${Math.abs(it.n)}</span><small>${t('ui.row.4',{n:Math.abs(it.n)})}</small></div>
-    <div class="pill ${it.st}">${it.n<0?t('ui.detail.1'):it.n===0?t('row.today'):t('ui.detail.2')} · ${ST[it.st]}</div>
+    <div class="pill ${it.st}">${it.n<0?t('ui.detail.1'):it.n===0?t('row.today'):t('ui.detail.2')} · ${ST[it.st]}</div>${it.n<0?`<div class="small muted exp-full">${h(labelFull(it.n))}</div>`:''}
     <div class="muted small">${nice(it.due)}</div>
     ${it.history?.length?`<div class="milestone">${icon('check',16)}${t('ui.detail.3',{n:it.history.length})}</div>`:''}
   </section>
@@ -334,7 +339,7 @@ function form(id,q){
   if(pre&&q.get('cat'))it.cat=q.get('cat');
   let picked=!!(ex||q.get('cat')||q.get('tpl')||pre?.cat||pre?.name),sug=null,cands=[],auto=false,inferredFor=null;
   if(!it.id)it.id=S.uid();if(pre)it.photos=[];
-  let shelfFrom=null;const applyTpl=tp=>{it.cat=tp.cat;it.name=tp.id==='custom'?'':tp.name;it.renewMonths=tp.renew||'';shelfFrom=null;if(tp.shelfDays){it.due=addDays(todayStr(),tp.shelfDays);shelfFrom=tp;}};
+  let shelfFrom=null;const applyTpl=tp=>{it.cat=tp.cat;it.name=tp.id==='custom'?'':tp.name;it.renewMonths=tp.renew||'';if(tp.int){it.intensity=tp.int;it.intensitySource='item';if(tp.days)it.customDays=[...tp.days];else delete it.customDays;}shelfFrom=null;if(tp.shelfDays){it.due=addDays(todayStr(),tp.shelfDays);shelfFrom=tp;}};
   {const tq=q.get('tpl'),tq2=tq&&TEMPLATES.find(x=>x.id===tq||x.name===tq);if(tq2&&!ex)applyTpl(tq2);}
   let moreOpen=!!(ex&&(ex.intensitySource==='item'||ex.soonSource==='item'||ex.renewMonths||ex.qty||ex.location||ex.note||ex.prodDate||ex.photos?.length));
   // 分类来源：none 未选 / last 上次使用 / auto 按名称推断 / manual 手动 / tpl 来自模板
@@ -348,7 +353,7 @@ function form(id,q){
   // 最近 / 常用：跨分类，按使用次数再按最近时间，最多 8 个；没有记录时用默认常用
   const recentHTML=()=>{const u=s.tplUse||{},vis=tp=>CATEGORIES[tp.cat]&&!CATEGORIES[tp.cat].hidden;
     let l=Object.entries(u).sort((a,b)=>b[1].n-a[1].n||String(b[1].at).localeCompare(String(a[1].at))).map(([n])=>TEMPLATES.find(x=>x.id===n||anyLang('tpl.'+x.id).includes(n))).filter(Boolean).filter(vis).slice(0,8),cold=!l.length;
-    if(cold)l=['milk','eggs','roPermit','roRca','roItp','roPassport','leftovers'].map(n=>TEMPLATES.find(x=>x.id===n)).filter(Boolean).filter(vis);
+    if(cold)l=[...new Set([...exampleIds(regionOf(s)),'milk','eggs','leftovers'])].map(n=>TEMPLATES.find(x=>x.id===n)).filter(Boolean).filter(vis);
     return `<div class="micro pad">${cold?t('form.common'):t('form.recent')}</div><div class="chips tpl-recent">${l.map(x=>`<button data-tpl="${x.id}" data-any="1" class="${it.name===x.name?'on':''}">${ci(x.cat,16)}${h(x.name)}</button>`).join('')}</div>`;};
   let dueText=it.due?it.due.split('-').reverse().join('.'):'',chain=false,shelfUnit='d',shelfN=it.shelfDays||'';
   const draw=(focus)=>{const ei=effInt(it,s),per=PERISHABLE.includes(it.cat);
@@ -496,16 +501,22 @@ function settings(){
   <div class="micro pad">${t('tab.cats')}</div><section class="card list set-list">
    <a class="set-row" href="#/catrules"><span class="grow">${t('ui.settings.28')}<small>${t('ui.settings.29')}</small></span>${icon('chev',18)}</a>
    <a class="set-row" href="#/catmgr"><span class="grow">${t('cat.mgr')}<small>${t('ui.settings.30',{n:Object.keys(CATEGORIES).length})}</small></span>${icon('chev',18)}</a></section>
-  <details class="card more-set"><summary>${t('set.more')}</summary><div class="btns">
-   <button class="btn" id="ecsv">${icon('download',18)}${t('set.exportCsv')}</button><button class="btn" id="tpl">${icon('download',18)}${t('set.csvTpl')}</button>
-   <button class="btn" id="icsS">${icon('cal',18)}${t('ui.icsSheet.1')}</button><a class="btn" href="#/trash">${icon('trash',18)}${t('ui.settings.31',{tr})}</a><button class="btn" id="obAgain">${icon('sparkle',18)}${t('ui.settings.32')}</button><button class="btn" id="demo">${icon('sparkle',18)}${t('ui.settings.33')}</button><button class="btn danger ghost" id="clear">${icon('trash',18)}${t('ui.settings.34')}</button></div></details>
-  <div class="micro pad">${t('ui.settings.35')}</div><section class="card about"><div class="kv"><div><span>${t('app.name')}</span><b class="ver num">v${VERSION}</b></div></div></section>`;
+  <p class="micro pad">${t('set.grp.data')}</p><section class="card list set-list">
+   <button type="button" class="set-row go" id="ecsv"><span class="ri">${icon('download',20)}</span><span class="rt"><b>${t('set.exportCsv')}</b><small>${t('set.row.csv.sub')}</small></span>${icon('chev',16,'rc')}</button>
+   <button type="button" class="set-row go" id="tpl"><span class="ri">${icon('download',20)}</span><span class="rt"><b>${t('set.csvTpl')}</b><small>${t('set.row.tpl.sub')}</small></span>${icon('chev',16,'rc')}</button></section>
+  <p class="micro pad">${t('set.grp.tools')}</p><section class="card list set-list">
+   <a class="set-row go" href="#/trash"><span class="ri">${icon('trash',20)}</span><span class="rt"><b>${t('ui.trashPage.1')}</b><small>${t('set.row.trash.sub')}</small></span>${tr?`<span class="rn">${tr}</span>`:''}${icon('chev',16,'rc')}</a>
+   <button type="button" class="set-row go" id="obAgain"><span class="ri">${icon('sparkle',20)}</span><span class="rt"><b>${t('ui.settings.32')}</b><small>${t('set.row.ob.sub')}</small></span>${icon('chev',16,'rc')}</button>
+   <button type="button" class="set-row go" id="demo"><span class="ri">${icon('box',20)}</span><span class="rt"><b>${t('ui.settings.33')}</b><small>${t('set.row.demo.sub')}</small></span>${icon('chev',16,'rc')}</button></section>
+  <div class="micro pad">${t('ui.settings.35')}</div><section class="card about"><div class="kv"><div><span>${t('about.name')}</span><b class="ver num">v${VERSION}</b></div></div></section>
+  <p class="micro pad danger-h">${t('set.grp.danger')}</p><section class="card list set-list">
+   <button type="button" class="set-row go danger" id="clear"><span class="ri">${icon('trash',20)}</span><span class="rt"><b>${t('ui.settings.34')}</b><small>${t('set.row.clr.sub')}</small></span>${icon('chev',16,'rc')}</button></section>`;
   if(navigator.storage?.persisted)navigator.storage.persisted().then(p=>{const e=$('#persist');if(e)e.textContent=p?t('set.safety.localOk'):t('set.safety.local');});
   view.querySelectorAll('[data-lang]').forEach(b=>b.onclick=()=>{if(b.dataset.lang===getLang())return;s.lang=b.dataset.lang;S.saveSettings(s);view.classList.add('lang-out');setTimeout(()=>{view.classList.remove('lang-out');route();},120);});
   view.querySelectorAll('[data-theme]').forEach(b=>b.onclick=()=>{s.theme=b.dataset.theme;S.saveSettings(s);applyTheme();settings();});
   $('#badge')&&($('#badge').onclick=async()=>{if(!s.badge&&'Notification' in window&&Notification.permission==='default'){try{await Notification.requestPermission()}catch{}}
     s.badge=!s.badge;S.saveSettings(s);updateBadge();settings();});
-  $('#icsS2').onclick=icsSheet;$('#icsS').onclick=icsSheet;
+  $('#icsS2').onclick=icsSheet;
   $('#region').onchange=e=>{const x=st();x.region=e.target.value;S.saveSettings(x);toast(t('ui.settings.36'));};
   $('#bkOn').onchange=e=>{const x=st();if(e.target.checked){x.backupEvery=+(x.backupEveryLast||14);}else{x.backupEveryLast=+(x.backupEvery||14);x.backupEvery=0;}S.saveSettings(x);settings();};
   view.querySelectorAll('[data-bke]').forEach(b=>b.onclick=()=>{const x=st();x.backupEvery=x.backupEveryLast=+b.dataset.bke;S.saveSettings(x);settings();});
@@ -521,7 +532,7 @@ function settings(){
     S.snapshot();const cs=st();cs.cats=cs.cats||{};cs.cats.custom=cs.cats.custom||[];
     // 分类按名称合并；没有条目引用的分类不创建（round4 P1）
     const remap={};for(const d of importState.categories||[]){if(!d||!/^c_[a-z0-9]{1,24}$/.test(d.id)||CATEGORIES[d.id]||cs.cats.custom.some(c=>c.id===d.id))continue;const nm=String(d.name||'').normalize('NFKC').trim().slice(0,20);
-      const same=Object.entries(CATEGORIES).find(([,c])=>c.name===nm)?.[0]||cs.cats.custom.find(c=>c.name===nm)?.id;if(same){remap[d.id]=same;continue;}
+      const same=Object.entries(CATEGORIES).find(([,c])=>c.name===nm)?.[0]||cs.cats.custom.find(c=>c.name===nm)?.id||catAlias(nm);if(same){remap[d.id]=same;continue;}
       if(!rows.some(r=>r.item.cat===d.id))continue;cs.cats.custom.push({id:d.id,name:nm,icon:d.icon,color:d.color});}
     for(const r of rows)if(remap[r.item.cat])r.item.cat=remap[r.item.cat];
     // 完整备份里的设置：恢复偏好（不覆盖本机已有的分类定义）
@@ -614,12 +625,21 @@ function trashPage(){const l=S.trash().sort((a,b)=>b.deletedAt.localeCompare(a.d
 
 function seed(){const tp=todayStr(),D=n=>addDays(tp,n);
   S.merge([
+   ...(regionOf(st())==='cn'?[
+   {id:'d1',cat:'doc',name:t('tpl.cnId'),due:D(40),intensitySource:'cat'},
+   {id:'d2',cat:'doc',name:t('tpl.cnPassport'),due:D(412),intensitySource:'cat',renewMonths:120},
+   {id:'d3',cat:'doc',name:t('tpl.cnDriving'),due:D(-3),intensitySource:'item',intensity:'standard'},
+   {id:'d4',cat:'car',name:t('tpl.cnCompulsory'),due:D(6),intensitySource:'cat',renewMonths:12},
+   {id:'d5',cat:'car',name:t('tpl.cnInspection'),due:D(143),intensitySource:'cat'},
+   {id:'d6',cat:'bill',name:t('tpl.cnMedical'),due:D(21),intensitySource:'item',intensity:'light',renewMonths:12},
+   ]:[
    {id:'d1',cat:'doc',name:t('tpl.roPermit'),due:D(40),intensitySource:'cat',renewMonths:60,note:t('ui.seed.1')},
    {id:'d2',cat:'doc',name:t('tpl.roPassport'),due:D(412),intensitySource:'cat',renewMonths:120},
    {id:'d3',cat:'doc',name:t('tpl.roDriving'),due:D(-3),intensitySource:'item',intensity:'standard',renewMonths:120},
    {id:'d4',cat:'car',name:t('tpl.roRca'),due:D(6),intensitySource:'cat',renewMonths:12},
    {id:'d5',cat:'car',name:t('tpl.roItp'),due:D(143),intensitySource:'cat',renewMonths:24},
    {id:'d6',cat:'car',name:t('tpl.roRovinieta'),due:D(21),intensitySource:'item',intensity:'light',renewMonths:12},
+   ]),
    {id:'d7',cat:'food',name:t('tpl.milk'),due:D(1),intensitySource:'cat',qty:2,location:t('ui.seed.2'),shelfDays:7},
    {id:'d8',cat:'food',name:t('ui.seed.3'),due:D(64),intensitySource:'cat',qty:3,location:t('ui.seed.4')},
    {id:'d9',cat:'med',name:t('ui.seed.5'),due:D(-12),intensitySource:'cat',qty:1,location:t('ui.seed.6')},
@@ -638,7 +658,7 @@ export function obNote(lv){const d=INTENSITY[lv].days;return t('ob.lvl.'+lv,{day
 function onboarding(){document.querySelector('.ob')?.remove();const el=document.createElement('div');el.className='ob ob1';el.setAttribute('role','dialog');el.setAttribute('aria-label',t('ui.onboarding.1'));
   el.innerHTML=`<button class="skip" data-ob="skip">${t('ob.skip')}</button>
    <img class="logo" src="icons/icon-192.png" alt="">
-   <h1>${t('ob.title')}</h1><p class="lead">${t('ob.desc')}</p>
+   <h1>${t('ob.title')}</h1><p class="lead">${(r=>r==='cn'?t('ob.desc.cn'):r==='ro'?t('ob.desc.ro'):t('ob.desc'))(regionOf(st()))}</p>
    <div class="lvls">${[['light',1,''],['standard',2,''],['strong',4,'strong']].map(([lv,k,c])=>[INTENSITY[lv].name,obNote(lv),k,c]).map(([n,d,k,c],i)=>`<div class="lv ${c}" style="--i:${i}"><div class="bars">${[10,16,22,28].map((hh,j)=>`<i class="${j<k?'on':''}" style="height:${hh}px"></i>`).join('')}</div><b>${n}</b><small>${d}</small></div>`).join('')}</div>
    <div class="foot"><button class="btn primary cta" data-ob="add">${icon('add',20)}${t('ob.add')}</button><button class="restore" data-ob="restore">${t('ob.restore')}</button></div>`;
   document.body.appendChild(el);

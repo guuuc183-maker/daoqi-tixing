@@ -23,4 +23,7 @@ setLang('ro');T('ro detail.24 30',N(t('ui.detail.24',{lead:'1 oct.',days:t('ui.d
 setLang('en');T('en 1 reminder',N(t('ob.lvl.light',{days:t('ui.dDays',{n:7}),n:1}))==='−7 days\n1 reminder');
 // 4. ro/en 中写死的「N zile / N days」只允许出现在固定数字文案里（不能紧跟占位符）
 for(const [l,d] of [['ro',ro],['en',en]])for(const [k,v] of Object.entries(d))if(typeof v==='string')T(`${l} ${k} 占位符后写死单位: ${v}`,!/\{\w+\}\s*(de\s+)?(zile|zi|days?)\b/.test(v));
+// lbl.expired.full：n = 1 / 2 / 20
+{const E={zh:{1:'已过期 1 天',2:'已过期 2 天',20:'已过期 20 天'},ro:{1:'Expirat de 1 zi',2:'Expirat de 2 zile',20:'Expirat de 20 de zile'},en:{1:'Expired 1 day ago',2:'Expired 2 days ago',20:'Expired 20 days ago'}};
+ for(const l of ['zh','ro','en']){setLang(l);for(const n of [1,2,20])T(`lbl.expired.full ${l} ${n} → ${t('lbl.expired.full',{n})}`,N(t('lbl.expired.full',{n}))===E[l][n]);}}
 setLang('zh');console.log(`plural ${p} passed ${f} failed`);if(f)process.exit(1);

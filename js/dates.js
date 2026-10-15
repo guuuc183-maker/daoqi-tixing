@@ -10,6 +10,8 @@ export function addMonths(s,n){const d=parse(s);const day=d.getDate();d.setDate(
   const last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(day,last));return fmt(d);}
 // 状态：expired / soon(≤阈值) / safe
 export function status(n,soon=30){return n<0?'expired':n<=soon?'soon':'safe';}
+// 可换行的完整说法（详情页、续期弹层）；单行列表仍用 label()
+export function labelFull(n){return n<0?t('lbl.expired.full',{n:-n}):label(n);}
 export function label(n){return n<0?t('lbl.expired',{n:-n}):n===0?t('reason.today'):t('lbl.left',{n});}
 export const nice=s=>fmtFull(s);
 const mk=(y,m,d)=>{if(y<100)y+=2000;const dt=new Date(y,m-1,d);return dt.getFullYear()===y&&dt.getMonth()===m-1&&dt.getDate()===d?fmt(dt):null;};

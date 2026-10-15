@@ -14,22 +14,32 @@ const BUILTIN={
   other:{color:'#67717A',intensity:'standard'},
 };
 export const TEMPLATES=[
-  {id:'cnId',cat:'doc',region:'cn',renew:120,lead:90,url:"https://www.gov.cn/gongbao/content/2003/content_62254.htm"},
-  {id:'cnPassport',cat:'doc',region:'cn',renew:120,lead:180,url:"https://s.nia.gov.cn/mps/bszy/gmcrg/slpthz/201903/t20190313_1011.html"},
+  // 中国默认值依据 i18n-校对/中国证件清单.md（百科全书 2026-10-15 核实）
+  // 身份证：不预设周期，用户填到期日（年龄分档见 tplDocs）
+  {id:'cnId',cat:'doc',region:'cn',renew:'',lead:90,url:"https://www.gov.cn/gongbao/content/2003/content_62254.htm"},
+  {id:'cnPassport',cat:'doc',region:'cn',renew:120,lead:180,int:'custom',days:[180,90,30],url:"https://s.nia.gov.cn/mps/bszy/gmcrg/slpthz/201903/t20190313_1011.html"},
   {id:'cnHkMacau',cat:'doc',region:'cn',renew:120,lead:60,url:"https://gat.jiangsu.gov.cn/art/2025/3/13/art_90830_6789.html"},
   {id:'cnHkEndorse',cat:'doc',region:'cn',renew:"",lead:14,verify:true},
   {id:'cnTaiwan',cat:'doc',region:'cn',renew:120,lead:60,verify:true},
   {id:'cnTaiwanCompat',cat:'doc',region:'cn',renew:60,lead:60,verify:true},
   {id:'cnResidence',cat:'doc',region:'cn',renew:12,lead:30,verify:true},
-  {id:'cnDriving',cat:'doc',region:'cn',renew:72,lead:90,url:"https://www.gov.cn/zhengce/2021-12/27/content_5712881.htm"},
+  {id:'cnDriving',cat:'doc',region:'cn',renew:'',lead:90,int:'custom',days:[90,30,7],url:"https://www.gov.cn/zhengce/2021-12/27/content_5712881.htm"},
   {id:'cnDrivingCheck',cat:'doc',region:'cn',renew:12,lead:30,url:"https://www.gov.cn/zhengce/2021-12/27/content_5712881.htm"},
-  {id:'cnCompulsory',cat:'car',region:'cn',renew:12,lead:30,verify:true},
-  {id:'cnCommercial',cat:'car',region:'cn',renew:12,lead:30},
-  {id:'cnInspection',cat:'car',region:'cn',renew:24,lead:30,url:"https://www.gov.cn/zhengce/zhengceku/2022-10/19/content_5719521.htm"},
+  // 交强险、商业险：1 年（可手动改周期），提前 30 / 7 / 1 天
+  {id:'cnCompulsory',cat:'car',region:'cn',renew:12,lead:30,int:'standard',verify:true},
+  {id:'cnCommercial',cat:'car',region:'cn',renew:12,lead:30,int:'standard'},
+  // 私家车（9 座及以下，不含面包车）年检拆两条：10 年内每 2 年申领检验标志；第 6、10 年上线检验，10 年后每年。用户填日期
+  {id:'cnInspectionMark',cat:'car',region:'cn',renew:24,lead:30},
+  {id:'cnInspection',cat:'car',region:'cn',renew:'',lead:30,url:"https://www.gov.cn/zhengce/zhengceku/2022-10/19/content_5719521.htm"},
+  // 城乡居民医保：按年缴费，用户填当地截止日；按 12-31 截止算，提前 91 / 30 天 ≈ 10-01、12-01
+  {id:'cnMedical',cat:'bill',region:'cn',renew:12,lead:91,int:'custom',days:[91,30]},
   {id:'roPermit',cat:'doc',region:'ro',renew:12,lead:45,url:"https://igi.mai.gov.ro"},
   {id:'roPassport',cat:'doc',region:'ro',renew:120,lead:90},
   {id:'roDriving',cat:'doc',region:'ro',renew:120,lead:30},
   {id:'roId',cat:'doc',region:'ro',renew:120,lead:60,url:"https://hub.mai.gov.ro"},
+  // 通用示例（地区未知时显示）
+  {id:'passport',cat:'doc',renew:120,lead:180},
+  {id:'carIns',cat:'car',renew:12,lead:30},
   {id:'bizLicence',cat:'doc',renew:12,lead:30},
   {id:'lease',cat:'doc',renew:12,lead:60},
   {id:'roRca',cat:'car',region:'ro',renew:12,lead:14},
@@ -57,7 +67,7 @@ export const TEMPLATES=[
   {id:'tickets',cat:'other',renew:12,lead:60},
   {id:'custom',cat:'other',renew:0,lead:7},
 ];
-const DOCS=new Set(["roPad","roHealthCard","bankCard","cnId", "cnPassport", "cnHkMacau", "cnHkEndorse", "cnTaiwan", "cnTaiwanCompat", "cnResidence", "cnDriving", "cnDrivingCheck", "cnCompulsory", "cnCommercial", "cnInspection", "roPermit", "roPassport", "roDriving", "roId", "bizLicence", "lease", "roRca", "roItp", "roRovinieta", "roCasco"]);
+const DOCS=new Set(["cnInspectionMark","cnMedical","roPad","roHealthCard","bankCard","cnId", "cnPassport", "cnHkMacau", "cnHkEndorse", "cnTaiwan", "cnTaiwanCompat", "cnResidence", "cnDriving", "cnDrivingCheck", "cnCompulsory", "cnCommercial", "cnInspection", "roPermit", "roPassport", "roDriving", "roId", "bizLicence", "lease", "roRca", "roItp", "roRovinieta", "roCasco"]);
 for(const x of TEMPLATES)Object.defineProperties(x,{name:{get(){return t('tpl.'+x.id);},enumerable:true},docs:{get(){return DOCS.has(x.id)?t('tplDocs.'+x.id):'';},enumerable:true},
   shelfNote:{get(){return x.shelfDays?t('shelf.'+x.id):'';}},shelfLevel:{get(){return x.shelfLevelId?t('shelfLevel.'+x.shelfLevelId):'';}}});
 
@@ -73,7 +83,9 @@ export const CUSTOM_PRESET={doc:[14,7,3,1],car:[14,7,3,1]};
 // 内置分类的历史名称（旧版导出的 CSV/JSON 里可能还在用）：R9-3
 export const OLD_CAT_NAMES={home:['Warranties','Warranty','Garanții','Garanţii','Garantii','Garanție']};
 const builtinNames=k=>[...anyLang('cat.'+k),...(OLD_CAT_NAMES[k]||[])];
-export const catAlias=n=>{const lo=n.toLowerCase();for(const k of Object.keys(BUILTIN))if(builtinNames(k).some(x=>x.toLowerCase()===lo))return k;return anyLang('cat.billAlias').includes(n)?'bill':null;};
+// 名称比较：NFKC、去首尾空格、大小写、变音和 cedilla 都折叠（R10-1）
+const nameKey=x=>String(x??'').normalize('NFKC').toLowerCase().normalize('NFD').replace(/\p{M}/gu,'').replace(/ş/g,'s').replace(/ţ/g,'t').replace(/\s+/g,' ').trim();
+export const catAlias=n=>{const lo=nameKey(n);if(!lo)return null;for(const k of Object.keys(BUILTIN))if(builtinNames(k).some(x=>nameKey(x)===lo))return k;return anyLang('cat.billAlias').includes(n)?'bill':null;};
 
 // ===== 分类注册表：内置 + 自定义（存在 settings.cats），所有模块共用同一个对象 =====
 export const ICON_SET=['doc','car','food','med','cosm','daily','shop','bill','home','other','box','bell','cal','hourglass','sparkle','gear','tabCats','check','renew'];
@@ -118,9 +130,9 @@ export const tplFor=(cat,region)=>TEMPLATES.filter(t=>t.cat===cat&&(!region||reg
 // R9-4：自建分类和某个内置分类（任一语言、含旧名）同名时改名，条目不动（id 不变）
 export function renameDupCustom(st,fmt=n=>n+' 2'){const c=st&&st.cats,list=Array.isArray(c?.custom)?c.custom:[];
   const taken=new Set([...Object.keys(BUILTIN).flatMap(builtinNames),...list.map(d=>String(d?.name||''))].map(x=>x.normalize('NFKC').trim().toLowerCase()));
-  const clash=d=>d&&Object.keys(BUILTIN).some(k=>builtinNames(k).some(x=>x.toLowerCase()===String(d.name||'').normalize('NFKC').trim().toLowerCase()));
+  const clash=d=>d&&Object.keys(BUILTIN).some(k=>builtinNames(k).some(x=>nameKey(x)===nameKey(d.name)));
   if(!list.some(clash))return {st,changed:false,renamed:[]};const renamed=[];
-  const custom=list.map(d=>{if(!clash(d))return d;let nm=fmt(d.name).slice(0,20),i=2;while(taken.has(nm.toLowerCase())){i++;nm=(d.name+' '+i).slice(0,20);}taken.add(nm.toLowerCase());renamed.push([d.name,nm]);return {...d,name:nm};});
+  const custom=list.map(d=>{if(!clash(d))return d;let nm=fmt(d.name).slice(0,20),i=1;while(taken.has(nm.toLowerCase())){i++;nm=(d.name+' '+i).slice(0,20);}taken.add(nm.toLowerCase());renamed.push([d.name,nm]);return {...d,name:nm};});
   return {st:{...st,cats:{...c,custom}},changed:true,renamed};}
 // 老用户自建的同名分类（如「日用品」）并入新内置分类：条目、阈值、强度、排序、学习记录都转过去。纯函数，便于测试
 export function mergeIntoBuiltin(st,items,id='daily'){const names=anyLang('cat.'+id),c=st&&st.cats,list=Array.isArray(c?.custom)?c.custom:[];

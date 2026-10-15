@@ -1,7 +1,7 @@
 // v1.6.0 验收（v1.6-v1.7迭代计划.md §二 + UX/v1.6-交互与文案.md）。点击数用计数器记录
 const {chromium}=require('playwright-core');const B='http://localhost:8765/daoqi-tixing/';
 (async()=>{const br=await chromium.launch({executablePath:'/usr/bin/google-chrome'});let ok=0,bad=0;const errs=[];const t=(c,m)=>{if(c)ok++;else{bad++;console.log('FAIL',m);}};
- const ctx=async(o={})=>{const c=await br.newContext({locale:'zh-CN',viewport:{width:390,height:844},acceptDownloads:true,...o});c.setDefaultTimeout(5000);const q=await c.newPage();q.on('pageerror',e=>errs.push(e.message));let clicks=0;q.tap=async s=>{clicks++;await q.click(s);};q.clicks=()=>clicks;q.reset=()=>{clicks=0;};return [c,q];};
+ const ctx=async(o={})=>{const c=await br.newContext({locale:'zh',timezoneId:'Europe/Bucharest',viewport:{width:390,height:844},acceptDownloads:true,...o});c.setDefaultTimeout(5000);const q=await c.newPage();q.on('pageerror',e=>errs.push(e.message));let clicks=0;q.tap=async s=>{clicks++;await q.click(s);};q.clicks=()=>clicks;q.reset=()=>{clicks=0;};return [c,q];};
  const today=(n=0)=>{const d=new Date();d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
  const IT=q=>q.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')||'[]'));
  // 1 老用户 3 次点击加牛奶 + 保存在首屏 + 回到原页
@@ -73,7 +73,7 @@ const {chromium}=require('playwright-core');const B='http://localhost:8765/daoqi
  {const [c,q]=await ctx({viewport:{width:1280,height:800}});await q.goto(B+'#/');await q.waitForTimeout(500);
   const r=await q.$eval('.ob1',e=>{const b=e.getBoundingClientRect();return {w:b.width,vis:b.width>0&&b.height>0,pages:document.querySelectorAll('.ob-page').length};});t(r.vis&&r.pages<=1,'P0-A 1280 引导单屏 '+JSON.stringify(r));
   await q.click('[data-ob=add]');await q.waitForTimeout(300);t(/#\/new/.test(q.url())&&await q.locator('.ob').count()===0,'P0-A 1280 加第一条可用');
-  await q.goto(B+'#/settings');await q.waitForTimeout(300);await q.$$eval('details.more-set',d=>d.forEach(x=>x.open=true));await q.click('#obAgain');await q.waitForTimeout(300);t(await q.locator('.ob1').count()===1,'P0-A 重新查看引导');
+  await q.goto(B+'#/settings');await q.waitForTimeout(300);await q.click('#obAgain');await q.waitForTimeout(300);t(await q.locator('.ob1').count()===1,'P0-A 重新查看引导');
   await q.click('[data-ob=skip]');await q.waitForTimeout(300);t(await q.locator('.ob').count()===0,'P0-A 跳过');await c.close();}
  // P0-B 保存并再加一条只带分类
  {const [c,q]=await ctx();await q.goto(B+'#/');await q.evaluate(()=>localStorage.setItem('dq.settings.v1',JSON.stringify({onboarded:true,lastBackupAt:new Date().toISOString()})));
@@ -88,7 +88,7 @@ const {chromium}=require('playwright-core');const B='http://localhost:8765/daoqi
   await q.fill('[name=name]','xyzabc');await q.fill('#dueT','01.12.2026');await q.click('#saveTop');await q.waitForTimeout(400);t((await IT(q)).find(i=>i.name==='xyzabc')?.cat==='food','N9 保存为显示的默认分类');await c.close();}
  // P0-D 清空全部要二次确认
  {const [c,q]=await ctx();await q.goto(B+'?demo=1#/settings');await q.waitForTimeout(400);const n0=(await IT(q)).filter(i=>!i.deletedAt).length;
-  await q.$$eval('details.more-set',d=>d.forEach(x=>x.open=true));await q.click('#clear');await q.waitForTimeout(300);t(await q.locator('#askOk').count()===1,'P0-D 弹出确认');
+  await q.click('#clear');await q.waitForTimeout(300);t(await q.locator('#askOk').count()===1,'P0-D 弹出确认');
   await q.click('#askNo');await q.waitForTimeout(300);t((await IT(q)).filter(i=>!i.deletedAt).length===n0,'P0-D 取消不清空');
   await q.click('#clear');await q.waitForTimeout(300);await Promise.all([q.waitForEvent('download'),q.click('#askOk')]);await q.waitForTimeout(500);t((await IT(q)).filter(i=>!i.deletedAt).length===0,'P0-D 确认后清空');await c.close();}
  // P0-C 旧文案不得残留

@@ -20,4 +20,10 @@ for(const nm of ['Home','home','Casă','家居保修','Warranties']){const st={c
   const out=renameDupCustom(st,n=>n+' (mine)');const c=out.st.cats.custom;T(`R9-4 ${nm} 改名`,out.changed&&c[0].id==='c_myhome'&&c[0].name!==nm&&c[1].name==='Pets');
   applyCats(out.st);setLang('en');const names=['home','c_myhome'].map(k=>catIdByName(k)&&k);T(`R9-4 ${nm} 名称不重复`,new Set([t('cat.home'),c[0].name].map(x=>x.toLowerCase())).size===2);}
 T('R9-4 无冲突不动',!renameDupCustom({cats:{custom:[{id:'c_a',name:'Pets'}]}}).changed);
+// R10-1：名称折叠（空格、大小写、变音、cedilla）
+import {catAlias} from '../js/templates.js';
+for(const n of ['Warranties',' garantii ','Garanţii','Warranty','GARANȚII','  Casa '])T(`R10-1 catAlias「${n}」→home`,catAlias(n)==='home');
+// R10-2：目标名被占用时从 2 开始编号
+{const o=renameDupCustom({cats:{custom:[{id:'c_a',name:'Home'},{id:'c_b',name:'Home (mine)'}]}},n=>n+' (mine)');T('R10-2 Home → Home 2 '+o.st.cats.custom[0].name,o.st.cats.custom[0].name==='Home 2');
+ const o2=renameDupCustom({cats:{custom:[{id:'c_a',name:'Home'},{id:'c_b',name:'Home (mine)'},{id:'c_c',name:'Home 2'}]}},n=>n+' (mine)');T('R10-2 再占用 → Home 3 '+o2.st.cats.custom[0].name,o2.st.cats.custom[0].name==='Home 3');}
 setLang('zh');console.log(`round9 ${p} passed ${f} failed`);if(f)process.exit(1);

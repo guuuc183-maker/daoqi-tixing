@@ -582,7 +582,7 @@ details#more{border-top:1px solid var(--line);margin:4px 0 12px;padding-top:4px}
 details#more>summary::before{content:"▸ ";}details#more[open]>summary::before{content:"▾ ";}
 details#more[open]>summary{margin-bottom:8px}
 .form input.bad{border-color:var(--expired)}
-.more-set summary{cursor:pointer;font-weight:600;padding:2px 0}.more-set[open] summary{margin-bottom:12px}
+
 .restore-btn{margin-top:8px}.safe-card #persist{margin:-8px 0 12px}
 .empty-restore .link{border:0;background:transparent;color:var(--safe);font-weight:600;cursor:pointer;padding:0}
 .tpl-recent{flex-wrap:nowrap;overflow-x:auto}
@@ -638,3 +638,33 @@ html:lang(ro) h1,html:lang(ro) h2,html:lang(ro) h3,html:lang(ro) p,html:lang(en)
 .tabbar a span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:64px}
 .nb{white-space:nowrap}
 .form label.cat-field{display:flex;margin-bottom:0}
+
+/* v1.7.3 设置「更多」分组列表（设计/v1.7.3-设置更多/more.css） */
+:root{--exp-bg:rgba(217,69,69,.10)}:root[data-theme=dark]{--exp-bg:rgba(255,107,107,.14)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--exp-bg:rgba(255,107,107,.14)}}
+.micro.danger-h{color:var(--expired);padding-top:28px}
+.set-row.go{display:flex;align-items:center;gap:12px;width:100%;min-height:60px;padding:10px 0;background:none;border:0;border-bottom:1px solid var(--line);color:var(--text);font:inherit;text-align:left;text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.set-list>.set-row:last-child{border-bottom:0}
+.set-row .ri{flex:none;width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:var(--card-2);color:var(--text2)}
+.set-row .rt{flex:1;min-width:0;display:flex;flex-direction:column}
+.set-row .rt b,.set-row .rt small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.set-row .rt b{font-size:15px;font-weight:600;line-height:20px}
+.set-row .rt small{font-size:12.5px;line-height:16px;color:var(--text2);margin-top:2px}
+.set-row .rn{flex:none;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.set-row .rc{flex:none;color:var(--muted)}
+.set-row.go:active{opacity:.6}
+.set-row.danger .ri{background:var(--exp-bg);color:var(--expired)}
+.set-row.danger .rt b{color:var(--expired)}
+
+/* v1.7.3 分类宫格：天数单独一行，长名称不再挤掉天数 */
+.exp-full{color:var(--expired);margin-top:6px;white-space:normal}
+/* ui.cats.3 宫格两行（设计/ui-cats-3/规格.md） */
+.tile small.tile-n{font-size:12.5px;line-height:16px;font-weight:500;color:var(--text);padding-block:0}
+.tile small.tile-n.empty{padding:0;text-align:left;font-size:12px;font-weight:400;color:var(--muted)}
+.tile small.tile-d{font-size:12px;line-height:16px;font-weight:600;color:var(--text2);padding-block:0;margin-top:-2px;font-variant-numeric:tabular-nums}
+.tile small.tile-d.soon{color:var(--soon)}
+.tile small.tile-d.expired{color:var(--expired)}
+/* §7：320 下分类页标题不在单词中间断开 */
+.top h1{min-width:0;overflow-wrap:normal;word-break:keep-all}
+.top:has(.btn-cm) h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:359px){.top .btn-cm span{display:none}}
