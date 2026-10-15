@@ -1,3 +1,4 @@
+import {SHELF} from './shelf.js';
 // 分类与模板。lead=建议办理提前量（天），docs=所需材料（参考，请以官方为准）
 const BUILTIN={
   doc:{name:'证件',color:'#3D7BE0',intensity:'strong',soon:90},
@@ -35,7 +36,8 @@ export const TEMPLATES=[
   {cat:'car',region:'ro',name:'ITP 车检',renew:24,lead:14,docs:'行驶证、有效 RCA；新车/车龄不同周期不同'},
   {cat:'car',region:'ro',name:'Rovinieta 公路费',renew:12,lead:3,docs:'车牌号、底盘号，可网上购买'},
   {cat:'car',region:'ro',name:'CASCO 车损险',renew:12,lead:14,docs:'保单、车辆照片'},
-  {cat:'food',name:'牛奶',renew:0,lead:1},{cat:'food',name:'鸡蛋',renew:0,lead:2},{cat:'food',name:'冷冻食品',renew:0,lead:7},
+  // 食品模板带默认保质期 shelfDays（来自 js/shelf.js，点模板自动填到期日）
+  ...SHELF.map(x=>({cat:'food',name:x.name,renew:0,lead:x.days<=3?0:x.days<=7?1:2,shelfDays:x.days,shelfNote:x.note,shelfLevel:x.level,src:x.src})),{cat:'food',name:'冷冻食品',renew:0,lead:7},
   {cat:'med',name:'常备药',renew:0,lead:30},{cat:'med',name:'维生素',renew:0,lead:14},
   {cat:'cosm',name:'面霜',renew:0,lead:14},{cat:'cosm',name:'防晒霜',renew:0,lead:14},{cat:'cosm',name:'口红',renew:0,lead:14},{cat:'cosm',name:'香水',renew:0,lead:30},{cat:'cosm',name:'隐形眼镜护理液',renew:0,lead:14},
   {cat:'shop',name:'店内商品',renew:0,lead:7},
@@ -47,7 +49,7 @@ export const TEMPLATES=[
 export const INTENSITY={
   light:{name:'轻',desc:'提前 7 天提醒一次',days:[7]},
   standard:{name:'标准',desc:'提前 30 / 7 / 1 天各一次',days:[30,7,1]},
-  strong:{name:'强',desc:'提前 60 天起逐渐加密，最后一周每天提醒，点「已处理」才停',days:[60,45,30,21,14,10,7,6,5,4,3,2,1,0]},
+  strong:{name:'强',desc:'提前 60 天起逐渐加密，最后一周每天提醒，点「搞定」才停',days:[60,45,30,21,14,10,7,6,5,4,3,2,1,0]},
   custom:{name:'自定义',desc:'自选提前天数',days:null},
 };
 export const findTpl=(cat,name)=>TEMPLATES.find(t=>t.cat===cat&&t.name===name);

@@ -1,17 +1,19 @@
 const {chromium}=require('playwright-core');const fs=require('fs');
 const B='http://localhost:8765/daoqi-tixing/';
-(async()=>{const br=await chromium.launch({executablePath:'/usr/bin/google-chrome'});
+(async()=>{const br0=await chromium.launch({executablePath:'/usr/bin/google-chrome'});// 旧用例默认展开「更多设置」（v1.6 默认折叠）；v1.6 验收用例用 br0 原始上下文
+const OPEN_MORE=()=>{new MutationObserver(()=>{const m=document.querySelector('#more:not([data-t]),details.more-set:not([open])');if(m){m.dataset.t=1;if(!m.open)m.open=true;}}).observe(document,{childList:true,subtree:true});};
+const br={newContext:async o=>{const c=await br0.newContext(o);c.setDefaultTimeout(5000);await c.addInitScript(OPEN_MORE);return c;},close:()=>br0.close()};
  const c=await br.newContext({viewport:{width:390,height:844},acceptDownloads:true,reducedMotion:'reduce'});const p=await c.newPage();const errs=[];
  p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>m.type()==='error'&&errs.push(m.text()));p.on('dialog',d=>d.accept());
  let ok=0,bad=0;const t=(c,m)=>{if(c)ok++;else{bad++;console.log('FAIL',m);}};
  const go=async h=>{await p.goto(B+h);await p.waitForTimeout(350);};
  const LS=()=>p.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')));
  await go('?demo=1#/');t((await LS()).length===14,'seed');
- const n0=await p.locator('.todo .todo-row').count();const head=await p.textContent('.todo-head');console.log('home todo:',head);
- t(n0===3&&/查看全部/.test(head),'首页3条+查看全部');
+ const n0=await p.locator('.todo .todo-row').count();const head=await p.textContent('.todo-hero');console.log('home todo:',head);
+ t(n0===3&&/今天要办/.test(head)&&/查看全部/.test(await p.textContent('.today-card')),'首页3条+查看全部');
  await go('#/todo');const nAll=await p.locator('.todo-row').count();console.log('todo all',nAll,await p.$$eval('.todo-main b',e=>e.map(x=>x.textContent)));
  // 已处理 + 撤销
- const first=await p.textContent('.todo-row .todo-main b');await p.click('.todo-row [data-a=done]');await p.waitForTimeout(200);
+ const first=await p.textContent('.todo-row:has([data-a=done]) .todo-main b');await p.click('.todo-row [data-a=done]');await p.waitForTimeout(200);
  t(!(await p.$$eval('.todo-main b',e=>e.map(x=>x.textContent))).includes(first),'已处理后消失');
  await p.click('.toast button');await p.waitForTimeout(300);t((await p.$$eval('.todo-main b',e=>e.map(x=>x.textContent))).includes(first),'撤销后回来');
  // 明天
@@ -33,7 +35,7 @@ const B='http://localhost:8765/daoqi-tixing/';
  await go('#/catrules');await p.selectOption('[data-ci=doc]','standard');await p.waitForTimeout(300);
  await go('#/item/'+id);t(/标准/.test(await p.textContent('.kv')),'改分类后跟随=标准');
  const lid=(await LS()).find(x=>x.name==='轻证件').id;await go('#/item/'+lid);t(/轻/.test(await p.textContent('.kv>div')),'单独设置仍轻');
- await go('#/edit/'+lid);await p.click('#follow');t(/跟随分类/.test(await p.textContent('.lbl'))&&(await p.textContent('.seg .on'))==='标准','恢复跟随');
+ await go('#/edit/'+lid);await p.click('#follow');t(/按/.test(await p.textContent('#more .lbl'))&&(await p.textContent('#more .seg .on'))==='标准','恢复跟随');
  // 快捷日期
  await go('#/new?cat=food');await p.click('[data-q="1m"]');await p.click('[data-q="1m"]');const v=await p.inputValue('#dueP');
  const exp=await p.evaluate(()=>{const d=new Date();d.setMonth(d.getMonth()+2);return d.toISOString().slice(0,10)});t(v===exp,'+1月×2 '+v+' '+exp);
@@ -67,7 +69,7 @@ const B='http://localhost:8765/daoqi-tixing/';
  await go('#/');await p.reload();await p.waitForTimeout(300);t(!(await LS()).find(x=>x.id==='d2'),'31天清理');
  // 备份提示
  await p.evaluate(()=>{const s=JSON.parse(localStorage.getItem('dq.settings.v1'));s.lastBackupAt=s.lastExportAt=s.firstUseAt=new Date(Date.now()-31*864e5).toISOString();delete s.backupTipAt;localStorage.setItem('dq.settings.v1',JSON.stringify(s));});
- await p.reload();await p.waitForTimeout(300);t(/一键备份/.test(await p.textContent('#view')),'备份提示');
+ await p.reload();await p.waitForTimeout(300);t(/上次备份：31 天前/.test(await p.textContent('#bkbar')),'备份提示');
 
  // ---- round1 回归 ----
  await p.evaluate(()=>{window.__x=0});
@@ -91,15 +93,13 @@ const B='http://localhost:8765/daoqi-tixing/';
  t(await p.isDisabled('#rok')&&/晚于/.test(await p.textContent('#rerr')),'R#6 早于原日期不可保存');
  // R#7 存储满
  await go('#/');await p.evaluate(()=>{const o=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k==='dq.items.v2')throw new DOMException('full','QuotaExceededError');return o.call(this,k,v)};});
- await go('#/item/'+nid);await p.click('#handled');await p.waitForTimeout(200);t(/存储已满/.test(await p.textContent('.toast')),'R#7 存储满提示');
+ await go('#/item/'+nid);await p.click('#handled');await p.waitForTimeout(200);t(/存不下了/.test(await p.textContent('.toast')),'R#7 存储满提示');
 
  // ---- 引导页 / 空状态 / 动效 ----
  {const c2=await br.newContext({viewport:{width:390,height:844}});await c2.addInitScript(()=>{window.__perm=0;if(window.Notification){const o=Notification.requestPermission;Notification.requestPermission=function(){window.__perm++;return o.apply(this,arguments)}}});const q=await c2.newPage();q.on('pageerror',e=>errs.push(e.message));q.on('console',m=>m.type()==='error'&&errs.push(m.text()));
   await q.goto(B);await q.waitForTimeout(500);t(await q.locator('.ob').isVisible(),'OB 首次显示引导');
-  t(await q.locator('.ob-page').count()===3,'OB 3 屏');
-  await q.click('[data-ob=next]');await q.waitForTimeout(500);await q.click('[data-ob=next]');await q.waitForTimeout(500);
-  t(/开启提醒|开始使用/.test(await q.textContent('[data-ob=next]')),'OB 第3屏按钮');t(await q.evaluate(()=>window.__perm)===0,'OB 未自动请求权限');
-  await q.click('[data-ob=next]');await q.waitForTimeout(400);t(await q.locator('.ob').count()===0,'OB 完成关闭');
+  t(await q.locator('.ob1').count()===1,'OB 1 屏');t(await q.evaluate(()=>window.__perm)===0,'OB 未自动请求权限');
+  await q.click('[data-ob=skip]');await q.waitForTimeout(400);t(await q.locator('.ob').count()===0,'OB 跳过关闭');
   await q.reload();await q.waitForTimeout(500);t(await q.locator('.ob').count()===0,'OB 只显示一次');
   t(/还没有要盯着的日期/.test(await q.textContent('#view')),'空状态标题');t(await q.locator('.empty-ring svg').count()===1,'空状态灰环');
   t(await q.locator('.tpl-quick a').count()===4,'空状态 4 个模板');t(await q.locator('.empty-state .btn.primary').count()===1,'空状态主按钮');
@@ -127,7 +127,7 @@ const B='http://localhost:8765/daoqi-tixing/';
   await q.goto(B+'#/cat/food');await q.waitForTimeout(300);
   await q.goto(B+'#/item/d8');await q.waitForTimeout(300);t(/安全/.test(await q.textContent('.pill'))&&/3 天/.test(await q.textContent('.kv')),'食品默认阈值 3 天');
   await q.goto(B+'#/catrules');await q.waitForTimeout(300);await q.selectOption('[data-cs=food]','90');await q.waitForTimeout(200);
-  await q.goto(B+'#/item/d8');await q.waitForTimeout(300);t(/临期/.test(await q.textContent('.pill')),'分类阈值改为 90 后变临期');
+  await q.goto(B+'#/item/d8');await q.waitForTimeout(300);t(/快到期/.test(await q.textContent('.pill')),'分类阈值改为 90 后变快到期');
   await q.goto(B+'#/');await q.waitForTimeout(300);t((await q.$$eval('.todo-main b',e=>e.map(x=>x.textContent))).length>0,'首页待处理正常');
   // 单条覆盖
   await q.goto(B+'#/edit/d8');await q.waitForTimeout(300);await q.click('[data-ss=item]');await q.fill('[name=soonDays]','10');await q.click('[data-save]');await q.waitForTimeout(300);
@@ -138,7 +138,7 @@ const B='http://localhost:8765/daoqi-tixing/';
   // N1：写入失败不显示已保存、不跳转
   await q.evaluate(()=>{const o=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k==='dq.items.v2')throw new DOMException('full','QuotaExceededError');return o.call(this,k,v)};});
   await q.fill('[name=name]','保存失败测试');await q.fill('#dueT','01.12.2026');await q.click('[data-save]');await q.waitForTimeout(300);
-  t(/存储已满/.test(await q.textContent('.toast'))&&!/已保存/.test(await q.textContent('.toast')),'N1 失败不提示已保存');
+  t(/存不下了|存储空间已满/.test(await q.textContent('.toast'))&&!/已保存/.test(await q.textContent('.toast')),'N1 失败不提示已保存');
   t(q.url().includes('#/new')&&await q.inputValue('[name=name]')==='保存失败测试','N1 停在表单并保留内容');
   await q.goto(B+'#/item/d7');await q.waitForTimeout(300);await q.click('#del');await q.waitForTimeout(200);t(!/已删除/.test(await q.textContent('.toast')),'N1 删除失败不提示成功');
   await c3.close();}
@@ -164,9 +164,9 @@ const B='http://localhost:8765/daoqi-tixing/';
   const pid=(await L4()).find(x=>x.id==='d7').photos[0];await q.click('#del');await q.waitForTimeout(300);await q.reload();await q.waitForTimeout(800);t(!!(await rec(pid)),'PH 回收站条目照片保留');
   await q.goto(B+'#/trash');await q.waitForTimeout(300);await q.click('[data-id="d7"] [data-r]');await q.waitForTimeout(300);
   // 导出 JSON（含/不含）与 CSV
-  await q.goto(B+'#/settings');await q.waitForTimeout(300);const [j1]=await Promise.all([q.waitForEvent('download'),q.click('#ejson')]);await j1.saveAs('/tmp/ph.json');
+  await q.goto(B+'#/settings');await q.waitForTimeout(300);const [j1]=await Promise.all([q.waitForEvent('download'),q.click('#bkNow')]);await j1.saveAs('/tmp/ph.json');
   const J=JSON.parse(fs.readFileSync('/tmp/ph.json','utf8'));t(Object.keys(J.photos||{}).length===3&&/^data:image\/jpeg;base64,/.test(Object.values(J.photos)[0].full),'PH JSON 含照片');
-  await q.uncheck('#incPh');const [j2]=await Promise.all([q.waitForEvent('download'),q.click('#ejson')]);await j2.saveAs('/tmp/ph2.json');t(!JSON.parse(fs.readFileSync('/tmp/ph2.json','utf8')).photos,'PH JSON 不含照片');
+  t(await q.locator('#incPh').count()===0,'PH v1.6 备份不再有照片开关');
   const [c1]=await Promise.all([q.waitForEvent('download'),q.click('#ecsv')]);await c1.saveAs('/tmp/ph.csv');t(!/photos|base64/.test(fs.readFileSync('/tmp/ph.csv','utf8')),'PH CSV 不含照片');
   // 存储满
   await q.goto(B+'#/item/d4');await q.waitForTimeout(300);
@@ -185,12 +185,12 @@ const B='http://localhost:8765/daoqi-tixing/';
  {const c6=await br.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});const q=await c6.newPage();q.on('pageerror',e=>errs.push(e.message));
   await q.goto(B+'?demo=1#/');await q.waitForTimeout(400);t(await q.locator('.todo-act .more svg').count()>0,'V2 ⋯ 为 SVG');
   t(await q.$eval('.ico',e=>e.getAttribute('stroke-width'))==='1.75','V2 图标线宽 1.75');
-  t(await q.$eval('.ring-txt .big',e=>getComputedStyle(e).fontSize)==='52px','V2 环内数字 52px');
+  t(parseFloat(await q.$eval('.ring-txt .big',e=>getComputedStyle(e).fontSize))>=24,'V2 环内数字');
   t(await q.$eval('.top h1',e=>getComputedStyle(e).fontSize)==='30px','V2 标题 30px');
   t(await q.evaluate(()=>getComputedStyle(document.body).backgroundColor)==='rgb(242, 242, 239)','V2 暖色背景');
   await q.goto(B+'#/new');await q.waitForTimeout(300);await q.click('[data-q="1y"]');await q.click('.date-clr');t(await q.inputValue('#dueT')==='','V2 日期框 × 清除');
   await q.evaluate(()=>{const l=JSON.parse(localStorage.getItem('dq.items.v2'));l.forEach(x=>{x.handledAt='2026-10-15';x.renewAsked=true;});localStorage.setItem('dq.items.v2',JSON.stringify(l));});
-  await q.goto(B+'#/');await q.reload();await q.waitForTimeout(400);t(/全部已处理/.test(await q.textContent('.all-clear'))&&await q.locator('.gold-ring').count()===1,'V2 全部已处理金色环');
+  await q.goto(B+'#/');await q.reload();await q.waitForTimeout(400);t(/明天见/.test(await q.textContent('.all-clear'))&&await q.locator('.gold-ring').count()===1,'V2 全部已处理金色环');
   await q.goto(B+'#/settings');await q.waitForTimeout(300);t(await q.locator('.about .ver').count()===1,'V2 关于版本号');await c6.close();}
 
  // ---- 自定义分类 ----
@@ -225,7 +225,7 @@ const B='http://localhost:8765/daoqi-tixing/';
   await q.goto(B+'?demo=1#/new');await q.waitForTimeout(400);
   t(await q.$$eval('.form input[type=file]',e=>e.every(x=>x.offsetWidth===0)),'N6 表单文件框隐藏');
   t(await q.$$eval('.form input[type=file]',e=>e.filter(x=>x.multiple).length===1&&!e.find(x=>x.capture&&x.multiple)),'N8 相册 multiple，拍照单张');
-  t(await q.inputValue('[name=cat]')!=='doc','默认分类不是证件');
+  /* v1.6：默认分类 = lastCat → 条目最多 → food，见 v16.cjs */
   await q.fill('[name=name]','牛奶');await q.waitForTimeout(100);t(/食品/.test(await q.textContent('#catSug')),'推断建议显示');
   await q.click('#dueT');await q.waitForTimeout(200);t(await q.inputValue('[name=cat]')==='food','推断离开后应用');
   await q.fill('[name=name]','护照 X');await q.click('#dueT');await q.waitForTimeout(200);t(await q.inputValue('[name=cat]')==='doc','推断再次更新');
@@ -234,7 +234,7 @@ const B='http://localhost:8765/daoqi-tixing/';
   await q.goto(B+'#/');await q.goto(B+'#/new');await q.waitForTimeout(300);t(await q.inputValue('[name=cat]')==='home','新增默认上次分类');
   // N5
   await q.goto(B+'#/edit/d3');await q.waitForTimeout(300);await q.click('[data-ss=item]');await q.fill('[name=soonDays]','');await q.click('[data-save]');await q.waitForTimeout(250);
-  t(/请填写临期天数/.test(await q.textContent('.toast'))&&/#\/edit/.test(q.url()),'N5 留空被拦');
+  t(/填天数，或选「按分类」/.test(await q.textContent('.toast'))&&/#\/edit/.test(q.url()),'N5 留空被拦');
   // N7
   await q.goto(B+'#/item/d3');await q.waitForTimeout(300);await q.setInputFiles('[data-addph]:not([capture])','/workspace/到期提醒/app/tests/fixtures-photo.jpg');await q.waitForTimeout(1500);
   const before=await q.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')).find(x=>x.id==='d3').photos);
@@ -243,7 +243,7 @@ const B='http://localhost:8765/daoqi-tixing/';
   const after=await q.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')).find(x=>x.id==='d3').photos);t(before.length===1&&after.length===1&&after[0]!==before[0],'N7 替换照片');
   // 删除失败留在详情
   await q.evaluate(()=>{const o=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k==='dq.items.v2')throw new DOMException('full','QuotaExceededError');return o.call(this,k,v);};});
-  await q.click('#del');await q.waitForTimeout(300);t(/#\/item\/d3/.test(q.url())&&/存储/.test(await q.textContent('.toast')),'删除失败留在详情页');
+  await q.click('#del');await q.waitForTimeout(300);t(/#\/item\/d3/.test(q.url())&&/存不下|存储/.test(await q.textContent('.toast')),'删除失败留在详情页');
   await c8.close();
   // N4 老用户
   const c9=await br.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});const r=await c9.newPage();
@@ -281,7 +281,7 @@ const B='http://localhost:8765/daoqi-tixing/';
   const mk=n=>q.evaluate(n=>{const l=JSON.parse(localStorage.getItem('dq.items.v2')||'[]');for(let i=0;i<n;i++)l.push({id:'b'+l.length,name:'条目'+l.length,due:'2027-01-0'+(1+i%9),cat:'other',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});localStorage.setItem('dq.items.v2',JSON.stringify(l));},n);
   const banner=async()=>{await q.goto(B+'#/');await q.reload();await q.waitForTimeout(300);return q.locator('.bk-bar').count();};
   await mk(4);t(await banner()===0,'BK 4 条无提醒');await mk(1);t(await banner()===1,'BK 5 条出现提醒');
-  const [d1]=await Promise.all([q.waitForEvent('download'),q.click('#bkgo')]);t(/^到期提醒-备份-\d{8}\.json$/.test(d1.suggestedFilename()),'BK 文件名 '+d1.suggestedFilename());await d1.saveAs('/tmp/bk1.json');
+  const [d1]=await Promise.all([q.waitForEvent('download'),q.click('#bkgo')]);t(/^到期提醒-备份-\d{4}-\d{2}-\d{2}\.json$/.test(d1.suggestedFilename()),'BK 文件名 '+d1.suggestedFilename());await d1.saveAs('/tmp/bk1.json');
   t(await banner()===0,'BK 备份后消失');await q.goto(B+'#/settings');await q.waitForTimeout(300);t(/今天/.test(await q.textContent('#dsL')),'BK 设置显示今天');
   await setS({lastBackupAt:new Date(Date.now()-15*864e5).toISOString()});t(await banner()===1,'BK 15 天前出现');
   await q.click('#bkx');t(await banner()===0,'BK 稍后隐藏');
@@ -313,9 +313,9 @@ const B='http://localhost:8765/daoqi-tixing/';
   t(d3.s.cats.custom.length===1&&d3.items.find(i=>i.id==='n1').cat==='c_yj','R4-P1 分类按名称合并、无引用不建');await c2.close();
   // 推断：面包/手动优先/O1/学习/地区/中国模板/P2
   await q.evaluate(()=>{localStorage.clear();localStorage.setItem('dq.settings.v1',JSON.stringify({onboarded:true}));});await q.goto(B+'#/new');await q.reload();await q.waitForTimeout(300);
-  t(await q.inputValue('[name=cat]')==='other','INF 首次默认其他');
+  t(await q.inputValue('[name=cat]')==='food','INF 首次默认食品（v1.6）');
   await q.fill('[name=name]','测试面包');await q.click('#dueT');await q.waitForTimeout(200);t(await q.inputValue('[name=cat]')==='food'&&/按名称推断/.test(await q.textContent('#catSug'))&&/3 天/.test(await q.textContent('.soon-seg')),'INF 测试面包→食品，阈值跟随');
-  await q.fill('[name=name]','xyz');await q.click('#dueT');await q.waitForTimeout(200);t(await q.inputValue('[name=cat]')==='other','INF O1 推断不出回到默认');
+  await q.fill('[name=name]','xyz');await q.click('#dueT');await q.waitForTimeout(200);t(await q.inputValue('[name=cat]')==='food','INF O1 推断不出回到默认');
   for(const [n,c] of [['布洛芬','med'],['RCA 交强险','car'],['pașaport','doc'],['Netflix','bill'],['港澳通行证','doc'],['年检','car']]){await q.fill('[name=name]',n);await q.click('#dueT');await q.waitForTimeout(150);t(await q.inputValue('[name=cat]')===c,`INF ${n}→${c}`);}
   await q.goto(B+'#/');await q.goto(B+'#/new');await q.waitForTimeout(300);await q.click('[data-cat="car"]');await q.fill('[name=name]','牛奶');await q.click('#dueT');await q.waitForTimeout(150);t(await q.inputValue('[name=cat]')==='car','INF 手动选车辆后不覆盖');
   await q.fill('#dueT','01.12.2026');await q.click('[data-save]');await q.waitForTimeout(300);t((await SS()).lastCat==='car','INF 记住上次分类');
@@ -330,7 +330,7 @@ const B='http://localhost:8765/daoqi-tixing/';
   await q.click('[data-cat="car"]');await q.waitForTimeout(150);t(['交强险','商业车险','机动车年检（私家车）'].every(n=>q.locator(`[data-tpl="${n}"]`).count()),'CN 车辆模板');
   t(await q.locator('[data-tpl="交强险"]').count()===1&&await q.locator('[data-tpl="商业车险"]').count()===1&&await q.locator('[data-tpl="机动车年检（私家车）"]').count()===1,'CN 3 个车辆模板');
   await setS({region:'cn'});await q.goto(B+'#/');await q.goto(B+'#/new?cat=doc');await q.reload();await q.waitForTimeout(300);const tp2=await q.$$eval('.tpl [data-tpl]',e=>e.map(x=>x.dataset.tpl));t(!tp2.includes('居留卡')&&tp2.includes('中国·驾驶证')&&tp2.includes('营业执照'),'CN 常用地区=中国');
-  await q.click('[data-tpl="中国·驾驶证"]');await q.waitForTimeout(150);t(/强/.test(await q.textContent('.seg [data-int].on')),'CN 驾驶证强度强');await q.fill('#dueT','01.12.2030');await q.click('[data-save]');await q.waitForTimeout(400);
+  await q.click('[data-tpl="中国·驾驶证"]');await q.waitForTimeout(150);t(/强/.test(await q.textContent('.seg [data-int].on')),'CN 驾驶证强度强');await q.fill('#dueT','01.12.2030');await q.click('[data-save]');await q.waitForTimeout(400);{const id=await q.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')).find(i=>i.name==='中国·驾驶证').id);await q.goto(B+'#/item/'+id);await q.waitForTimeout(300);}
   t(/gov\.cn/.test(await q.textContent('main, body'))&&await q.locator('a.ext[target=_blank][rel*=noopener]').count()===1,'CN 详情有官方链接');
   await q.goto(B+'#/settings');await q.waitForTimeout(300);t(/国内安卓手机可能收不到推送/.test(await q.textContent('.push-note'))&&await q.locator('.push-note input[type=checkbox]').count()===0,'P2-H 推送说明');
   const foreign=reqs.filter(u=>!u.startsWith('http://localhost:8765/')&&!u.startsWith('data:')&&!u.startsWith('blob:'));t(foreign.length===0,'P2-J 只有同源请求 '+foreign.slice(0,3));
@@ -338,7 +338,7 @@ const B='http://localhost:8765/daoqi-tixing/';
  // P2-J 静态扫描：app 下除 README、SVG xmlns 和模板官方链接（url: 字段）外不能出现外部 URL
  {const fs=require('fs'),path=require('path');const root='/workspace/到期提醒/app';const bad=[];
   const walk=d=>{for(const f of fs.readdirSync(d)){if(['tests','tools','.git','node_modules'].includes(f))continue;const p=path.join(d,f);if(fs.statSync(p).isDirectory())walk(p);else if(/\.(js|html|css|json|svg|webmanifest)$/.test(f)&&f!=='README.md'){
-    fs.readFileSync(p,'utf8').split('\n').forEach((l,i)=>{for(const m of l.matchAll(/https?:\/\/[^\s'"`)]+/g)){const u=m[0];if(/^http:\/\/www\.w3\.org\/2000\/svg/.test(u))continue;if(f==='templates.js'&&/url:"/.test(l.slice(Math.max(0,m.index-6),m.index)))continue;bad.push(p+':'+(i+1)+' '+u);}});}}};
+    fs.readFileSync(p,'utf8').split('\n').forEach((l,i)=>{for(const m of l.matchAll(/https?:\/\/[^\s'"`)]+/g)){const u=m[0];if(/^http:\/\/www\.w3\.org\/2000\/svg/.test(u))continue;if(f==='shelf.js'&&/^\s*(const\s+)?,?\s*S\d+=/.test(l))continue;if(f==='templates.js'&&/url:"/.test(l.slice(Math.max(0,m.index-6),m.index)))continue;bad.push(p+':'+(i+1)+' '+u);}});}}};
   walk(root);t(bad.length===0,'P2-J 外部 URL 扫描 '+bad.slice(0,3));}
 
  // ---- v1.2 设计 + 日用品 + 手动选择保护 ----

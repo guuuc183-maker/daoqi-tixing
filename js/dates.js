@@ -9,7 +9,7 @@ export function addMonths(s,n){const d=parse(s);const day=d.getDate();d.setDate(
   const last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(day,last));return fmt(d);}
 // 状态：expired / soon(≤阈值) / safe
 export function status(n,soon=30){return n<0?'expired':n<=soon?'soon':'safe';}
-export function label(n){return n<0?`已过期 ${-n} 天`:n===0?'今天到期':`还剩 ${n} 天`;}
+export function label(n){return n<0?`过期 ${-n} 天`:n===0?'今天到期':`还剩 ${n} 天`;}
 const W='日一二三四五六';
 export function nice(s){const d=parse(s);return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 周${W[d.getDay()]}`;}
 const mk=(y,m,d)=>{if(y<100)y+=2000;const dt=new Date(y,m-1,d);return dt.getFullYear()===y&&dt.getMonth()===m-1&&dt.getDate()===d?fmt(dt):null;};
