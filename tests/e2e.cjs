@@ -201,7 +201,7 @@ const B='http://localhost:8765/daoqi-tixing/';
   await q.click('#catNew');await q.fill('#cName','宠物<i>');await q.click('[data-ic="home"]');await q.click('[data-col="#D94545"]');await q.click('#cSave');await q.waitForTimeout(300);
   const cid=(await SS()).cats.custom[0].id;t(/^c_/.test(cid)&&(await SS()).cats.custom[0].icon==='home','CM 新建保存');
   t(await q.locator('.cm-row').count()===10&&await q.locator('.cm-row i').count()===0,'CM 名称已转义');
-  await q.click(`.cm-row[data-k="${cid}"] [data-mv="-1"]`);await q.waitForTimeout(200);t((await SS()).cats.order.indexOf(cid)===(await SS()).cats.order.length-2,'CM 上移');
+  await q.click(`.cm-row[data-k="${cid}"] [data-mv="-1"]`);await q.waitForTimeout(200);t((await SS()).cats.order.indexOf(cid)===(await SS()).cats.order.length-3&&(await SS()).cats.order.at(-1)==='other','CM 上移');
   await q.click('.cm-row[data-k="doc"] [data-edit]');await q.fill('#cName','护照证件');await q.click('#cSave');await q.waitForTimeout(200);
   await q.click('.cm-row[data-k="car"] [data-edit]');await q.click('#cHide');await q.waitForTimeout(200);
   await q.goto(B+'#/cats');await q.waitForTimeout(300);t(await q.locator('a.tile[href="#/cat/car"]').count()===0,'CM 隐藏后网格无车辆');

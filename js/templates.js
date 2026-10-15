@@ -53,7 +53,7 @@ export function applyCats(st={}){const c=(st&&st.cats)||{};for(const k of Object
   for(const [k,v] of Object.entries(BUILTIN))all[k]={...v,icon:k,builtin:true,name:typeof names[k]==='string'&&names[k].trim()?names[k].trim().slice(0,20):v.name,hidden:k!=='other'&&hidden.includes(k)};
   for(const d of Array.isArray(c.custom)?c.custom:[])if(d&&CUSTOM_ID.test(d.id)&&!all[d.id])
     all[d.id]={name:String(d.name||'').normalize('NFKC').trim().slice(0,20)||'未命名',icon:ICON_SET.includes(d.icon)?d.icon:'box',color:/^#[0-9a-fA-F]{6}$/.test(d.color)?d.color:'#67717A',intensity:'standard',custom:true};
-  const order=(Array.isArray(c.order)?c.order:[]).filter((k,i,a)=>all[k]&&a.indexOf(k)===i);for(const k of Object.keys(all))if(!order.includes(k))order.push(k);
+  const order=(Array.isArray(c.order)?c.order:[]).filter((k,i,a)=>all[k]&&a.indexOf(k)===i);const hadOrder=order.length>0;for(const k of Object.keys(all))if(!order.includes(k)){if(!hadOrder||k!=='other'){const io=order.indexOf('other');(!hadOrder&&io>=0)?order.splice(io,0,k):order.push(k);}else order.push(k);}if(!hadOrder){order.splice(order.indexOf('other'),1);order.push('other');}
   for(const k of order)CATEGORIES[k]=all[k];return CATEGORIES;}
 applyCats();
 export const visibleCats=()=>Object.entries(CATEGORIES).filter(([,c])=>!c.hidden);
