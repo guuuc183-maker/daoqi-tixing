@@ -8,8 +8,8 @@ const link=t=>{execSync(`find ${t}/ -type f -not -path '*/.git*' -exec touch {} 
   await q.goto(B+'#/item/d5');await q.waitForTimeout(300);await q.click('#del');await q.waitForTimeout(300);
   await q.evaluate(()=>{const s=JSON.parse(localStorage.getItem('dq.settings.v1'));Object.assign(s,{theme:'dark',soonDays:14,catSoon:{food:5},cats:{custom:[{id:'c_yj',name:'烟酒',icon:'box',color:'#D94545'}]}});localStorage.setItem('dq.settings.v1',JSON.stringify(s));});
   const before=await q.evaluate(()=>({items:localStorage.getItem('dq.items.v2'),s:JSON.parse(localStorage.getItem('dq.settings.v1'))}));
-  link(CUR);await q.reload();for(let i=0;i<20;i++){await q.waitForTimeout(500);const k=await q.evaluate(()=>caches.keys());if(k.length===1&&k[0]==='dq-v1.7.6')break;}await q.reload();await q.waitForTimeout(1000);
-  const keys=await q.evaluate(()=>caches.keys());t(keys.length===1&&keys[0]==='dq-v1.7.6',cache+'→ 缓存只剩 dq-v1.7.6 '+keys);
+  link(CUR);await q.reload();for(let i=0;i<20;i++){await q.waitForTimeout(500);const k=await q.evaluate(()=>caches.keys());if(k.length===1&&k[0]==='dq-v1.7.5')break;}await q.reload();await q.waitForTimeout(1000);
+  const keys=await q.evaluate(()=>caches.keys());t(keys.length===1&&keys[0]==='dq-v1.7.5',cache+'→ 缓存只剩 dq-v1.7.5 '+keys);
   const after=await q.evaluate(()=>({items:localStorage.getItem('dq.items.v2'),s:JSON.parse(localStorage.getItem('dq.settings.v1'))}));
   const bi=JSON.parse(before.items),ai=JSON.parse(after.items);
   t(ai.length===bi.length&&ai.filter(i=>i.deletedAt).length===1&&JSON.stringify(ai.map(i=>[i.id,i.name,i.due,i.cat,i.photos||[]]))===JSON.stringify(bi.map(i=>[i.id,i.name,i.due,i.cat,i.photos||[]])),cache+'→ 条目/回收站/照片引用不变');

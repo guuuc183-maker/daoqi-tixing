@@ -670,12 +670,3 @@ html:lang(ro) h1,html:lang(ro) h2,html:lang(ro) h3,html:lang(ro) p,html:lang(en)
 .top h1{min-width:0;overflow-wrap:normal;word-break:keep-all}
 .top:has(.btn-cm) h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media (max-width:359px){.top .btn-cm span{display:none}}
-/* v1.7.6 正文字体：Noto Sans SC 子集（自托管，tools/build_font_subset.py 生成）。只用于中文界面文案；
-   用户输入框一律系统字体；含子集外字符的整行由 js/fontfit.js 加 .uc 改系统字体（同一行不混字体）。
-   三种语言界面都用它（ș ț 已按美术方案补字形；ro/en 开 pwid 让弯引号/撇号用比例宽度）。 */
-@font-face{font-family:"DQ Sans";src:url("fonts/NotoSansSC-400.woff2") format("woff2");font-weight:100 500;font-display:swap}
-@font-face{font-family:"DQ Sans";src:url("fonts/NotoSansSC-700.woff2") format("woff2");font-weight:600 900;font-display:swap}
-:root{--sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",sans-serif;--ui:"DQ Sans",var(--sans)}
-body,html:lang(ro) body,html:lang(en) body,html:lang(ro) .ob-page h1,html:lang(en) .ob-page h1,html:lang(ro) button,html:lang(en) button{font-family:var(--ui)}
-html:lang(ro) body,html:lang(en) body{font-feature-settings:"pwid"}
-input,textarea,select,.uc,html:lang(ro) input,html:lang(en) input,html:lang(ro) select,html:lang(en) select,html:lang(ro) textarea,html:lang(en) textarea,html:lang(ro) .uc,html:lang(en) .uc,html:lang(ro) .uc button,html:lang(en) .uc button,.uc button{font-family:var(--sans)}

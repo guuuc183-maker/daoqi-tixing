@@ -27,7 +27,7 @@ const CJK=/[\u3000-\u303f\u4e00-\u9fff\uff00-\uffef]/;
   const row=await q.evaluate(()=>{const r=document.querySelector('.todo-row');if(!r)return null;const ic=r.querySelector('.todo-main .ic');const sm=r.querySelector('.todo-main small');return {icon:ic?getComputedStyle(ic).display:'none',color:getComputedStyle(sm).color,body:getComputedStyle(document.body).color,nameW:r.querySelector('.todo-main b').getBoundingClientRect().width};});
   t(row&&row.icon==='none'&&row.color!==row.body&&row.nameW>=96,'L7 <360 隐藏图标、保留状态色、名称≥96 '+JSON.stringify(row));
   // 拉丁字体在前
-  const ff=await q.evaluate(()=>getComputedStyle(document.body).fontFamily);t(/^"DQ Sans", system-ui/.test(ff),'字体栈：界面子集字体后拉丁系统字体在前 '+ff.slice(0,40));
+  const ff=await q.evaluate(()=>getComputedStyle(document.body).fontFamily);t(/^system-ui/.test(ff),'字体栈拉丁在前 '+ff.slice(0,40));
   // ro 推断
   await q.goto(B+'#/new');await q.waitForTimeout(300);for(const [w,k] of [['lapte','food'],['pașaport','doc'],['detergent','daily']]){await q.fill('[name=name]',w);await q.press('[name=name]','Tab');await q.waitForTimeout(150);t(await q.inputValue('[name=cat]')===k,'L5 ro 推断 '+w);}
   t(await q.$eval('.cat-field',e=>getComputedStyle(e).display)==='flex'&&(await q.textContent('.lbl-wrap .lbl-t')).trim()==='Categorie','L7 分类框单行 + 标签单数');
