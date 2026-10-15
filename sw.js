@@ -1,5 +1,5 @@
 // 相对路径缓存，适配 GitHub Pages 子路径（如 /daoqi-tixing/）
-const VERSION='1.7.5'; // 与 js/version.js 保持一致（测试比对）
+const VERSION='1.7.6'; // 与 js/version.js 保持一致（测试比对）
 const CACHE='dq-v'+VERSION;
 const ASSETS=['./','index.html','style.css','manifest.json','js/app.js','js/store.js','js/dates.js','js/io.js','js/templates.js','js/cat-dict.js','js/version.js','js/shelf.js','js/i18n/i18n.js','js/i18n/zh.js','js/i18n/ro.js','js/i18n/en.js','js/icons.js','js/logic.js','js/ics.js','js/sanitize.js','js/photos.js','icons/icon-192.png','icons/icon-512.png','icons/icon.svg','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon.ico','icons/badge-96.png','icons/icon-48.png','fonts/BarlowCondensed-Bold.ttf','fonts/BarlowCondensed-SemiBold.ttf'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));self.skipWaiting();});
