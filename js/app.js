@@ -5,6 +5,7 @@ import {catDefault,effInt,inferSource,remindDays,itemState,todoList,leadDays,eff
 import {icon} from './icons.js';
 import {toCSV,parseCSV,parseJSON,toJSON,download,TEMPLATE_CSV} from './io.js';
 import {toICS} from './ics.js';
+import * as P from './photos.js';
 
 const $=s=>document.querySelector(s), view=$('#view');
 const h=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -33,7 +34,7 @@ function enrich(){const s=st();return S.all().map(it=>{inferSource(it,s);const n
 function top(title,{back=false,right=''}={}){return `<header class="top">${back?`<button class="icon-btn" data-back aria-label="返回">${icon('back',20)}</button>`:''}<h1>${title}</h1><div class="grow"></div>${right}</header>`;}
 function row(it){return `<a class="row" href="#/item/${h(it.id)}">
   <span class="ic" style="--c:${cat(it.cat).color}">${ci(it.cat)}</span>
-  <span class="grow"><b class="ell">${h(it.name)}</b><small>${h(it.due)}${it.qty?` · ${it.qty} 件`:''}${it.location?` · ${h(it.location)}`:''}${it.handledAt?' · 已处理':''}</small></span>
+  ${it.photos?.length?`<img class="thumb" data-ph="${h(it.photos[0])}" alt="">`:''}<span class="grow"><b class="ell">${h(it.name)}</b><small>${h(it.due)}${it.qty?` · ${it.qty} 件`:''}${it.location?` · ${h(it.location)}`:''}${it.handledAt?' · 已处理':''}</small></span>
   <span class="cd ${it.st}"><span class="num">${it.n<0?-it.n:it.n}</span><small>${it.n<0?'天前过期':it.n===0?'今天':'天'}</small><i class="bar"></i></span></a>`;}
 function ring(pct,size=148,w=14){const r=(size-w)/2,c=2*Math.PI*r;return `<svg class="ring" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
   <circle cx="${size/2}" cy="${size/2}" r="${r}" class="ring-bg" stroke-width="${w}" fill="none"/>
@@ -61,7 +62,8 @@ function bindTodo(root,rerender){root.querySelectorAll('.todo-row [data-a]').for
 
 const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
 // 进场动效：每项错开 30ms，最多 8 项；圆环 420ms 填充
-function enter(){const kids=[...view.children];kids.forEach((e,i)=>{e.classList.add('enter');e.style.setProperty('--i',Math.min(i,8));});
+function hydrate(root=document){root.querySelectorAll('img[data-ph]:not([src])').forEach(img=>P.url(img.dataset.ph,img.dataset.kind||'thumb').then(u=>{if(u)img.src=u;else img.classList.add('missing');}).catch(()=>img.classList.add('missing')));}
+function enter(){hydrate(view);const kids=[...view.children];kids.forEach((e,i)=>{e.classList.add('enter');e.style.setProperty('--i',Math.min(i,8));});
   view.querySelectorAll('.list .row').forEach((e,i)=>{e.classList.add('enter');e.style.setProperty('--i',Math.min(i,8));});
   fillRing();}
 function fillRing(){requestAnimationFrame(()=>requestAnimationFrame(()=>view.querySelectorAll('.ring-fg[data-off]').forEach(c=>c.style.strokeDashoffset=c.dataset.off)));}
@@ -72,6 +74,23 @@ function emptyState(){return `${top('到期提醒')}<section class="empty-state"
   <a class="btn primary cta" href="#/new">${icon('add',18)}添加第一条</a>
   <div class="tpl-quick">${EMPTY_TPL.map(([n,c])=>`<a href="#/new?tpl=${encodeURIComponent(n)}">${ci(c,16)}${n.replace(' 交强险','').replace(' 车检','')}</a>`).join('')}</div>
   <p class="small muted">也可以在 <a href="#/settings">设置</a> 里导入表格或载入示例数据</p></section>`;}
+// 照片区块：缩略图 + 拍照/相册
+function photoBlock(ids=[],inForm=false){ids=ids||[];const full=ids.length>=P.MAX_PHOTOS;
+  return `<section class="${inForm?'photo-field':'card'} photos"><div class="micro">照片 · ${ids.length}/${P.MAX_PHOTOS}</div><div class="ph-grid">
+   ${ids.map(id=>`<button type="button" class="ph" data-view="${h(id)}" aria-label="查看照片"><img data-ph="${h(id)}" alt=""></button>`).join('')}
+   ${full?'':`<label class="ph add">${icon('add',20)}<span>拍照</span><input type="file" accept="image/*" capture="environment" data-addph hidden></label>
+   <label class="ph add">${icon('upload',20)}<span>相册</span><input type="file" accept="image/*" data-addph hidden></label>`}</div>
+   ${full?'<p class="small muted">每条最多 3 张照片</p>':''}</section>`;}
+function photoErr(e){if(P.isQuota(e))toast('存储空间已满，照片没有保存。请删除一些照片或导出备份后再试',false,true);else toast(e?.message||'照片添加失败',false,true);}
+function bindPhotos(root,getIds,onAdd,onDel){
+  root.querySelectorAll('[data-addph]').forEach(inp=>inp.onchange=async()=>{const fs=[...inp.files];inp.value='';
+    for(const f of fs){if(getIds().length>=P.MAX_PHOTOS){toast('每条最多 3 张照片');break;}try{toast('正在压缩照片…');await onAdd(f);}catch(e){photoErr(e);break;}}});
+  root.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>viewer(b.dataset.view,onDel));}
+function viewer(pid,onDel){document.querySelector('.viewer')?.remove();const v=document.createElement('div');v.className='viewer';v.setAttribute('role','dialog');
+  v.innerHTML=`<img data-ph="${h(pid)}" data-kind="full" alt="照片"><div class="viewer-bar"><button class="btn" data-x>关闭</button><button class="btn danger" data-del>${icon('trash',18)}删除</button></div>`;
+  document.body.appendChild(v);hydrate(v);const close=()=>v.remove();v.querySelector('[data-x]').onclick=close;v.onclick=e=>{if(e.target===v)close();};
+  v.querySelector('[data-del]').onclick=()=>{close();onDel(pid);};}
+
 function home(){
   const s=st(),items=enrich(),act=items.filter(i=>!i.handledAt);
   const c={expired:0,soon:0,safe:0};act.forEach(i=>c[i.st]++);
@@ -98,7 +117,7 @@ function home(){
   $('#iosx')&&($('#iosx').onclick=()=>{const x=st();x.iosTipClosed=true;S.saveSettings(x);home();});
   $('#bkx')&&($('#bkx').onclick=()=>{const x=st();x.backupTipAt=new Date().toISOString();S.saveSettings(x);home();});
   $('#bkgo')&&($('#bkgo').onclick=()=>{exportJSON();home();});
-  bindTodo(view,home);fillRing();
+  bindTodo(view,home);fillRing();hydrate(view);
 }
 // P1-2 备份提醒
 function backupTip(s){const n=S.all().length,last=Math.max(Date.parse(s.lastExportAt||0)||0,Date.parse(s.backupTipAt||0)||0,Date.parse(s.firstUseAt||0)||0);
@@ -187,11 +206,14 @@ function detail(id){
     ${lead?`<div><span>建议开始办理</span><b>${md(addDays(it.due,-lead))} 前（提前 ${lead} 天）</b></div>`:''}
     <button class="btn ghost cal-btn" id="ics1">${icon('cal',18)}加入日历</button>
   </section>
+  ${photoBlock(it.photos)}
   ${tpl?.docs?`<section class="card"><div class="micro">办理材料（参考）</div><p class="small">${h(tpl.docs)}</p><p class="small muted">以官方为准（IGI / 使馆 / RAR 等）</p></section>`:''}
   ${it.note?`<section class="card"><div class="micro">备注</div><p class="small">${h(it.note)}</p></section>`:''}
   ${it.history?.length?`<section class="card"><div class="micro">续期记录</div>${it.history.slice().reverse().map(x=>`<p class="small">${h(x.at)}：${h(x.from)} → ${h(x.to)}</p>`).join('')}</section>`:''}
   <button class="btn danger ghost" id="del">${icon('trash',18)}删除</button>`;
   $('#renew').onclick=()=>renewFlow(id,()=>detail(id));
+  bindPhotos(view,()=>S.get(id).photos||[],async f=>{const pid=await P.addPhoto(id,f);if(!S.patch(id,x=>{x.photos=[...(x.photos||[]),pid].slice(0,P.MAX_PHOTOS);}))return;toast('照片已添加');detail(id);},
+    pid=>{act('已删除照片',()=>S.patch(id,x=>{x.photos=(x.photos||[]).filter(p=>p!==pid);}));detail(id);});hydrate(view);
   $('#handled')&&($('#handled').onclick=()=>{act('已停止提醒',()=>S.patch(id,x=>{x.handledAt=todayStr();delete x.snoozeUntil;}));detail(id);});
   $('#unhandle')&&($('#unhandle').onclick=()=>{act('已恢复提醒',()=>S.patch(id,x=>{delete x.handledAt;delete x.renewAsked;}));detail(id);});
   $('#rebuy')&&($('#rebuy').onclick=()=>{const raw=S.get(id);const created=(raw.prodDate||raw.createdAt||todayStr()).slice(0,10);
@@ -207,6 +229,7 @@ function form(id,q){
   let pre=null;if(!ex){try{pre=JSON.parse(sessionStorage.getItem('dq.prefill'))}catch{}sessionStorage.removeItem('dq.prefill');}
   const it=ex?inferSource({...ex},s):Object.assign({cat:q.get('cat')||'doc',name:'',due:'',intensitySource:'cat',soonSource:'cat',customDays:[],renewMonths:'',qty:'',location:'',note:'',prodDate:'',shelfDays:''},pre||{});
   if(pre&&q.get('cat'))it.cat=q.get('cat');
+  if(!it.id)it.id=S.uid();if(pre)it.photos=[];
   {const tq=q.get('tpl'),t=tq&&TEMPLATES.find(x=>x.name===tq);if(t&&!ex){it.cat=t.cat;it.name=t.name;it.renewMonths=t.renew||'';}}
   let dueText=it.due||'',chain=false,shelfUnit='d',shelfN=it.shelfDays||'';
   const draw=(focus)=>{const ei=effInt(it,s),per=PERISHABLE.includes(it.cat);
@@ -231,6 +254,7 @@ function form(id,q){
       ${it.soonSource==='item'?`<label class="inline-n">剩余 <input name="soonDays" type="number" min="0" max="3650" value="${h(it.soonDays??'')}" required> 天内算临期</label>`:''}
       <div class="two"><label>续期周期（月）<input name="renewMonths" type="number" min="0" value="${it.renewMonths??''}" placeholder="不重复"></label>
       <label>数量<input name="qty" type="number" min="0" value="${it.qty??''}" placeholder="可选"></label></div>
+      ${photoBlock(it.photos,true)}
       <label>位置<input name="location" maxlength="40" value="${h(it.location||'')}" placeholder="冰箱 / 抽屉 / 店里货架"></label>
       <label>备注<textarea name="note" maxlength="500" rows="2">${h(it.note||'')}</textarea></label>
       <button class="btn primary block" data-save="1">保存</button>
@@ -258,6 +282,7 @@ function form(id,q){
     view.querySelectorAll('[data-int]').forEach(b=>b.onclick=()=>{sync();it.intensity=b.dataset.int;it.intensitySource='item';
       if(it.intensity==='custom'&&!(it.customDays||[]).length)it.customDays=(CUSTOM_PRESET[it.cat]||[7,1]).slice();draw();});
     $('#follow')&&($('#follow').onclick=e=>{e.preventDefault();sync();it.intensitySource='cat';delete it.intensity;draw();});
+    bindPhotos(view,()=>it.photos||[],async f=>{sync();const pid=await P.addPhoto(it.id,f);it.photos=[...(it.photos||[]),pid].slice(0,P.MAX_PHOTOS);draw();},pid=>{sync();it.photos=(it.photos||[]).filter(p=>p!==pid);draw();});hydrate(view);
     view.querySelectorAll('[data-ss]').forEach(b=>b.onclick=()=>{sync();it.soonSource=b.dataset.ss;if(it.soonSource==='item'&&(it.soonDays===''||it.soonDays==null))it.soonDays=catSoon(it.cat,s);draw();});
     view.querySelectorAll('[data-cd]').forEach(b=>b.onclick=()=>{sync();const d=+b.dataset.cd,cd=it.customDays||[];it.customDays=cd.includes(d)?cd.filter(x=>x!==d):[...cd,d];draw();});
     const save=more=>{sync();hint();const due=parseInput(dueT.value);if(!it.name.trim())return toast('请填写名称');if(!due)return toast('请填写有效的到期日');
@@ -275,7 +300,9 @@ function form(id,q){
   };draw(it.rebuyFrom?'due':null);
 }
 
-function exportJSON(all){const s=st();download(`到期提醒-${todayStr()}.json`,toJSON(all?S.raw():S.all()),'application/json');s.lastExportAt=new Date().toISOString();S.saveSettings(s);}
+async function exportJSON(all,withPhotos=true){const s=st(),items=all?S.raw():S.all();let photos=null;
+  if(withPhotos&&globalThis.indexedDB){try{photos=await P.exportPhotos(items.flatMap(i=>i.photos||[]));}catch{toast('照片读取失败，本次只导出文字数据',false,true);}}
+  download(`到期提醒-${todayStr()}.json`,toJSON(items,photos),'application/json');s.lastExportAt=new Date().toISOString();S.saveSettings(s);}
 function icsSheet(){sheet(`<h3>导出到日历（.ics）</h3><p class="small muted">每条生成一个全天事件，并按提醒天数设好闹钟（当天 09:00）。iPhone：下载后点文件 →「添加到日历」。续期后请重新导出这一条。</p>
   <label class="small">范围<select id="icsR" class="inp"><option value="">全部（${S.all().length} 条）</option>${Object.entries(CATEGORIES).map(([k,c])=>`<option value="${k}">${c.name}（${S.all().filter(i=>i.cat===k).length}）</option>`).join('')}</select></label>
   <label class="check"><input type="checkbox" id="icsH"> 包含已处理的条目</label><button class="btn primary block" id="icsGo">${icon('download',18)}下载 .ics</button>`,w=>{
@@ -287,7 +314,7 @@ function analyzeImport(res){const ex=S.all(),seen=new Set(ex.map(i=>i.name+'|'+i
   for(const r of res.items){const it=r.item;if(it.id&&ids.has(it.id))out.upd.push(r);else if(seen.has(it.name+'|'+it.due))out.dup.push(r);else{out.add.push(r);seen.add(it.name+'|'+it.due);}}return out;}
 function importPreview(){const a=importState.a,n=a.add.length+a.upd.length+a.dup.length+a.bad.length;
   return `<section class="card imp"><div class="micro">导入预览 · ${h(importState.file)}</div>
-  <p>识别 <b class="num">${n}</b> 条：新增 <b class="safe">${a.add.length}</b> · 更新 ${a.upd.length}（同 id）· 疑似重复 <b class="soon">${a.dup.length}</b>（同名+同到期日）· 无法识别 <b class="expired">${a.bad.length}</b></p>
+  <p>识别 <b class="num">${n}</b> 条${importState.photos?`（含照片 ${Object.keys(importState.photos).length} 张）`:''}：新增 <b class="safe">${a.add.length}</b> · 更新 ${a.upd.length}（同 id）· 疑似重复 <b class="soon">${a.dup.length}</b>（同名+同到期日）· 无法识别 <b class="expired">${a.bad.length}</b></p>
   ${a.bad.length||a.dup.length?`<details><summary class="small">查看明细</summary>${a.bad.map(e=>`<p class="small expired">第 ${e.row} 行：${h(e.reason)}</p>`).join('')}${a.dup.map(e=>`<p class="small soon">第 ${e.row} 行：「${h(e.item.name)} ${h(e.item.due)}」疑似重复</p>`).join('')}</details>`:''}
   ${a.dup.length?`<div class="seg"><button data-dup="skip" class="${importState.dup==='skip'?'on':''}">跳过重复</button><button data-dup="keep" class="${importState.dup==='keep'?'on':''}">仍导入</button></div>`:''}
   <div class="actions"><button class="btn primary" id="impGo">导入</button><button class="btn" id="impNo">取消</button></div></section>`;}
@@ -315,7 +342,8 @@ function settings(){
    <button class="btn" id="ecsv">${icon('download',18)}导出 CSV</button><button class="btn" id="ejson">${icon('download',18)}导出 JSON</button>
    <label class="btn">${icon('upload',18)}导入 CSV / JSON<input type="file" id="imp" accept=".csv,.json,text/csv,application/json" hidden></label>
    <button class="btn" id="tpl">${icon('download',18)}下载导入模板</button>
-   <label class="check full"><input type="checkbox" id="incTrash"> 导出时包含回收站</label></section>
+   <label class="check full"><input type="checkbox" id="incTrash"> 导出时包含回收站</label>
+   <label class="check full"><input type="checkbox" id="incPh" checked> JSON 包含照片（文件会变大；CSV 不含照片）</label></section>
   <div class="micro pad">数据</div><section class="card btns"><a class="btn" href="#/trash">${icon('trash',18)}回收站（${tr}）</a><button class="btn" id="obAgain">${icon('sparkle',18)}重新查看引导</button><button class="btn" id="demo">${icon('sparkle',18)}载入示例数据</button><button class="btn danger ghost" id="clear">${icon('trash',18)}清空全部</button></section>
   <p class="hint" id="persist">数据只保存在本机浏览器 · v1.1</p>`;
   if(navigator.storage?.persisted)navigator.storage.persisted().then(p=>{const e=$('#persist');if(e)e.textContent=`数据只保存在本机浏览器 · 存储：${p?'已持久化':'可能被系统清理，请定期导出'} · v1.1`;});
@@ -333,17 +361,18 @@ function settings(){
     s.badge=!s.badge;S.saveSettings(s);updateBadge();settings();});
   $('#icsS').onclick=icsSheet;
   $('#ecsv').onclick=()=>{download(`到期提醒-${todayStr()}.csv`,toCSV($('#incTrash').checked?S.raw():S.all()),'text/csv;charset=utf-8');s.lastExportAt=new Date().toISOString();S.saveSettings(s);};
-  $('#ejson').onclick=()=>exportJSON($('#incTrash').checked);
+  $('#ejson').onclick=()=>exportJSON($('#incTrash').checked,$('#incPh').checked);
   $('#tpl').onclick=()=>download('到期提醒-导入模板.csv',TEMPLATE_CSV,'text/csv;charset=utf-8');
   $('#imp').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const t=await f.text();const res=/\.json$/i.test(f.name)||/^\s*[\[{]/.test(t)?parseJSON(t):parseCSV(t);
-    importState={file:f.name,a:analyzeImport(res),dup:'skip'};settings();window.scrollTo(0,0);}catch(err){toast('导入失败：'+err.message);}};
+    importState={file:f.name,a:analyzeImport(res),dup:'skip',photos:res.photos};settings();window.scrollTo(0,0);}catch(err){toast('导入失败：'+err.message);}};
   view.querySelectorAll('[data-dup]').forEach(b=>b.onclick=()=>{importState.dup=b.dataset.dup;settings();});
   $('#impNo')&&($('#impNo').onclick=()=>{importState=null;settings();});
   $('#impGo')&&($('#impGo').onclick=()=>{const a=importState.a,l=[...a.add,...a.upd,...(importState.dup==='keep'?a.dup.map(r=>({...r,item:{...r.item,id:undefined}})):[])].map(r=>inferSource(r.item,s));
-    importState=null;act(`已导入 ${l.length} 条`,()=>S.merge(l));settings();});
+    const ph=importState.photos;importState=null;act(`已导入 ${l.length} 条`,()=>S.merge(l));
+    if(ph&&!S.lastSaveFailed&&globalThis.indexedDB){P.importPhotos(ph,l.flatMap(i=>i.photos||[])).then(n=>{if(n)toast(`已导入 ${l.length} 条，照片 ${n} 张`);}).catch(photoErr);}settings();});
   $('#obAgain').onclick=onboarding;
   $('#demo').onclick=()=>{act('已载入示例数据',seed);settings();};
-  $('#clear').onclick=()=>{if(!n)return;exportJSON();act(`已清空 ${n} 条（已自动下载备份，可在回收站恢复）`,()=>S.softDelete(S.all().map(i=>i.id)));settings();};
+  $('#clear').onclick=async()=>{if(!n)return;await exportJSON();act(`已清空 ${n} 条（已自动下载备份，可在回收站恢复）`,()=>S.softDelete(S.all().map(i=>i.id)));settings();};
 }
 function trashPage(){const l=S.trash().sort((a,b)=>b.deletedAt.localeCompare(a.deletedAt));
   view.innerHTML=`${top('回收站',{back:true,right:l.length?`<button class="btn sm danger" id="empty">清空回收站</button>`:''})}
@@ -405,7 +434,7 @@ function updateBadge(){const s=st();if(!('setAppBadge' in navigator))return;
 
 document.querySelectorAll('#tabbar [data-ic]').forEach(e=>e.innerHTML=icon(e.dataset.ic,e.dataset.ic==='add'?22:24));
 function route(){
-  applyTheme();closeSheet();const [path,qs]=(location.hash.slice(1)||'/').split('?'),q=new URLSearchParams(qs),p=path.split('/').filter(Boolean);
+  applyTheme();closeSheet();document.querySelector('.viewer')?.remove();const [path,qs]=(location.hash.slice(1)||'/').split('?'),q=new URLSearchParams(qs),p=path.split('/').filter(Boolean);
   const tab={'':'home',todo:'home',cats:'cats',cat:'cats',cal:'cal',settings:'settings',trash:'settings',new:'new'}[p[0]||'']||'';
   document.querySelectorAll('#tabbar a').forEach(a=>a.classList.toggle('on',a.dataset.tab===tab));
   view.classList.remove('in');window.scrollTo(0,0);
@@ -417,7 +446,8 @@ function route(){
 }
 // 启动：清理 30 天前的回收站；记录首次使用；请求持久化存储
 addEventListener('dq-storage-error',()=>toast('存储已满或不可用，修改未保存，请先导出备份',false,true));
-S.migrate();S.purgeOld();{const s=st();if(!s.firstUseAt){s.firstUseAt=new Date().toISOString();S.saveSettings(s);}}
+S.migrate();S.purgeOld();
+if(globalThis.indexedDB)P.cleanup(S.raw().flatMap(i=>i.photos||[])).catch(()=>{});{const s=st();if(!s.firstUseAt){s.firstUseAt=new Date().toISOString();S.saveSettings(s);}}
 navigator.storage?.persist?.().catch(()=>{});
 {const qs=new URLSearchParams(location.search);if(qs.has('demo')){if(!S.raw().length)seed();const s=st();s.onboarded=true;S.saveSettings(s);}}
 if(!st().onboarded)onboarding();

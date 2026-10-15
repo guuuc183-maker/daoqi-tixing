@@ -27,6 +27,7 @@ export function sanitize(o){
   for(const k of ['prodDate','handledAt','snoozeUntil']){const d=day(o[k]);if(d)r[k]=d;}
   if(o.handled===true||o.handled==='true')r.handledAt=r.handledAt||due;
   if(o.renewAsked===true||o.renewAsked==='true')r.renewAsked=true;
+  if(Array.isArray(o.photos)){const ps=[...new Set(o.photos.filter(x=>typeof x==='string'&&ID.test(x)))].slice(0,3);if(ps.length)r.photos=ps;}
   let hist=o.history;if(typeof hist==='string'){try{hist=JSON.parse(hist)}catch{hist=null}}
   if(Array.isArray(hist)){const hs=hist.map(x=>x&&({from:day(x.from),to:day(x.to),at:day(x.at)})).filter(x=>x&&x.from&&x.to&&x.at).slice(-50);if(hs.length)r.history=hs;}
   for(const k of ['deletedAt','createdAt','updatedAt']){const t=iso(o[k]);if(t)r[k]=t;}

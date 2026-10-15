@@ -142,4 +142,42 @@ const B='http://localhost:8765/daoqi-tixing/';
   t(q.url().includes('#/new')&&await q.inputValue('[name=name]')==='保存失败测试','N1 停在表单并保留内容');
   await q.goto(B+'#/item/d7');await q.waitForTimeout(300);await q.click('#del');await q.waitForTimeout(200);t(!/已删除/.test(await q.textContent('.toast')),'N1 删除失败不提示成功');
   await c3.close();}
+
+ // ---- 照片 ----
+ {const PH=require('path').join(__dirname,'fixtures-photo.jpg');
+  const c4=await br.newContext({viewport:{width:390,height:844},reducedMotion:'reduce',acceptDownloads:true});const q=await c4.newPage();q.on('pageerror',e=>errs.push(e.message));q.on('console',m=>m.type()==='error'&&errs.push(m.text()));
+  const L4=()=>q.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')));
+  const rec=id=>q.evaluate(id=>new Promise(r=>{const o=indexedDB.open('dq-photos',1);o.onsuccess=()=>{const g=o.result.transaction('photos').objectStore('photos').get(id);g.onsuccess=()=>{const x=g.result;r(x?{w:x.w,h:x.h,size:x.blob.size,type:x.blob.type,thumb:x.thumb.size}:null)}}}),id);
+  await q.goto(B+'?demo=1#/item/d7');await q.waitForTimeout(400);
+  await q.setInputFiles('[data-addph]:not([capture])',PH);await q.waitForTimeout(1500);
+  let it=(await L4()).find(x=>x.id==='d7');t(it.photos?.length===1,'PH 添加照片');
+  const r=await rec(it.photos[0]);t(r&&Math.max(r.w,r.h)===1280&&r.w<r.h,'PH 压缩到 1280 且按 EXIF 摆正 '+JSON.stringify(r));t(r.type==='image/jpeg'&&r.size<400000&&r.thumb<r.size,'PH JPEG/缩略图');
+  t(!(await q.evaluate(()=>localStorage.getItem('dq.items.v2'))).includes('base64'),'PH 不存 localStorage');
+  t(await q.locator('input[capture=environment]').count()===1,'PH 拍照入口 capture');
+  for(let i=0;i<3;i++){if(await q.locator('[data-addph]:not([capture])').count()){await q.setInputFiles('[data-addph]:not([capture])',PH);await q.waitForTimeout(1300);}}
+  it=(await L4()).find(x=>x.id==='d7');t(it.photos.length===3&&await q.locator('[data-addph]').count()===0,'PH 最多 3 张');
+  await q.goto(B+'#/');await q.waitForTimeout(600);t(await q.$eval('a[href="#/item/d7"] img.thumb',e=>e.complete&&e.naturalWidth>0),'PH 列表缩略图');
+  await q.goto(B+'#/item/d7');await q.waitForTimeout(500);await q.click('[data-view]');await q.waitForTimeout(500);
+  t(await q.$eval('.viewer img',e=>e.naturalWidth>=800),'PH 查看大图');await q.click('.viewer [data-del]');await q.waitForTimeout(300);
+  t((await L4()).find(x=>x.id==='d7').photos.length===2,'PH 删除');await q.click('.toast button');await q.waitForTimeout(400);t((await L4()).find(x=>x.id==='d7').photos.length===3,'PH 删除可撤销');
+  // 软删除保留照片
+  const pid=(await L4()).find(x=>x.id==='d7').photos[0];await q.click('#del');await q.waitForTimeout(300);await q.reload();await q.waitForTimeout(800);t(!!(await rec(pid)),'PH 回收站条目照片保留');
+  await q.goto(B+'#/trash');await q.waitForTimeout(300);await q.click('[data-id="d7"] [data-r]');await q.waitForTimeout(300);
+  // 导出 JSON（含/不含）与 CSV
+  await q.goto(B+'#/settings');await q.waitForTimeout(300);const [j1]=await Promise.all([q.waitForEvent('download'),q.click('#ejson')]);await j1.saveAs('/tmp/ph.json');
+  const J=JSON.parse(fs.readFileSync('/tmp/ph.json','utf8'));t(Object.keys(J.photos||{}).length===3&&/^data:image\/jpeg;base64,/.test(Object.values(J.photos)[0].full),'PH JSON 含照片');
+  await q.uncheck('#incPh');const [j2]=await Promise.all([q.waitForEvent('download'),q.click('#ejson')]);await j2.saveAs('/tmp/ph2.json');t(!JSON.parse(fs.readFileSync('/tmp/ph2.json','utf8')).photos,'PH JSON 不含照片');
+  const [c1]=await Promise.all([q.waitForEvent('download'),q.click('#ecsv')]);await c1.saveAs('/tmp/ph.csv');t(!/photos|base64/.test(fs.readFileSync('/tmp/ph.csv','utf8')),'PH CSV 不含照片');
+  // 存储满
+  await q.goto(B+'#/item/d4');await q.waitForTimeout(300);
+  await q.evaluate(()=>{IDBObjectStore.prototype.put=function(){throw new DOMException('full','QuotaExceededError')};});
+  await q.setInputFiles('[data-addph]:not([capture])',PH);await q.waitForTimeout(1200);t(/存储空间已满/.test(await q.textContent('.toast')),'PH 存储满提示');
+  t(!((await L4()).find(x=>x.id==='d4').photos||[]).length,'PH 存储满不写入引用');
+  await c4.close();
+  // 导入到新设备恢复照片
+  const c5=await br.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});const r5=await c5.newPage();r5.on('pageerror',e=>errs.push(e.message));
+  await r5.goto(B+'?demo=1#/settings');await r5.evaluate(()=>localStorage.setItem('dq.items.v2','[]'));await r5.reload();await r5.waitForTimeout(400);
+  await r5.setInputFiles('#imp','/tmp/ph.json');await r5.waitForTimeout(400);t(/含照片 3 张/.test(await r5.textContent('.imp')),'PH 导入预览显示照片数');
+  await r5.click('#impGo');await r5.waitForTimeout(1500);await r5.goto(B+'#/item/d7');await r5.waitForTimeout(800);
+  t(await r5.$$eval('.ph img',e=>e.filter(x=>x.naturalWidth>0).length)===3,'PH 导入后照片恢复');await c5.close();}
  console.log(ok,'passed',bad,'failed');console.log('errors',errs);await br.close();})();

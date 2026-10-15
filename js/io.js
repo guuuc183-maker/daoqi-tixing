@@ -21,8 +21,8 @@ const key=h=>{h=h.trim();return ALIAS[h]||ALIAS[h.toLowerCase()]||h;};
 export function parseCSV(text){const r=rows(text);const res={items:[],errors:[]};if(!r.length)return res;const head=r[0].map(key);
   r.slice(1).forEach((c,i)=>{const line=i+2;if(!c.some(x=>x.trim()))return;const o={};head.forEach((h,j)=>{if(c[j]!==undefined&&c[j]!=='')o[h]=c[j];});
     const v=normalize(o);if(v.error)res.errors.push({row:line,reason:v.error});else res.items.push({row:line,item:v});});return res;}
-export function parseJSON(text){const d=JSON.parse(text);const res={items:[],errors:[]};
+export function parseJSON(text){const d=JSON.parse(text);const res={items:[],errors:[],photos:d&&typeof d==='object'&&!Array.isArray(d)&&d.photos&&typeof d.photos==='object'?d.photos:null};
   (Array.isArray(d)?d:d.items||[]).forEach((o,i)=>{const v=normalize({...o});if(v.error)res.errors.push({row:i+1,reason:v.error});else res.items.push({row:i+1,item:v});});return res;}
-export function toJSON(items){return JSON.stringify({app:'daoqi-tixing',version:2,exportedAt:new Date().toISOString(),items},null,2);}
+export function toJSON(items,photos){const o={app:'daoqi-tixing',version:3,exportedAt:new Date().toISOString(),items};if(photos)o.photos=photos;return JSON.stringify(o,null,2);}
 export function normalize(o){return sanitize(o);}
 export function download(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
