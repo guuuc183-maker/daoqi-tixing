@@ -1,12 +1,12 @@
 // 提醒/待处理核心逻辑（纯函数，可在 node 中测试）
 import {CATEGORIES,INTENSITY,findTpl} from './templates.js';
 import {daysLeft,todayStr,status} from './dates.js';
-export const catDefault=(cat,st={})=>(st.catIntensity||{})[cat]||(CATEGORIES[cat]||CATEGORIES.other).intensity;
-export const effInt=(it,st)=>it.intensitySource==='item'?(it.intensity||'standard'):catDefault(it.cat,st);
+export const catDefault=(cat,st={})=>{const v=(st.catIntensity||{})[cat];return INTENSITY[v]&&v!=='custom'?v:(CATEGORIES[cat]||CATEGORIES.other).intensity;};
+export const effInt=(it,st)=>it.intensitySource==='item'&&INTENSITY[it.intensity]?it.intensity:catDefault(it.cat,st);
 // 旧数据没有 intensitySource：等于分类默认→跟随分类，否则→单独设置
 export function inferSource(it,st){if(!it.intensitySource)it.intensitySource=(!it.intensity||it.intensity===catDefault(it.cat,st))?'cat':'item';
   if(it.handled===true&&!it.handledAt)it.handledAt=todayStr();delete it.handled;return it;}
-export function remindDays(it,st){const i=effInt(it,st);return i==='custom'?[...new Set((it.customDays||[]).map(Number))].sort((a,b)=>b-a):INTENSITY[i].days;}
+export function remindDays(it,st){const i=effInt(it,st);return i==='custom'?[...new Set((Array.isArray(it.customDays)?it.customDays:[]).map(Number).filter(Number.isFinite))].sort((a,b)=>b-a):INTENSITY[i].days;}
 export const leadDays=it=>findTpl(it.cat,it.name)?.lead;
 // 返回 {kind:'todo'|'later'|null, reason}
 export function pending(it,st,today=todayStr()){

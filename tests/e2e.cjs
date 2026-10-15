@@ -67,4 +67,28 @@ const B='http://localhost:8765/daoqi-tixing/';
  // 备份提示
  await p.evaluate(()=>{const s=JSON.parse(localStorage.getItem('dq.settings.v1'));s.lastExportAt=s.firstUseAt=new Date(Date.now()-31*864e5).toISOString();delete s.backupTipAt;localStorage.setItem('dq.settings.v1',JSON.stringify(s));});
  await p.reload();await p.waitForTimeout(300);t(/建议备份/.test(await p.textContent('#view')),'备份提示');
+
+ // ---- round1 回归 ----
+ await p.evaluate(()=>{window.__x=0});
+ fs.writeFileSync('/tmp/xss.json',JSON.stringify({items:[{id:'x"><img src=x onerror="window.__x=1">',name:'<img src=x onerror="window.__x=2">',due:'2026-12-02',cat:'food',prodDate:'<img src=x onerror="window.__x=3">',history:[{from:'<img src=x onerror="window.__x=4">',to:'b',at:'c'}]},
+   {name:'坏强度',due:'2026-12-03',intensitySource:'item',intensity:'foo',customDays:'zz'},{name:'长'.repeat(240),due:'2026-12-04',cat:'doc'}]}));
+ await go('#/settings');await p.setInputFiles('#imp','/tmp/xss.json');await p.waitForTimeout(300);await p.click('#impGo');await p.waitForTimeout(300);
+ await go('#/');const xid=(await LS()).find(x=>x.cat==='food'&&x.due==='2026-12-02').id;await go('#/item/'+xid);await p.waitForTimeout(300);
+ t(await p.evaluate(()=>window.__x)===0,'R#1 XSS 未执行');t(/^[\w-]+$/.test(xid),'R#1 id 已清洗');
+ await go('#/');t((await p.locator('.card.list .row').count())>0,'R#2 非法强度首页正常');
+ const bid=(await LS()).find(x=>x.name==='坏强度').id;await go('#/item/'+bid);t(/提醒强度/.test(await p.textContent('#view')),'R#2 详情正常');
+ await go('#/cats');t(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'R#3 分类页无横向溢出');
+ const lid2=(await LS()).find(x=>x.name.startsWith('长长')).id;t((await LS()).find(x=>x.id===lid2).name.length===60,'R#4 名称截断60');
+ await go('#/item/'+lid2);const box=await p.locator('.cd-num').boundingBox();t(box&&box.y+box.height<844,'R#4 倒计时在首屏');
+ t(await p.getAttribute('#view','class')!==null&&true,'');await go('#/new');t(await p.getAttribute('[name=name]','maxlength')==='60','R#4 maxlength');
+ fs.writeFileSync('/tmp/semi.csv','Denumire;Data expirării;Cantitate\nLapte RO;20.11.2026;2\n');
+ await go('#/settings');await p.setInputFiles('#imp','/tmp/semi.csv');await p.waitForTimeout(300);await p.click('#impGo');await p.waitForTimeout(300);
+ t((await LS()).some(x=>x.name==='Lapte RO'&&x.qty===2),'R#8 分号 CSV 导入');
+ await go('#/item/d10');await p.evaluate(()=>{});
+ // R#6 续期日期早于原到期日
+ const nid=(await LS()).find(x=>x.name==='Lapte RO').id;await go('#/item/'+nid);await p.click('#renew');await p.fill('#rdate','2026-01-01');await p.dispatchEvent('#rdate','change');
+ t(await p.isDisabled('#rok')&&/晚于/.test(await p.textContent('#rerr')),'R#6 早于原日期不可保存');
+ // R#7 存储满
+ await go('#/');await p.evaluate(()=>{const o=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k==='dq.items.v2')throw new DOMException('full','QuotaExceededError');return o.call(this,k,v)};});
+ await go('#/item/'+nid);await p.click('#handled');await p.waitForTimeout(200);t(/存储已满/.test(await p.textContent('.toast')),'R#7 存储满提示');
  console.log(ok,'passed',bad,'failed');console.log('errors',errs);await br.close();})();

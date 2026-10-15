@@ -1,9 +1,12 @@
 // 本地存储层（v2 可替换为云端）。删除为软删除（deletedAt），回收站保留 30 天
+import {sanitize} from './sanitize.js';
 const KEY='dq.items.v2', SKEY='dq.settings.v1', SCHEMA=2;
-export function raw(){try{return JSON.parse(localStorage.getItem(KEY))||[]}catch{return []}}
+export function raw(){let l;try{l=JSON.parse(localStorage.getItem(KEY))}catch{l=null}return Array.isArray(l)?l.map(sanitize).filter(x=>!x.error):[];}
 export const all=()=>raw().filter(x=>!x.deletedAt);
 export const trash=()=>raw().filter(x=>x.deletedAt);
-function save(l){localStorage.setItem(KEY,JSON.stringify(l));localStorage.setItem('dq.schema',SCHEMA);}
+export let lastSaveFailed=false;
+export function save(l){lastSaveFailed=false;try{localStorage.setItem(KEY,JSON.stringify(l));localStorage.setItem('dq.schema',SCHEMA);return true;}
+  catch(e){lastSaveFailed=true;globalThis.dispatchEvent?.(new CustomEvent('dq-storage-error',{detail:e}));return false;}}
 export const get=id=>raw().find(x=>x.id===id);
 export const uid=()=>(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2));
 export function upsert(it){const l=raw();const i=l.findIndex(x=>x.id===it.id);it.updatedAt=new Date().toISOString();
@@ -21,4 +24,4 @@ let snap=null;export function snapshot(){snap=localStorage.getItem(KEY)||'[]';}
 export function undo(){if(snap==null)return false;localStorage.setItem(KEY,snap);snap=null;return true;}
 const DEF={soonDays:30,catIntensity:{},badge:false,iosTipClosed:false};
 export function settings(){try{return Object.assign({},DEF,JSON.parse(localStorage.getItem(SKEY)||'{}'))}catch{return {...DEF}}}
-export function saveSettings(s){localStorage.setItem(SKEY,JSON.stringify(s));}
+export function saveSettings(s){try{localStorage.setItem(SKEY,JSON.stringify(s))}catch(e){globalThis.dispatchEvent?.(new CustomEvent('dq-storage-error',{detail:e}));}}

@@ -32,7 +32,7 @@ eq(todo.map(x=>x.id),['d','c','b','a'],'排序 过期>今天>强>天数');
 const items=[{id:'1',name:'a,"b"',cat:'doc',due:'2026-11-01',intensitySource:'item',intensity:'custom',customDays:[7,1],note:'l1\nl2',history:[{from:'2025-11-01',to:'2026-11-01',at:'2025-10-01'}],handledAt:'2026-10-01',renewMonths:12,qty:3}];
 const back=parseCSV(toCSV(items)).items.map(r=>r.item);const clean=o=>Object.fromEntries(Object.entries(o).filter(([,v])=>v!==undefined&&v!=='').sort());
 eq(clean(back[0]),clean(items[0]),'CSV 往返一致');
-eq(parseJSON(toJSON(items)).items[0].item,items[0],'JSON 往返');
+eq(clean(parseJSON(toJSON(items)).items[0].item),clean(items[0]),'JSON 往返');
 const r=parseCSV('名称,到期日,分类\n护照,15.10.2027,证件\n坏,31.02.2026,\n,2026-01-01,\nDenumire,10/27,');
 eq(r.items.map(x=>[x.item.name,x.item.due,x.item.cat]),[['护照','2027-10-15','doc'],['Denumire','2027-10-31','other']],'CSV 日期识别');
 eq(r.errors.map(e=>e.row),[3,4],'坏行行号');

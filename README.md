@@ -7,3 +7,4 @@
 
 ## v1.1
 - 测试：`node tests/logic.test.mjs`（逻辑单测）；`tests/e2e.cjs` 需 playwright-core + 预览服务器在 /daoqi-tixing/ 子路径。
+- round1 回归：`node tests/round1.test.mjs`；e2e 中「R#」开头的用例。

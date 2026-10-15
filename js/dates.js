@@ -18,7 +18,10 @@ const lastDay=(y,m)=>{if(y<100)y+=2000;return m>=1&&m<=12?fmt(new Date(y,m,0)):n
 export function parseInput(s){s=String(s||'').trim().replace(/\s+/g,'');let m;if(!s)return null;
   if(m=s.match(/^(\d{4})[-./年](\d{1,2})[-./月](\d{1,2})日?$/))return mk(+m[1],+m[2],+m[3]);
   if(m=s.match(/^(\d{1,2})[-./](\d{1,2})[-./](\d{2}|\d{4})$/))return mk(+m[3],+m[2],+m[1]);
-  if(m=s.match(/^(\d{1,2})[./](\d{2}|\d{4})$/))return lastDay(+m[2],+m[1]);
+  if(m=s.match(/^(\d{1,2})[./](\d{2}|\d{4})$/)){const yy=new Date().getFullYear()%100;
+    // 4 位年份或 ≥ 今年的 2 位年份 → 月/年；否则当作 日.月（今年，已过则明年）
+    if(m[2].length===4||(+m[2]>=yy&&+m[1]<=12))return lastDay(+m[2],+m[1]);
+    const t=new Date(),Y=t.getFullYear(),d1=mk(Y,+m[2],+m[1]);if(!d1)return null;return d1<fmt(t)?mk(Y+1,+m[2],+m[1]):d1;}
   if(m=s.match(/^(\d{2})(\d{2})(\d{2})$/))return mk(+m[3],+m[2],+m[1]);
   if(m=s.match(/^\d{8}$/)){const y=+s.slice(0,4);return y>=1900&&y<=2100?mk(y,+s.slice(4,6),+s.slice(6)):mk(+s.slice(4),+s.slice(2,4),+s.slice(0,2));}
   return null;}
