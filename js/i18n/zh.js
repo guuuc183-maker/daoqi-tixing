@@ -520,6 +520,7 @@ export const zh={
  "ui.route.3": "数据没有丢失。可以先到设置里导出备份。",
  "ui.route.4": "去设置",
  "ui.dDays": "{n} 天",
+ "ui.dDaysShort": "{n} 天",
  "ui.months": "{n} 个月",
  "ui.sep": "、",
  "ui.quote": "「{s}」",
