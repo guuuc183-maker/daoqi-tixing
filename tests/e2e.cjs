@@ -2,11 +2,11 @@ const {chromium}=require('playwright-core');const fs=require('fs');
 const B='http://localhost:8765/daoqi-tixing/';
 (async()=>{const br0=await chromium.launch({executablePath:'/usr/bin/google-chrome'});// 旧用例默认展开「更多设置」（v1.6 默认折叠）；v1.6 验收用例用 br0 原始上下文
 const OPEN_MORE=()=>{new MutationObserver(()=>{const m=document.querySelector('#more:not([data-t]),details.more-set:not([open])');if(m){m.dataset.t=1;if(!m.open)m.open=true;}}).observe(document,{childList:true,subtree:true});};
-const br={newContext:async o=>{const c=await br0.newContext(o);c.setDefaultTimeout(5000);await c.addInitScript(OPEN_MORE);await c.addInitScript(()=>{new MutationObserver(()=>{const b=document.querySelector('.sheet #askOk');const h=document.querySelector('.sheet h3');if(b&&h&&/^将覆盖/.test(h.textContent)&&!b.dataset.auto){b.dataset.auto=1;setTimeout(()=>b.click(),30);}}).observe(document,{childList:true,subtree:true});});return c;},close:()=>br0.close()};
+const br={newContext:async o=>{const c=await br0.newContext(o);c.setDefaultTimeout(5000);await c.addInitScript(OPEN_MORE);await c.addInitScript(()=>{new MutationObserver(()=>{const b=document.querySelector('.sheet .btns.row2 #askOk');if(b&&!b.dataset.t){b.dataset.t=1;b.click();}}).observe(document,{childList:true,subtree:true});});/* v1.7.7 G3: old cases jump away from edited forms; auto-discard (G3 itself is tested in v177.cjs) */await c.addInitScript(()=>{new MutationObserver(()=>{const b=document.querySelector('.sheet #askOk');const h=document.querySelector('.sheet h3');if(b&&h&&/^将覆盖/.test(h.textContent)&&!b.dataset.auto){b.dataset.auto=1;setTimeout(()=>b.click(),30);}}).observe(document,{childList:true,subtree:true});});return c;},close:()=>br0.close()};
  const c=await br.newContext({locale:'zh',timezoneId:'Europe/Bucharest',viewport:{width:390,height:844},acceptDownloads:true,reducedMotion:'reduce'});const p=await c.newPage();const errs=[];
  p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>m.type()==='error'&&errs.push(m.text()));p.on('dialog',d=>d.accept());
  let ok=0,bad=0;const t=(c,m)=>{if(c)ok++;else{bad++;console.log('FAIL',m);}};
- const go=async h=>{await p.goto(B+h);await p.waitForTimeout(350);};
+ const go=async h=>{await p.goto(B+h);await p.waitForTimeout(350);if(await p.locator(".sheet .btns.row2 #askOk").count()){await p.click(".sheet .btns.row2 #askOk");await p.waitForTimeout(350);}};// v1.7.7 G3: discard leave dialog when a test jumps away from an edited form
  const LS=()=>p.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')));
  await go('?demo=1#/');t((await LS()).length===14,'seed');
  const n0=await p.locator('.todo .todo-row').count();const head=await p.textContent('.todo-hero');console.log('home todo:',head);

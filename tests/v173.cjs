@@ -39,7 +39,7 @@ const {chromium}=require('playwright-core');const B='http://localhost:8765/daoqi
     wrap:rows.flatMap(e=>[...e.querySelectorAll('.rt b,.rt small')]).filter(x=>x.getBoundingClientRect().height>(x.tagName==='B'?21:17)).map(x=>x.textContent),
     ics:!!document.querySelector('#icsS'),det:!!document.querySelector('details.more-set,.more-set'),
     last:(()=>{const secs=[...document.querySelectorAll('#view section')];const l=secs[secs.length-1];return l.querySelector('#clear')&&l.querySelectorAll('.set-row').length===1&&!document.querySelector('.about #clear')&&l.parentElement.id==='view'&&l.previousElementSibling?.classList.contains('danger-h');})(),
-    red:(()=>{const b=document.querySelector('#clear .rt b');return getComputedStyle(b).color===getComputedStyle(document.documentElement).getPropertyValue('--expired').trim()||/rgb\((217, 69, 69|255, 107, 107)\)/.test(getComputedStyle(b).color);})(),
+    red:(()=>{const b=document.querySelector('#clear .rt b');return getComputedStyle(b).color===getComputedStyle(document.documentElement).getPropertyValue('--expired').trim()||/rgb\((193, 39, 39|217, 69, 69|255, 107, 107)\)/.test(getComputedStyle(b).color);})(),
     rn:document.querySelector('a[href="#/trash"] .rn')?.textContent,sw:document.documentElement.scrollWidth<=innerWidth,
     heads:[...document.querySelectorAll('#view .micro.pad')].map(x=>x.textContent)}});
   const tag=`${loc} ${w} ${scheme}`;

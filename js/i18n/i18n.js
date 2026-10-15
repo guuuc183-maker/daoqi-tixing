@@ -12,6 +12,8 @@ export function pickLocale(l,list){list=list||(typeof navigator!=='undefined'?(n
 const LOC={...LOC0};
 let lang='zh',dict=zh;
 export const getLang=()=>lang;
+// G17：两句拼接。zh 不加空格；其他语言恰好一个空格（文案末尾自带空格也不会变成两个）
+export const joinSent=(a,b,l=lang)=>l==='zh'?String(a).trimEnd()+String(b).trimStart():String(a).trimEnd()+' '+String(b).trimStart();
 export const locale=()=>LOC[lang];
 // 首次打开：按 navigator.languages 顺序找第一个支持的语言，都没有就用英文
 export function detectLang(list){list=list||(typeof navigator!=='undefined'?(navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language]):[]);

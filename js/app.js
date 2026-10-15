@@ -1,6 +1,6 @@
 import * as S from './store.js';
 import {VERSION} from './version.js';
-import {t,setLang,getLang,detectLang,LANGS,anyLang,fmtDay,fmtDate,fmtMD,fmtTime,fmtMonth,weekdays,weekStart,fmtNum} from './i18n/i18n.js';
+import {t,joinSent,setLang,getLang,detectLang,LANGS,anyLang,fmtDay,fmtDate,fmtMD,fmtTime,fmtMonth,weekdays,weekStart,fmtNum} from './i18n/i18n.js';
 import {CATEGORIES,TEMPLATES,INTENSITY,findTpl,PERISHABLE,CUSTOM_PRESET,applyCats,visibleCats,ICON_SET,COLORS,inferTop2,normName,tplFor,REGIONS,mergeIntoBuiltin,renameDupCustom,isTplName,catAlias} from './templates.js';
 // 默认分类：上次保存的分类 > 条目最多的分类 > 食品
 const defaultCat=s=>{if(CATEGORIES[s.lastCat]&&!CATEGORIES[s.lastCat].hidden)return s.lastCat;const c={};for(const i of S.all())if(CATEGORIES[i.cat]&&!CATEGORIES[i.cat].hidden)c[i.cat]=(c[i.cat]||0)+1;const top=Object.entries(c).sort((a,b)=>b[1]-a[1])[0];return top?top[0]:'food';};
@@ -62,9 +62,11 @@ const PHOTO_GC={expire:()=>globalThis.indexedDB&&P.cleanup(S.raw().flatMap(i=>i.
 function act(msg,fn,extra,ms,hooks){S.snapshot();fn();if(S.lastSaveFailed)return false;toast(msg,true,false,extra,ms,hooks);updateBadge();return true;}
 // 底部弹出表单
 // 应用内二次确认（危险操作统一用它，不用原生 confirm）
-function ask(title,body,ok,danger=true){return new Promise(res=>{let done=false;const fin=v=>{if(done)return;done=true;closeSheet();res(v);};
-  sheet(`<h3>${h(title)}</h3>${body?`<p class="small muted">${h(body)}</p>`:''}<div class="btns col"><button class="btn ${danger?'danger':'primary'} block" id="askOk">${h(ok)}</button><button class="btn block" id="askNo">${t('restore.cancel')}</button></div>`,
-   w=>{w.querySelector('#askOk').onclick=()=>fin(true);w.querySelector('#askNo').onclick=()=>fin(false);w.querySelector('.sheet-bg').addEventListener('click',()=>fin(false));});});}
+function ask(title,body,ok,danger=true,keep){return new Promise(res=>{let done=false;const esc=e=>{if(e.key==='Escape')fin(false);};const fin=v=>{if(done)return;done=true;removeEventListener('keydown',esc);closeSheet();res(v);};
+  // G3：keep 给定时为并排按钮：主按钮「继续编辑」在前，危险按钮在后
+  const okB=`<button class="btn ${danger?'danger':'primary'}${keep?'':' block'}" id="askOk">${h(ok)}</button>`;
+  sheet(`<h3>${h(title)}</h3>${body?`<p class="small muted">${h(body)}</p>`:''}${keep?`<div class="btns row2"><button class="btn primary" id="askNo">${h(keep)}</button>${okB}</div>`:`<div class="btns col">${okB}<button class="btn block" id="askNo">${t('restore.cancel')}</button></div>`}`,
+   w=>{addEventListener('keydown',esc);w.querySelector('#askOk').onclick=()=>fin(true);w.querySelector('#askNo').onclick=()=>fin(false);w.querySelector('.sheet-bg').addEventListener('click',()=>fin(false));if(keep)w.querySelector('#askNo').focus();});});}
 function sheet(html,bind){closeSheet();const w=document.createElement('div');w.className='sheet-wrap';w.innerHTML=`<div class="sheet-bg"></div><div class="sheet">${html}</div>`;
   document.body.appendChild(w);w.querySelector('.sheet-bg').onclick=closeSheet;bind?.(w);return w;}
 function closeSheet(){document.querySelector('.sheet-wrap')?.remove();}
@@ -72,10 +74,13 @@ function closeSheet(){document.querySelector('.sheet-wrap')?.remove();}
 function enrich(){const s=st();return S.all().map(it=>{inferSource(it,s);const n=daysLeft(it.due);return {...it,n,st:itemState(it,s)};}).sort((a,b)=>a.n-b.n);}
 const cnDate=d=>fmtDate(d);
 function top(title,{back=false,right=''}={}){return `<header class="top">${back?`<button class="icon-btn" data-back aria-label="${t('ui.top.1')}">${icon('back',20)}</button>`:''}<h1>${title}</h1><div class="grow"></div>${right}</header>`;}
-function row(it){return `<a class="row" href="#/item/${h(it.id)}">
+// G08：「临近」天数分段只有在 320 等窄屏放不下时才换短格式 ui.dDaysShort
+export function fitSoonSeg(root){const bs=[...root.querySelectorAll('.seg [data-soon]')];if(bs.some(b=>b.scrollWidth>b.clientWidth+1))bs.forEach(b=>{b.textContent=t('ui.dDaysShort',{n:+b.dataset.soon});b.title=t('ui.settings.11',{n:+b.dataset.soon});});}
+const dUnit=()=>t('ui.dDaysShort',{n:''}).trim();
+function row(it,short){return `<a class="row" href="#/item/${h(it.id)}">
   <span class="ic" style="--c:${cat(it.cat).color}">${ci(it.cat)}</span>
   ${it.photos?.length?`<img class="thumb" data-ph="${h(it.photos[0])}" alt="">`:''}<span class="grow"><b class="ell">${h(it.name)}</b><small>${h(it.due)}${it.qty?` ${t('ui.row.1',{qty:it.qty})}`:''}${it.location?` · ${h(it.location)}`:''}${it.handledAt?t('ui.row.2'):''}</small></span>
-  <span class="cd ${it.st}"><span class="num">${it.n<0?-it.n:it.n}</span><small>${it.n<0?t('ui.row.3',{n:-it.n}):it.n===0?t('row.today'):t('ui.row.4',{n:it.n})}</small><i class="bar"></i></span></a>`;}
+  <span class="cd ${it.st}${short?' short':''}"${short?` title="${it.n<0?t('ui.row.3',{n:-it.n}):t('ui.row.4',{n:it.n})}"`:''}><span class="num">${short&&it.n<0?'−':''}${it.n<0?-it.n:it.n}</span><small>${short&&it.n!==0?dUnit():it.n<0?t('ui.row.3',{n:-it.n}):it.n===0?t('row.today'):t('ui.row.4',{n:it.n})}</small><i class="bar"></i></span></a>`;}
 function ring(pct,size=148,w=14){const r=(size-w)/2,c=2*Math.PI*r;return `<svg class="ring" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
   <circle cx="${size/2}" cy="${size/2}" r="${r}" class="ring-bg" stroke-width="${w}" fill="none"/>
   <circle cx="${size/2}" cy="${size/2}" r="${r}" class="ring-fg" stroke-width="${w}" fill="none" stroke-linecap="round"
@@ -254,12 +259,12 @@ function cal(){
   for(let d=1;d<=days;d++){const ds=fmt(new Date(y,m-1,d)),l=by[ds]||[];
     cells+=`<button data-d="${ds}" class="${ds===today?'today':''} ${ds===calSel?'sel':''}"><span class="num">${d}</span><span class="dots">${l.slice(0,3).map(i=>`<i class="${i.st}"></i>`).join('')}</span></button>`;}
   const monthItems=items.filter(i=>i.due.startsWith(calMonth)), list=calSel?(by[calSel]||[]):monthItems;
-  view.innerHTML=`${top(t('tab.cal'),{right:`<button class="btn sm" id="ics">${icon('cal',16)} ${t('ui.cal.1')}</button>`})}<section class="card cal">
+  view.innerHTML=`${top(t('tab.cal'),{right:`<button class="btn sm nowrap" id="ics" aria-label="${t('ui.cal.1')}">${icon('cal',16)}<span>${t('ui.cal.1')}</span></button>`})}<section class="card cal">
    <div class="cal-head"><button class="icon-btn" data-mv="-1">${icon('back',20)}</button><b class="num">${fmtMonth(y,m)}</b><button class="icon-btn" data-mv="1">${icon('chev',20)}</button></div>
    <div class="cal-grid wk">${weekdays().map(w=>`<span>${w}</span>`).join('')}</div><div class="cal-grid">${cells}</div>
    <div class="micro center">${t('ui.cal.2',{n:monthItems.length})}</div></section>
   <div class="micro pad">${calSel?nice(calSel):t('ui.cal.3')}</div>
-  <section class="card list">${list.map(row).join('')||'<div class="empty">'+t('ui.cal.4')+'</div>'}</section>`;
+  <section class="card list cal-list">${list.map(it=>row(it,true)).join('')||'<div class="empty">'+t('ui.cal.4')+'</div>'}</section>`;
   view.querySelectorAll('[data-mv]').forEach(b=>b.onclick=()=>{calMonth=addMonths(calMonth+'-01',+b.dataset.mv).slice(0,7);calSel=null;cal();});
   view.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{calSel=calSel===b.dataset.d?null:b.dataset.d;cal();});
   $('#ics').onclick=icsSheet;
@@ -357,6 +362,7 @@ function form(id,q){
     let l=Object.entries(u).sort((a,b)=>b[1].n-a[1].n||String(b[1].at).localeCompare(String(a[1].at))).map(([n])=>TEMPLATES.find(x=>x.id===n||anyLang('tpl.'+x.id).includes(n))).filter(Boolean).filter(vis).slice(0,8),cold=!l.length;
     if(cold)l=[...new Set([...exampleIds(regionOf(s)),'milk','eggs','leftovers'])].map(n=>TEMPLATES.find(x=>x.id===n)).filter(Boolean).filter(vis);
     return `<div class="micro pad">${cold?t('form.common'):t('form.recent')}</div><div class="chips tpl-recent">${l.map(x=>`<button data-tpl="${x.id}" data-any="1" class="${it.name===x.name?'on':''}">${ci(x.cat,16)}${h(x.name)}</button>`).join('')}</div>`;};
+  let curSer=null;
   let dueText=it.due?it.due.split('-').reverse().join('.'):'',chain=false,shelfUnit='d',shelfN=it.shelfDays||'';
   const draw=(focus)=>{const ei=effInt(it,s),per=PERISHABLE.includes(it.cat);
     view.innerHTML=`${top(ex?t('form.title.edit'):it.rebuyFrom?t('ui.detail.4'):t('form.title.new'),{back:true,right:`<button class="btn sm primary" id="saveTop">${t('form.save')}</button>`})}
@@ -396,6 +402,7 @@ function form(id,q){
     </form>`;
     const f=$('#f'),dueT=$('#dueT');
     const sync=()=>{const fd=new FormData(f);for(const[k,v]of fd)it[k]=v;dueText=dueT.value;if($('#shelfN')){shelfN=$('#shelfN').value;shelfUnit=$('#shelfU').value;}};
+    curSer=()=>{sync();return JSON.stringify([it,dueText,shelfN,shelfUnit]);};
     const hint=()=>{const v=parseInput(dueT.value),e=$('#dueHint');it.due=v||'';
       if(!dueT.value){e.className='hint-l';e.textContent=t('ui.hint.1');}
       else if(!v){e.className='hint-l err';e.textContent=t('ui.hint.2');}
@@ -433,7 +440,7 @@ function form(id,q){
       if(it.soonSource==='item'){if(String(it.soonDays??'').trim()===''){moreOpen=true;$('#more').open=true;return toast(t('form.err.soon'));}const v=Number(it.soonDays);if(!Number.isInteger(v)||v<0||v>3650)return toast(t('form.err.soonRange'));it.soonDays=v;}else{it.soonSource='cat';delete it.soonDays;}
       for(const k of ['renewMonths','qty','shelfDays'])it[k]=it[k]===''||it[k]==null?'':Number(it[k]);
       it.prodDate=parseInput(it.prodDate)||'';const from=it.rebuyFrom;delete it.rebuyFrom;
-      S.snapshot();const saved=S.upsert(it);if(!saved)return;updateBadge();
+      S.snapshot();const saved=S.upsert(it);if(!saved)return;formGuard=null;updateBadge();
       if(!ex){const x=st();x.lastCat=it.cat;const nn=normName(it.name);const guess=inferTop2(it.name,x.catLearn)[0]||null;
         // 用户把推断结果改掉了：本地记住「名称→分类」，下次优先
         if(picked&&guess&&guess!==it.cat){x.catLearn={...(x.catLearn||{}),[nn]:it.cat};const ks=Object.keys(x.catLearn);if(ks.length>300)delete x.catLearn[ks[0]];}
@@ -447,6 +454,7 @@ function form(id,q){
     $('#more').ontoggle=()=>{moreOpen=$('#more').open;};
     f.querySelector('[name=name]').onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();if(parseInput(dueT.value)){f.querySelector('[name=name]').dispatchEvent(new Event('change'));$('#saveTop').click();}else dueT.focus();}};$('#saveMore')&&($('#saveMore').onclick=()=>save(true));
   };draw(it.rebuyFrom?'due':null);
+  {const base=curSer();formGuard=()=>!!curSer&&curSer()!==base;}
 }
 
 async function exportJSON(all,withPhotos=true){const s=st(),items=all?S.raw():S.all();let photos=null;
@@ -493,13 +501,13 @@ function settings(){
    <p class="lang-hint">${t('lang.hint')}</p></section>
   <div class="micro pad">${t('ui.settings.17')}</div><section class="card"><div class="lbl" style="margin-bottom:8px">${t('set.soonGlobal')}</div><div class="seg">${[7,14,30,60].map(d=>`<button data-soon="${d}" class="${globalSoon(s)==d?'on':''}">${t('ui.settings.11',{n:d})}</button>`).join('')}</div>
 
-   ${badgeOK?`<div class="kv"><div><span>${t('ui.settings.18')}</span><b><button class="btn sm" id="badge">${s.badge?t('ui.settings.19'):t('ui.settings.20')}</button></b></div></div>`:''}
+   ${badgeOK?`<div class="kv"><div><span>${t('ui.settings.18')}</span><b><button class="btn sm nowrap" id="badge">${s.badge?t('ui.settings.19'):t('ui.settings.20')}</button></b></div></div>`:''}
    <p class="small muted">${t('ui.settings.21')}</p>
 
    <div class="kv"><div><span>${t('ui.settings.22')}</span><select id="region">${[['auto',t('region.auto')],['all',t('ui.settings.23')],['cn',t('region.cn')],['ro',t('region.ro')]].map(([k,v])=>`<option value="${k}" ${(s.region||'auto')===k?'selected':''}>${v}</option>`).join('')}</select></div></div></section>
   <div class="micro pad">${t('ui.settings.24')}</div><section class="card push-note"><span class="bk-ic">${icon('bell',20)}</span><div><b>${t('ui.settings.25')}</b><span class="ver-pill">${t('ui.settings.26')}</span>
-   <p>${t('set.push')}${t('ui.settings.27')}</p>
-   <button class="btn" id="icsS2">${icon('cal',16)}${t('ui.icsSheet.1')}</button></div></section>
+   <p>${joinSent(t('set.push'),t('ui.settings.27'))}</p>
+   <button class="btn nowrap" id="icsS2">${icon('cal',16)}${t('ui.cal.1')}</button></div></section>
   <div class="micro pad">${t('tab.cats')}</div><section class="card list set-list">
    <a class="set-row" href="#/catrules"><span class="grow">${t('ui.settings.28')}<small>${t('ui.settings.29')}</small></span>${icon('chev',18)}</a>
    <a class="set-row" href="#/catmgr"><span class="grow">${t('cat.mgr')}<small>${t('ui.settings.30',{n:Object.keys(CATEGORIES).length})}</small></span>${icon('chev',18)}</a></section>
@@ -515,6 +523,7 @@ function settings(){
    <button type="button" class="set-row go danger" id="clear"><span class="ri">${icon('trash',20)}</span><span class="rt"><b>${t('ui.settings.34')}</b><small>${t('set.row.clr.sub')}</small></span>${icon('chev',16,'rc')}</button></section>`;
   if(navigator.storage?.persisted)navigator.storage.persisted().then(p=>{const e=$('#persist');if(e)e.textContent=p?t('set.safety.localOk'):t('set.safety.local');});
   view.querySelectorAll('[data-lang]').forEach(b=>b.onclick=()=>{if(b.dataset.lang===getLang())return;s.lang=b.dataset.lang;S.saveSettings(s);view.classList.add('lang-out');setTimeout(()=>{view.classList.remove('lang-out');route();},120);});
+  fitSoonSeg(view);
   view.querySelectorAll('[data-theme]').forEach(b=>b.onclick=()=>{s.theme=b.dataset.theme;S.saveSettings(s);applyTheme();settings();});
   $('#badge')&&($('#badge').onclick=async()=>{if(!s.badge&&'Notification' in window&&Notification.permission==='default'){try{await Notification.requestPermission()}catch{}}
     s.badge=!s.badge;S.saveSettings(s);updateBadge();settings();});
@@ -618,9 +627,9 @@ function catSheet(k,onCreated){const c=k?CATEGORIES[k]:{name:'',icon:'box',color
 function trashPage(){const l=S.trash().sort((a,b)=>b.deletedAt.localeCompare(a.deletedAt));
   view.innerHTML=`${top(t('ui.trashPage.1'),{back:true,right:l.length?`<button class="btn sm danger" id="empty">${t('ui.trashPage.2')}</button>`:''})}
   <p class="hint">${t('ui.trashPage.3')}</p>
-  <section class="card list">${l.map(it=>`<div class="row" data-id="${h(it.id)}"><span class="ic" style="--c:${cat(it.cat).color}">${ci(it.cat)}</span>
+  <section class="card list trash">${l.map(it=>`<div class="row" data-id="${h(it.id)}"><span class="ic" style="--c:${cat(it.cat).color}">${ci(it.cat)}</span>
    <span class="grow"><b class="ell">${h(it.name)}</b><small>${t('ui.trashPage.4',{due:h(it.due),slice:h(it.deletedAt.slice(0,10))})}</small></span>
-   <button class="btn sm" data-r>${t('restore.go')}</button><button class="btn sm danger" data-p aria-label="${t('ui.trashPage.5')}">${icon('trash',16)}</button></div>`).join('')||'<div class="empty">'+t('ui.trashPage.6')+'</div>'}</section>`;
+   <button class="btn sm" data-r aria-label="${t('restore.go')}">${icon('renew',16)}<span>${t('restore.go')}</span></button><button class="btn sm danger" data-p aria-label="${t('ui.trashPage.5')}">${icon('trash',16)}</button></div>`).join('')||'<div class="empty">'+t('ui.trashPage.6')+'</div>'}</section>`;
   view.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{const id=b.closest('[data-id]').dataset.id;act(t('ui.trashPage.7'),()=>S.restore(id));trashPage();});
   view.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{const id=b.closest('[data-id]').dataset.id;act(t('ui.trashPage.8'),()=>S.purge(id),null,0,PHOTO_GC);trashPage();});
   $('#empty')&&($('#empty').onclick=async()=>{if(await ask(`${t('ui.trashPage.9',{n:l.length})}`,t('ui.trashPage.10'),`${t('ui.trashPage.11',{n:l.length})}`)){act(t('ui.trashPage.12'),()=>S.emptyTrash(),null,0,PHOTO_GC);trashPage();}});}
@@ -687,9 +696,18 @@ function updateBadge(){const s=st();if(!('setAppBadge' in navigator))return;
 
 document.querySelectorAll('#tabbar [data-ic]').forEach(e=>e.innerHTML=e.dataset.ic==='add'?icon('add',20,'',2.25):icon(e.dataset.ic,24));
 let formOrigin=null,curHash=location.hash||'#/';
+// G3：新增/编辑有改动时离开（底栏、返回按钮、返回手势）先确认；没改动直接离开
+let formGuard=null;
+function leaveAsk(go){ask(t('form.leave.title'),t('form.leave.body'),t('form.leave.discard'),true,t('form.leave.keep')).then(ok=>{if(ok){formGuard=null;go();}});}
+const dirtyForm=()=>!!(formGuard&&/^#\/(new|edit)/.test(location.hash)&&formGuard());
+document.addEventListener('click',e=>{const a=e.target.closest?.('#tabbar a,[data-back]');if(!a||!dirtyForm())return;e.preventDefault();e.stopImmediatePropagation();
+  const href=a.getAttribute('href');if(href&&href===location.hash)return;leaveAsk(a.matches('[data-back]')?()=>history.length>1?history.back():location.hash='#/':()=>{location.hash=href;});},true);
+addEventListener('hashchange',e=>{if(!formGuard||!/^#\/(new|edit)/.test(curHash)||location.hash===curHash)return;let d=false;try{d=formGuard();}catch{}if(!d)return;
+  // 视图还在表单上：不重绘，把地址改回表单
+  const target=location.hash;e.stopImmediatePropagation();history.pushState(null,'',curHash);leaveAsk(()=>{location.hash=target;});});
 addEventListener('hashchange',e=>{const nh=location.hash;if(/^#\/(new|edit)/.test(nh)&&!/^#\/(new|edit)/.test(curHash))formOrigin=curHash;curHash=nh;});
 function route(){
-  applyTheme();setLang(curLang());applyCats(st());chrome();closeSheet();document.querySelector('.viewer')?.remove();const [path,qs]=(location.hash.slice(1)||'/').split('?'),q=new URLSearchParams(qs),p=path.split('/').filter(Boolean);
+  formGuard=null;applyTheme();setLang(curLang());applyCats(st());chrome();closeSheet();document.querySelector('.viewer')?.remove();const [path,qs]=(location.hash.slice(1)||'/').split('?'),q=new URLSearchParams(qs),p=path.split('/').filter(Boolean);
   const tab={'':'home',todo:'home',cats:'cats',cat:'cats',cal:'cal',settings:'settings',trash:'settings',catmgr:'settings',catrules:'settings',new:'new'}[p[0]||'']||'';
   document.querySelectorAll('#tabbar a').forEach(a=>a.classList.toggle('on',a.dataset.tab===tab));
   view.classList.remove('in');window.scrollTo(0,0);

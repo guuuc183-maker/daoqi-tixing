@@ -625,7 +625,7 @@ html:lang(ro) h1,html:lang(ro) h2,html:lang(ro) h3,html:lang(ro) p,html:lang(en)
 .todo-act{width:auto;padding-left:0}
 .todo-act button{flex:none;max-width:96px;min-height:44px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .todo-act .more{width:44px}
-@media (max-width:359px){.todo-main .ic{display:none}.todo-act button[data-a] .ico{display:none}.todo-act button{padding:0 10px}}
+@media (max-width:359px){.todo-main .ic{display:none}.todo-act button[data-a]:not(.more) .ico{display:none}.todo-act button{padding:0 10px}}
 /* 3 分段 */
 .seg button{flex:1 1 0;min-width:0;height:36px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* 4 长按钮 */
@@ -670,3 +670,99 @@ html:lang(ro) h1,html:lang(ro) h2,html:lang(ro) h3,html:lang(ro) p,html:lang(en)
 .top h1{min-width:0;overflow-wrap:normal;word-break:keep-all}
 .top:has(.btn-cm) h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media (max-width:359px){.top .btn-cm span{display:none}}
+
+/* ===== v1.7.7 全局走查修复（设计/全局走查-v1.7.md G01–G17） ===== */
+/* G14：--muted 达到 AA（浅 #6F7472 白底 4.75；深 #7F8A92 卡片 5.23） */
+:root{--muted:#6A6E6D}
+:root[data-theme=dark]{--muted:#798792}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--muted:#798792}}
+/* G15：浅色文字专用状态色；色块、圆点、图标仍用原色 */
+:root{--safe-text:#0C744A;--soon-text:#8F5900;--expired-text:#C12727;--gold-text:#866932}
+:root[data-theme=dark]{--safe-text:var(--safe);--soon-text:var(--soon);--expired-text:var(--expired);--gold-text:var(--gold)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--safe-text:var(--safe);--soon-text:var(--soon);--expired-text:var(--expired);--gold-text:var(--gold)}}
+a,.safe,.see-all,.txt-btn,.inf-hint u,.empty-restore .link,a.ext,.hint-l.ok,.handled,.inf-tag,.pill.safe,.st-pill.ok,.lang-seg button.on small,.cal-grid button.today .num,.todo-act button[data-a=done]{color:var(--safe-text)}
+.soon,.pill.soon,.st-pill.warn,.hint-l.warn,.cap-note,.tile small.tile-d.soon,.bk-bar .bk-ic{color:var(--soon-text)}
+.expired,.pill.expired,.hint-l.err,.btn.danger,.micro.danger-h,.set-row.danger .rt b,.set-row.danger .ri,.exp-full,.tile small.tile-d.expired{color:var(--expired-text)}
+.row,.tile,.ptile,.set-row.go,.todo-main,.tpl-quick a{color:var(--text)}
+.cd.safe,.cd.soon,.cd.expired{color:inherit}.cd.safe .num{color:var(--safe-text)}.cd.soon .num{color:var(--soon-text)}.cd.expired .num{color:var(--expired-text)}
+.about .ver{color:var(--gold-text)}
+/* G16：深色模式下数量徽标用深色字（10.56 / 7.18） */
+.badges em.b{color:#fff}
+:root[data-theme=dark] .badges em.b{color:#08090A}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .badges em.b{color:#08090A}}
+/* G04：toast 按整屏宽度排版 */
+.toast{left:16px;right:16px;margin:0 auto;width:fit-content;max-width:min(560px,calc(100vw - 32px));transform:none}
+/* G05：深色模式 toast 是浅底，撤销用深绿（4.89） */
+:root[data-theme=dark] .toast:not(.err) button{color:#107E4D}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .toast:not(.err) button{color:#107E4D}}
+:root .toast.err button,:root:not([data-theme=light]) .toast.err button{color:#fff;text-decoration:underline}
+/* G02 见上方 v1.7 §2：窄屏 :not(.more)，「⋯」图标保留 */
+/* G01：页头标题不在单词中间断开 */
+html .top h1{overflow-wrap:normal;word-break:normal;hyphens:manual;flex:1;min-width:0}
+.top h1+.grow{flex:0 0 0}
+.nowrap{white-space:nowrap}
+@media (max-width:359px){.top #ics span{display:none}.top #ics{padding:0 10px}.top h1{font-size:clamp(22px,7vw,30px)}}
+/* G11：详情大标题按词换行 */
+.big-cd h2{word-break:normal;overflow-wrap:anywhere;hyphens:auto}
+html:lang(ro) .big-cd h2,html:lang(en) .big-cd h2{overflow-wrap:break-word}
+/* G03：回收站行 */
+.trash .grow{flex:1;min-width:0}
+.trash .grow small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trash [data-r]{flex:none;white-space:nowrap}
+@media (max-width:359px){.trash [data-r] span{display:none}.trash [data-r]{width:36px;padding:0}}
+@media (min-width:360px){.trash [data-r] .ico{display:none}}
+/* G06：状态胶囊不折行 */
+.st-pill{white-space:nowrap;flex:none}.sec-head{flex-wrap:wrap;row-gap:8px}.sec-head b{min-width:0}
+/* G07：统计卡不超出卡片 */
+.stat3.three{grid-template-columns:repeat(3,minmax(0,1fr))}.stat3>div{min-width:0;padding:10px}.stat3 small{letter-spacing:.04em}
+.stat3 .num{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* G08：导入预览的新分类选项在窄屏排两行 */
+@media (max-width:359px){.imp .seg{flex-wrap:wrap;gap:3px}.imp .seg button{flex:1 1 40%}}
+/* G09：按钮文字不折行 */
+.ph-btns .btn,.btn.nowrap{white-space:nowrap}
+/* G10：引导页强度卡第二行在窄屏允许 3 行 */
+.ob1 .lv small{white-space:pre-line}
+@media (max-width:359px){.ob1 .lv small{-webkit-line-clamp:3;line-clamp:3}}
+/* G12：窄屏待办行沿用换行方案；日历列表天数列 ≤48px */
+@media (max-width:359px){
+ .todo-row,.todo .todo-row{display:flex;flex-wrap:wrap;row-gap:6px;max-height:160px}
+ .todo-main{flex:1 1 100%}
+ .todo-main,.todo-main .grow{min-width:0}
+ .todo-act{display:flex;width:100%;padding-left:0;gap:6px}
+ .todo-act button{flex:1 1 auto;max-width:none}.todo-act .more{flex:0 0 44px}
+ .todo-row.selecting .todo-act{width:auto}}
+.cd.short{min-width:0;max-width:48px}.cd.short small{white-space:nowrap}
+/* G13：确认面板按钮固定高度，危险按钮实底 */
+.sheet .btns.col{display:flex;flex-direction:column;gap:8px}
+.sheet .btns.col .btn{flex:none;height:48px;min-height:48px;margin-top:0}
+.sheet .btns.col .btn.danger{background:var(--expired-text);color:#fff;border-color:transparent}
+:root[data-theme=dark] .sheet .btns.col .btn.danger{background:#FF6B6B;color:#08090A}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .sheet .btns.col .btn.danger{background:#FF6B6B;color:#08090A}}
+/* UX G3：离开确认的并排按钮 */
+.sheet .btns.row2{flex-wrap:nowrap;margin-top:12px}.sheet .btns.row2 .btn{flex:1 1 0;min-width:0;height:48px;min-height:48px;white-space:nowrap}
+.sheet .btns.row2 .btn.danger{background:var(--expired-text);color:#fff;border-color:transparent}
+:root[data-theme=dark] .sheet .btns.row2 .btn.danger{background:#FF6B6B;color:#08090A}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .sheet .btns.row2 .btn.danger{background:#FF6B6B;color:#08090A}}
+/* G08：窄屏分段控件按钮内边距收窄（强度 4 段 ≤7 字符可完整显示） */
+@media (max-width:359px){.seg button{padding-inline:2px;font-size:13px}}
+/* UX G5：浅色徽标底色加深，白字 ≥4.5（6.15 / 5.48）；深色仍为亮底深字 */
+.b.soon{background:var(--soon-text)}.b.expired{background:var(--expired-text)}
+/* G01：窄屏标题再小一点，长单词不溢出 */
+@media (max-width:359px){.top h1{font-size:clamp(20px,6.4vw,30px)}}
+/* 美术定稿对比度色值（设计/全局走查-v1.7/fix-注入.css，见 设计/对比度色值-v1.7.md），覆盖上方 G14/G15/G16/G05 取值 */
+:root:not([data-theme=dark]){--muted:#6A6E6D;--text2:#606365;--safe-text:#0C744A;--soon-text:#8F5900;--expired-text:#C12727;--gold-text:#866932;--undo:#2EE6A0;--badge-fg:#fff;--badge-soon:#8F5900;--badge-exp:#C12727}
+:root[data-theme=dark]{--muted:#798792;--safe-text:#3DE69B;--soon-text:#F2B13C;--expired-text:#FF6B6B;--gold-text:#D9BC7E;--undo:#107E4D;--badge-fg:#08090A;--badge-soon:#F2B13C;--badge-exp:#FF6B6B}
+.safe:not(.ptile):not(.card):not(.big-cd),small.safe,b.safe,span.safe,.pill.safe,.st-pill.ok,.todo-act button[data-a=done],a.ext,.todo-all,.hint-l.ok,.ci-r a,.lang-seg .on small,button.today .num,.link,#emptyRestore{color:var(--safe-text)!important}
+small.soon,b.soon,span.soon,.tile-d.soon,.pill.soon,.st-pill.warn,p.soon{color:var(--soon-text)!important}
+small.expired,b.expired,span.expired,.tile-d.expired,.danger-h,.btn.danger,.set-row.danger b,.set-row.danger .rt b{color:var(--expired-text)!important}
+.ver{color:var(--gold-text)!important}
+.toast button{color:var(--undo)!important}
+.badges em.b{color:var(--badge-fg)!important}.badges em.b.soon{background:var(--badge-soon)!important}.badges em.b.expired{background:var(--badge-exp)!important}
+@media (max-width:359px){.seg button{padding-inline:2px}}
+@media (max-width:359px){.ob1 .lv{padding-inline:4px}.ob1 .lv small{white-space:pre;letter-spacing:-.1px}}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--muted:#798792;--safe-text:#3DE69B;--soon-text:#F2B13C;--expired-text:#FF6B6B;--gold-text:#D9BC7E;--undo:#107E4D;--badge-fg:#08090A;--badge-soon:#F2B13C;--badge-exp:#FF6B6B}}
+.toast.err button{color:#fff!important}
+/* G13：确认面板的实底危险按钮保持白字（深色为深字），不受上面 .btn.danger 文字色影响 */
+.sheet .btns .btn.danger{color:#fff!important}
+:root[data-theme=dark] .sheet .btns .btn.danger{color:#08090A!important}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .sheet .btns .btn.danger{color:#08090A!important}}
