@@ -250,7 +250,7 @@ input,select,button,textarea{font:inherit;color:inherit}
 @keyframes leave{to{opacity:0;transform:scale(.96)}}@keyframes collapse{from{max-height:80px}to{max-height:0;min-height:0;padding:0;border-width:0}}
 /* 列表：留白代替分隔线 + WHOOP 短横条 */
 .list{padding:6px 14px}.list .row{border-bottom:0;padding:11px 0}
-.cd .bar{display:block;width:28px;height:3px;border-radius:2px;margin-top:5px;background:currentColor;opacity:.9}
+.cd .bar{display:block;width:20px;margin-left:auto;height:3px;border-radius:2px;margin-top:5px;background:currentColor;opacity:.9}
 .cd.safe .bar{background:var(--safe)}.cd.soon .bar{background:var(--soon)}.cd.expired .bar{background:var(--expired)}.cd.ended .bar{background:var(--muted)}
 .todo-row{border-bottom:0}
 /* 空状态 */
@@ -347,7 +347,7 @@ input,select,button,textarea{font:inherit;color:inherit}
 .ring-fg{transition:stroke-dashoffset 900ms var(--ease) 120ms}
 .btn:active,.tile:active,.row:active,.todo-act button:active{transform:scale(.97);transition:transform var(--t-fast) var(--ease)}
 .todo-row.leaving{animation:done var(--t-mid) var(--ease) forwards}
-@keyframes done{to{opacity:0;transform:translateX(24px);height:0;min-height:0;padding:0}}
+@keyframes done{to{opacity:0;transform:translateX(24px);max-height:0;min-height:0;padding:0}}
 .sheet{animation:sheetUp var(--t-mid) var(--spring) both}
 /* P1-7 图标 */
 .ic{background:color-mix(in srgb,var(--c) 12%,var(--card))}
@@ -364,7 +364,7 @@ input,select,button,textarea{font:inherit;color:inherit}
 .cal-grid button.sel{box-shadow:0 4px 12px -4px rgba(10,13,16,.4)}
 .cal-grid button.today{outline:1.5px solid var(--safe);outline-offset:-1.5px;background:transparent}
 /* P1-10 宽屏侧栏 */
-@media (min-width:900px){.tabbar a.on{background:var(--card-2);box-shadow:inset 2px 0 0 var(--safe)}.side-brand{font-size:18px;letter-spacing:-.01em}
+@media (min-width:900px){.tabbar a.on{background:var(--card-2);box-shadow:none;position:relative}.tabbar a.on::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:2px;background:var(--safe)}.tabbar a.on i::after{display:none}.side-brand{font-size:18px;letter-spacing:-.01em}
  :root[data-theme=dark] .tabbar .tab-add{background:var(--safe);color:#07090B!important}}
 @media (min-width:900px) and (prefers-color-scheme:dark){:root:not([data-theme=light]) .tabbar .tab-add{background:var(--safe);color:#07090B!important}}
 /* P2-11 宫格计数 / P2-13 设置分组行高 */
@@ -381,10 +381,43 @@ input,select,button,textarea{font:inherit;color:inherit}
 .icon-btn.sm{width:32px;height:32px}
 .icon-btn.sm:disabled{opacity:.25}
 .ic-pick{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:6px 0 12px}
-.ic-pick button{height:40px;border-radius:10px;border:1px solid var(--line,#e5e0d8);background:transparent;display:grid;place-items:center;color:inherit}
-.ic-pick button.on{border-color:var(--accent,#d9773b);background:color-mix(in srgb,var(--accent,#d9773b) 12%,transparent)}
-.col-pick{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 14px}
-.col-pick button{width:30px;height:30px;border-radius:50%;border:2px solid transparent;background:var(--c);box-shadow:inset 0 0 0 2px var(--surface,#fff)}
+.ic-pick button{height:40px;border-radius:10px;border:1px solid var(--line2);background:transparent;display:grid;place-items:center;color:inherit}
+.ic-pick button.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.col-pick{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 14px}
+.col-pick button{width:36px;height:36px;border-radius:50%;border:2px solid transparent;background:var(--c);box-shadow:inset 0 0 0 2px var(--card)}
 .col-pick button.on{border-color:var(--c)}
 .sug:empty{display:none}.sug{margin-top:-6px}.sug .btn.sm{padding:2px 10px;margin-left:6px}
 .viewer-bar label.btn{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+
+/* ===== 走查-v3 ===== */
+.todo-row{max-height:80px}.todo-row.leaving{overflow:hidden}
+/* 中性色改暖灰 */
+:root{--text2:#6B6E70;--muted:#A6A9A8;--line:rgba(13,13,11,.07);--line2:rgba(13,13,11,.10)}
+:root[data-theme=dark]{--text2:#8E9192}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--text2:#8E9192}}
+/* 分类管理 */
+.cm-row{min-height:70px;padding:12px 0;cursor:pointer;user-select:none}
+.cm-row small{color:var(--text2);opacity:1}
+.cm-row .hid-tag{font-style:normal;margin-left:6px;padding:1px 6px;border-radius:6px;background:var(--card-2);color:var(--text2);font-size:11px}
+.cm-act{display:none}
+.drag{width:32px;height:40px;display:grid;place-items:center;color:var(--muted);cursor:grab;touch-action:none;flex:none}
+.cm-row.dragging{background:var(--card-2);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.catmgr-hint{font-size:13px;color:var(--text2);text-align:left;padding:0 var(--s1) var(--s3)}
+.mv-seg button{display:inline-flex;align-items:center;justify-content:center;gap:4px}
+.mv-seg [data-smv] svg{transform:rotate(90deg)}
+/* 设置分组 */
+.set-list{padding-top:4px;padding-bottom:4px}
+.set-row{display:flex;align-items:center;gap:12px;min-height:52px;padding:8px 0;color:var(--text);border-bottom:1px solid var(--line)}
+.set-row:last-child{border:0}.set-row .grow{display:flex;flex-direction:column}.set-row small{color:var(--text2);font-size:12.5px;margin-top:2px}
+.set-row>svg{color:var(--muted)}.sum .set-row{min-height:44px;font-size:15px}
+.kv select{min-width:112px;max-width:52%;text-overflow:ellipsis;height:36px;border-radius:10px;color:var(--text)}
+.kv .ci-r{display:flex;align-items:center;gap:8px;justify-content:flex-end;min-width:0}
+.micro.pad{margin-top:var(--s3)}
+/* tabbar 选中小点 */
+.tabbar a.on i{position:relative}
+.tabbar a.on i::after{content:"";position:absolute;bottom:-6px;left:50%;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:var(--safe)}
+/* 深色材质 */
+:root[data-theme=dark] :is(.card,.tile,.ptile){background:linear-gradient(180deg,rgba(255,255,255,.035),transparent 40%),var(--card)}
+:root[data-theme=dark] .btn:not(.primary):not(.danger){background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.01)),var(--card)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) :is(.card,.tile,.ptile){background:linear-gradient(180deg,rgba(255,255,255,.035),transparent 40%),var(--card)}
+ :root:not([data-theme=light]) .btn:not(.primary):not(.danger){background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.01)),var(--card)}}

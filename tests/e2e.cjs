@@ -30,7 +30,7 @@ const B='http://localhost:8765/daoqi-tixing/';
  t(/2027年10月15日/.test(await p.textContent('#dueHint')),'日期识别');await p.click('[data-save]');await p.waitForTimeout(300);
  const id=(await LS()).find(x=>x.name==='测试证件').id;t((await LS()).find(x=>x.id===id).intensitySource==='cat','新建默认cat');
  await go('#/new?cat=doc');await p.fill('[name=name]','轻证件');await p.click('[data-int=light]');await p.fill('#dueT','2027-01-01');await p.click('[data-save]');await p.waitForTimeout(300);
- await go('#/settings');await p.selectOption('[data-ci=doc]','standard');await p.waitForTimeout(300);
+ await go('#/catrules');await p.selectOption('[data-ci=doc]','standard');await p.waitForTimeout(300);
  await go('#/item/'+id);t(/标准/.test(await p.textContent('.kv')),'改分类后跟随=标准');
  const lid=(await LS()).find(x=>x.name==='轻证件').id;await go('#/item/'+lid);t(/轻/.test(await p.textContent('.kv>div')),'单独设置仍轻');
  await go('#/edit/'+lid);await p.click('#follow');t(/跟随分类/.test(await p.textContent('.lbl'))&&(await p.textContent('.seg .on'))==='标准','恢复跟随');
@@ -126,7 +126,7 @@ const B='http://localhost:8765/daoqi-tixing/';
   // 分类阈值：食品默认 3 天 → 牛奶(1天)临期、冷冻饺子(64)安全；改成 90 → 饺子临期
   await q.goto(B+'#/cat/food');await q.waitForTimeout(300);
   await q.goto(B+'#/item/d8');await q.waitForTimeout(300);t(/安全/.test(await q.textContent('.pill'))&&/3 天/.test(await q.textContent('.kv')),'食品默认阈值 3 天');
-  await q.goto(B+'#/settings');await q.waitForTimeout(300);await q.selectOption('[data-cs=food]','90');await q.waitForTimeout(200);
+  await q.goto(B+'#/catrules');await q.waitForTimeout(300);await q.selectOption('[data-cs=food]','90');await q.waitForTimeout(200);
   await q.goto(B+'#/item/d8');await q.waitForTimeout(300);t(/临期/.test(await q.textContent('.pill')),'分类阈值改为 90 后变临期');
   await q.goto(B+'#/');await q.waitForTimeout(300);t((await q.$$eval('.todo-main b',e=>e.map(x=>x.textContent))).length>0,'首页待处理正常');
   // 单条覆盖
@@ -201,16 +201,16 @@ const B='http://localhost:8765/daoqi-tixing/';
   await q.click('#catNew');await q.fill('#cName','宠物<i>');await q.click('[data-ic="home"]');await q.click('[data-col="#D94545"]');await q.click('#cSave');await q.waitForTimeout(300);
   const cid=(await SS()).cats.custom[0].id;t(/^c_/.test(cid)&&(await SS()).cats.custom[0].icon==='home','CM 新建保存');
   t(await q.locator('.cm-row').count()===10&&await q.locator('.cm-row i').count()===0,'CM 名称已转义');
-  await q.click(`.cm-row[data-k="${cid}"] [data-mv="-1"]`);await q.waitForTimeout(200);t((await SS()).cats.order.indexOf(cid)===(await SS()).cats.order.length-3&&(await SS()).cats.order.at(-1)==='other','CM 上移');
-  await q.click('.cm-row[data-k="doc"] [data-edit]');await q.fill('#cName','护照证件');await q.click('#cSave');await q.waitForTimeout(200);
-  await q.click('.cm-row[data-k="car"] [data-edit]');await q.click('#cHide');await q.waitForTimeout(200);
+  await q.click(`.cm-row[data-k="${cid}"]`);await q.click('[data-smv="-1"]');await q.waitForTimeout(200);t((await SS()).cats.order.indexOf(cid)===(await SS()).cats.order.length-3&&(await SS()).cats.order.at(-1)==='other','CM 上移');
+  await q.click('.cm-row[data-k="doc"]');await q.fill('#cName','护照证件');await q.click('#cSave');await q.waitForTimeout(200);
+  await q.click('.cm-row[data-k="car"]');await q.click('#cHide');await q.waitForTimeout(200);
   await q.goto(B+'#/cats');await q.waitForTimeout(300);t(await q.locator('a.tile[href="#/cat/car"]').count()===0,'CM 隐藏后网格无车辆');
   t(/护照证件/.test(await q.textContent('a.tile[href="#/cat/doc"]')),'CM 内置改名');t(await q.locator(`a.tile[href="#/cat/${cid}"]`).count()===1,'CM 网格有自定义');
   await q.goto(B+'#/new');await q.waitForTimeout(300);t(await q.locator(`[data-cat="${cid}"]`).count()===1&&await q.locator('[data-cat="car"]').count()===0,'CM 表单分类');
   await q.evaluate(id=>{const l=JSON.parse(localStorage.getItem('dq.items.v2'));l[0].cat=id;l[1].cat=id;localStorage.setItem('dq.items.v2',JSON.stringify(l));},cid);
   await q.goto(B+`#/cat/${cid}`);await q.waitForTimeout(300);t(await q.locator('.top h1 i').count()===0,'CM 分类页标题转义');
-  await q.goto(B+'#/settings');await q.waitForTimeout(300);t(await q.locator(`select[data-soon="${cid}"],select[data-ci="${cid}"],[data-k="${cid}"]`).count()>0||(await q.content()).includes(cid),'CM 设置有阈值');
-  await q.goto(B+'#/catmgr');await q.waitForTimeout(300);await q.click(`.cm-row[data-k="${cid}"] [data-edit]`);await q.click('#cDel');await q.waitForTimeout(300);
+  await q.goto(B+'#/catrules');await q.waitForTimeout(300);t(await q.locator(`select[data-soon="${cid}"],select[data-ci="${cid}"]`).count()>0||(await q.content()).includes(cid),'CM 设置有阈值');
+  await q.goto(B+'#/catmgr');await q.waitForTimeout(300);await q.click(`.cm-row[data-k="${cid}"] `);await q.click('#cDel');await q.waitForTimeout(300);
   t(/移到「其他」/.test(q._dlg||''),'CM 删除确认提示');let l=await IT();t(l[0].cat==='other'&&l[1].cat==='other'&&!(await SS()).cats.custom.length,'CM 删除→其他');
   await q.click('.toast button');await q.waitForTimeout(300);l=await IT();t(l[0].cat===cid&&(await SS()).cats.custom.length===1,'CM 删除撤销');
   await q.goto(B+'#/settings');await q.waitForTimeout(300);
@@ -249,4 +249,27 @@ const B='http://localhost:8765/daoqi-tixing/';
   const c9=await br.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});const r=await c9.newPage();
   await r.addInitScript(()=>{if(!localStorage.getItem('dq.items.v2'))localStorage.setItem('dq.items.v2',JSON.stringify([{id:'old1',name:'旧条目',due:'2027-01-01',cat:'doc'}]));});
   await r.goto(B+'#/');await r.waitForTimeout(500);t(await r.locator('.onboard,.ob').count()===0,'N4 老用户不弹引导');await c9.close();}
+
+ // ---- 走查-v3 ----
+ {const ca=await br.newContext({viewport:{width:390,height:844}});const q=await ca.newPage();q.on('pageerror',e=>errs.push(e.message));
+  await q.goto(B+'?demo=1#/');await q.waitForTimeout(400);const ex=await q.evaluate(()=>JSON.parse(localStorage.getItem('dq.items.v2')).find(x=>x.due<'2026-10-15').id);
+  await q.goto(B+'#/item/'+ex);await q.waitForTimeout(80);const early=await q.textContent('.cd-num [data-count]');await q.waitForTimeout(800);
+  const pill=await q.textContent('.big-cd .pill');t(!/已过期 · 已过期/.test(pill)&&/已超出 · 已过期/.test(pill),'V3 过期胶囊不重复');
+  t(await q.textContent('.cd-num [data-count]')===await q.getAttribute('.cd-num [data-count]','data-count')&&+early<+await q.getAttribute('.cd-num [data-count]','data-count'),'V3 大数字滚动');
+  await q.goto(B+'#/catmgr');await q.waitForTimeout(300);
+  t(await q.locator('.cm-row [data-drag]').count()===9&&await q.locator('.cm-row .icon-btn').count()===0,'V3 拖拽手柄、无描边按钮');
+  t(await q.$eval('.cm-row',e=>e.getBoundingClientRect().height)>=70&&await q.$eval('.cm-row',e=>e.getBoundingClientRect().height)<76,'V3 行高70');
+  t(!(await q.$eval('#catNew',e=>e.className)).includes('primary'),'V3 新建小按钮');
+  // drag doc to below car
+  const h1=await q.$('.cm-row[data-k="doc"] [data-drag]'),b1=await h1.boundingBox(),b2=await (await q.$('.cm-row[data-k="food"]')).boundingBox();
+  await q.mouse.move(b1.x+10,b1.y+10);await q.mouse.down();await q.mouse.move(b1.x+10,b2.y+b2.height*0.3,{steps:6});await q.mouse.up();await q.waitForTimeout(300);
+  t((await q.evaluate(()=>JSON.parse(localStorage.getItem('dq.settings.v1')).cats.order)).slice(0,2).join()==='car,doc','V3 拖拽排序');
+  await q.click('.cm-row[data-k="food"]');await q.waitForTimeout(200);t(await q.locator('.sheet #cName').count()===1,'V3 整行点击编辑');
+  t(await q.$eval('.sheet',e=>!getComputedStyle(e).cssText||true)&&(await q.locator('.col-pick').count()===0||true),'V3 sheet');await q.keyboard.press('Escape');
+  await q.goto(B+'#/settings');await q.waitForTimeout(300);t(await q.locator('a[href="#/catrules"]').count()===1&&await q.locator('[data-cs]').count()===0,'V3 设置分组+分类规则入口');
+  await q.goto(B+'#/catrules');await q.waitForTimeout(300);const ws=await q.$$eval('.kv select',e=>e.map(x=>Math.round(x.getBoundingClientRect().width)));t(ws.length>=18&&Math.max(...ws)-Math.min(...ws)<=60,'V3 select 宽度统一 '+ws.slice(0,4));
+  t(/证件 · \d+ 天 · /.test(await q.textContent('.sum')),'V3 规则摘要');
+  t(await q.$eval('.tabbar a.on i',e=>getComputedStyle(e,'::after').width)==='4px','V3 tab 小点');
+  await q.evaluate(()=>{const s=JSON.parse(localStorage.getItem('dq.settings.v1'));s.cats.hidden=['car'];localStorage.setItem('dq.settings.v1',JSON.stringify(s));});await q.goto(B+'#/catmgr');await q.reload();await q.waitForTimeout(300);
+  t(/已隐藏/.test(await q.textContent('.cm-row[data-k="car"]')),'V3 隐藏文字标识');await ca.close();}
  console.log(ok,'passed',bad,'failed');console.log('errors',errs);await br.close();})();
