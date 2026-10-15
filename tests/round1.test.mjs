@@ -31,5 +31,5 @@ console.log(ok,'passed',bad,'failed');process.exitCode=bad?1:0;
 {const {parseInput}=await import('../js/dates.js');const {sanitize}=await import('../js/sanitize.js');
  let ok2=0;const c=(x,m)=>{if(x)ok2++;else{console.log('FAIL',m);process.exitCode=1;}};
  c(parseInput('１５．１０．２０２６')==='2026-10-15','N3 全角日期');c(parseInput('２０２６－１０－１５')==='2026-10-15','N3 全角横线');
- c(sanitize({name:'ＡＢＣ',due:'１５．１０．２０２６',qty:'３'}).qty===3,'N3 sanitize 全角数字');c(sanitize({name:'ＡＢＣ',due:'2026-10-15'}).name==='ABC','N3 名称 NFKC');
+ c(sanitize({name:'ＡＢＣ',due:'１５．１０．２０２６',qty:'３'}).qty===3,'N3 sanitize 全角数字');c(sanitize({name:'ＡＢＣ',due:'2026-10-15'}).name==='ＡＢＣ','N3 名称原样保存（R12-3，比较时才 NFKC）');
  console.log(ok2,'N3 passed');}

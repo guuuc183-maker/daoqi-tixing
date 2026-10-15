@@ -30,7 +30,7 @@ export function detectRegion(lang=globalThis.navigator?.language,tz=(()=>{try{re
   // v1.7.4 PM：语言地区与时区地区都已知且不同 → 两组都显示，时区组在前（如 'ro+cn'）
   if(lr&&tr&&lr!==tr)return tr+'+'+lr;return tr||lr||'all';}
 const regs=r=>String(r||'all').split('+');
-const regionOf=s=>s.region||detectRegion();
+const regionOf=s=>(s.region&&s.region!=='auto'?s.region:'')||detectRegion();
 applyCats(S.settings());
 // 静态外壳（底栏、侧栏品牌、标题）跟随语言
 function chrome(){document.title=t('app.name');const b=document.querySelector('.side-brand');if(b&&b.lastChild&&b.lastChild.nodeType===3)b.lastChild.textContent=t('app.name');
@@ -496,7 +496,7 @@ function settings(){
    ${badgeOK?`<div class="kv"><div><span>${t('ui.settings.18')}</span><b><button class="btn sm" id="badge">${s.badge?t('ui.settings.19'):t('ui.settings.20')}</button></b></div></div>`:''}
    <p class="small muted">${t('ui.settings.21')}</p>
 
-   <div class="kv"><div><span>${t('ui.settings.22')}</span><select id="region">${[['all',t('ui.settings.23')],['cn',t('region.cn')],['ro',t('region.ro')]].map(([k,v])=>`<option value="${k}" ${(s.region||regionOf(s))===k?'selected':''}>${v}</option>`).join('')}</select></div></div></section>
+   <div class="kv"><div><span>${t('ui.settings.22')}</span><select id="region">${[['auto',t('region.auto')],['all',t('ui.settings.23')],['cn',t('region.cn')],['ro',t('region.ro')]].map(([k,v])=>`<option value="${k}" ${(s.region||'auto')===k?'selected':''}>${v}</option>`).join('')}</select></div></div></section>
   <div class="micro pad">${t('ui.settings.24')}</div><section class="card push-note"><span class="bk-ic">${icon('bell',20)}</span><div><b>${t('ui.settings.25')}</b><span class="ver-pill">${t('ui.settings.26')}</span>
    <p>${t('set.push')}${t('ui.settings.27')}</p>
    <button class="btn" id="icsS2">${icon('cal',16)}${t('ui.icsSheet.1')}</button></div></section>

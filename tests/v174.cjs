@@ -31,7 +31,7 @@ const tpl=(await import('../js/templates.js')).TEMPLATES;const g=i=>tpl.find(x=>
 T(g('cnId').renew===120&&g('cnId').int==='custom'&&String(g('cnId').days)==='60,30,7','cnId');
 for(const i of ['cnInspectionMark','cnInspection'])T(g(i).int==='custom'&&String(g(i).days)==='30,7',i);
 // R11-5 链接
-T(g('cnId').url==='http://www.npc.gov.cn/c2/c12435/201905/t20190522_81831.html','url id');T(g('cnPassport').url==='https://www.nia.gov.cn/n741440/n741547/c1014017/content.html','url pp');T(g('cnDriving').url==='https://www.gov.cn/gongbao/2025/issue_11866/202502/content_7004031.html','url dl');
+T(g('cnId').url==='https://www.gov.cn/gongbao/content/2003/content_62254.htm','url id');T(g('cnPassport').url==='https://www.nia.gov.cn/n741440/n741547/c1014017/content.html','url pp');T(g('cnDriving').url==='https://www.gov.cn/gongbao/2025/issue_11866/202502/content_7004031.html','url dl');
 const zh=(await import('../js/i18n/zh.js')).zh;T(!zh['tplDocs.cnCompulsory'].includes('待核实'),'待核实');
 // R11-4
 const zv=Object.entries(zh).filter(([k])=>!k.startsWith('tplOld.'));T(!zv.some(([k,v])=>/RCA/.test(v)&&/交强险/.test(String(v))),'RCA 交强险');T(!zv.some(([k,v])=>/rovinieta/.test(String(v))),'rovinieta lower');

@@ -8,7 +8,7 @@ const newId=()=>(globalThis.crypto?.randomUUID?crypto.randomUUID():Date.now().to
 const day=v=>{const d=typeof v==='string'&&valid(v)?v:parseInput(v);return d||undefined;};
 const iso=v=>typeof v==='string'&&!isNaN(Date.parse(v))&&/^\d{4}-\d{2}-\d{2}/.test(v)?new Date(v).toISOString():undefined;
 const num=(v,max=1e6)=>{if(v===''||v==null)return '';const n=Number(typeof v==='string'?v.normalize('NFKC').trim():v);return Number.isFinite(n)&&n>=0&&n<=max?Math.round(n):'';};
-const str=(v,max)=>v==null?'':String(v).normalize('NFKC').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').trim().slice(0,max);
+const str=(v,max)=>v==null?'':String(v).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').trim().slice(0,max);
 // 返回干净对象或 {error}
 export function sanitize(o){
   if(!o||typeof o!=='object')return {error:t('err.item')};
