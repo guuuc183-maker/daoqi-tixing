@@ -2,7 +2,7 @@ const {chromium}=require('playwright-core');const fs=require('fs');
 const B='http://localhost:8765/daoqi-tixing/';
 (async()=>{const br0=await chromium.launch({executablePath:'/usr/bin/google-chrome'});// 旧用例默认展开「更多设置」（v1.6 默认折叠）；v1.6 验收用例用 br0 原始上下文
 const OPEN_MORE=()=>{new MutationObserver(()=>{const m=document.querySelector('#more:not([data-t]),details.more-set:not([open])');if(m){m.dataset.t=1;if(!m.open)m.open=true;}}).observe(document,{childList:true,subtree:true});};
-const br={newContext:async o=>{const c=await br0.newContext(o);c.setDefaultTimeout(5000);await c.addInitScript(OPEN_MORE);return c;},close:()=>br0.close()};
+const br={newContext:async o=>{const c=await br0.newContext(o);c.setDefaultTimeout(5000);await c.addInitScript(OPEN_MORE);await c.addInitScript(()=>{new MutationObserver(()=>{const b=document.querySelector('.sheet #askOk');const h=document.querySelector('.sheet h3');if(b&&h&&/^将覆盖/.test(h.textContent)&&!b.dataset.auto){b.dataset.auto=1;setTimeout(()=>b.click(),30);}}).observe(document,{childList:true,subtree:true});});return c;},close:()=>br0.close()};
  const c=await br.newContext({viewport:{width:390,height:844},acceptDownloads:true,reducedMotion:'reduce'});const p=await c.newPage();const errs=[];
  p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>m.type()==='error'&&errs.push(m.text()));p.on('dialog',d=>d.accept());
  let ok=0,bad=0;const t=(c,m)=>{if(c)ok++;else{bad++;console.log('FAIL',m);}};
@@ -211,7 +211,7 @@ const br={newContext:async o=>{const c=await br0.newContext(o);c.setDefaultTimeo
   await q.goto(B+`#/cat/${cid}`);await q.waitForTimeout(300);t(await q.locator('.top h1 i').count()===0,'CM 分类页标题转义');
   await q.goto(B+'#/catrules');await q.waitForTimeout(300);t(await q.locator(`select[data-soon="${cid}"],select[data-ci="${cid}"]`).count()>0||(await q.content()).includes(cid),'CM 设置有阈值');
   await q.goto(B+'#/catmgr');await q.waitForTimeout(300);await q.click(`.cm-row[data-k="${cid}"] `);await q.click('#cDel');await q.waitForTimeout(300);
-  t(/移到「其他」/.test(q._dlg||''),'CM 删除确认提示');let l=await IT();t(l[0].cat==='other'&&l[1].cat==='other'&&!(await SS()).cats.custom.length,'CM 删除→其他');
+  t(/移到「其他」/.test(await q.locator('.sheet').innerText().catch(()=>''))&&!q._dlg,'CM 删除确认提示');await q.click('#askOk');await q.waitForTimeout(300);let l=await IT();t(l[0].cat==='other'&&l[1].cat==='other'&&!(await SS()).cats.custom.length,'CM 删除→其他');
   await q.click('.toast button');await q.waitForTimeout(300);l=await IT();t(l[0].cat===cid&&(await SS()).cats.custom.length===1,'CM 删除撤销');
   await q.goto(B+'#/settings');await q.waitForTimeout(300);
   fs.writeFileSync('/tmp/nc.csv','名称,到期日,分类\n鱼食,2026-12-01,水族\n猫砂,2026-12-02,'+'宠物<i>'+'\n');
@@ -365,7 +365,7 @@ const br={newContext:async o=>{const c=await br0.newContext(o);c.setDefaultTimeo
     if(await q.inputValue('[name=cat]')!=='home'){t(false,'MAN 被覆盖 '+n);}}
   t(await q.inputValue('[name=cat]')==='home','MAN 6 个强关键词都没覆盖');await q.fill('#dueT','01.12.2026');await q.click('[data-save]');await q.waitForTimeout(300);
   t((await IT()).find(i=>i.name==='面包').cat==='home','MAN 保存后存储仍是手动分类');
-  await q.goto(B+'#/');await q.goto(B+'#/new');await q.waitForTimeout(300);t(/上次使用/.test(await q.textContent('.cat-field')),'3S 有 lastCat 显示上次使用');
+  await q.goto(B+'#/');await q.goto(B+'#/new');await q.waitForTimeout(300);t(/· 默认/.test(await q.textContent('.cat-field'))&&!/上次使用/.test(await q.textContent('.cat-field')),'N9 有 lastCat 也显示「X · 默认」');
   await q.click('[data-cat="food"]');await q.fill('[name=name]','护照');await q.click('#dueT');await q.waitForTimeout(120);t(await q.inputValue('[name=cat]')==='food','MAN chip 选择后不覆盖');
   await q.click('[data-cat="doc"]');await q.click('[data-tpl="护照"], [data-tpl="中国·普通护照"]');await q.waitForTimeout(120);t(/来自模板/.test(await q.textContent('#catSug')),'3S 来自模板');
   // 照片 3 列 + 封面 + 删除角标 + 超出提示

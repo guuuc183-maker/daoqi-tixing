@@ -93,4 +93,33 @@ const {chromium}=require('playwright-core');const B='http://localhost:8765/daoqi
   await q.click('#clear');await q.waitForTimeout(300);await Promise.all([q.waitForEvent('download'),q.click('#askOk')]);await q.waitForTimeout(500);t((await IT(q)).filter(i=>!i.deletedAt).length===0,'P0-D 确认后清空');await c.close();}
  // P0-C 旧文案不得残留
  {const fs=require('fs');const src=fs.readFileSync('/workspace/到期提醒/app/js/app.js','utf8').replace(/\/\/.*$/gm,'');t(!/今日待处理|已处理|待处理|临期/.test(src),'P0-C 旧文案残留 '+(src.match(/.{10}(今日待处理|已处理|待处理|临期).{10}/)||[''])[0]);}
+
+ // v1.6.2 R6
+ {const [c,q]=await ctx();await q.goto(B+'?demo=1#/settings');await q.waitForTimeout(400);
+  // R6-4 老用户 lastCat：显示「X · 默认」、全部行无高亮
+  await q.evaluate(()=>{const s=JSON.parse(localStorage.getItem('dq.settings.v1'));s.lastCat='med';localStorage.setItem('dq.settings.v1',JSON.stringify(s));});await q.goto(B+'#/');await q.goto(B+'#/new');await q.reload();await q.waitForTimeout(300);
+  t(/药品 · 默认/.test(await q.textContent('.cat-field'))&&await q.locator('[data-cat].on').count()===0&&!/上次使用/.test(await q.textContent('#view')),'R6-4 lastCat 显示「药品 · 默认」无高亮');
+  // R6-5 保存再加一条后焦点在名称
+  await q.fill('[name=name]','焦点A');await q.fill('#dueT','01.12.2026');await q.click('#saveMore');await q.waitForTimeout(400);t(await q.evaluate(()=>document.activeElement?.name)==='name','R6-5 焦点回到名称');
+  // R6-1 导入覆盖确认（同 id）
+  await q.goto(B+'#/settings');await q.waitForTimeout(300);const [d]=await Promise.all([q.waitForEvent('download'),q.click('#bkNow')]);await d.saveAs('/tmp/r6.json');
+  await q.evaluate(()=>{const l=JSON.parse(localStorage.getItem('dq.items.v2'));l[0].name='改过的';localStorage.setItem('dq.items.v2',JSON.stringify(l));});await q.reload();await q.waitForTimeout(300);
+  await q.setInputFiles('#imp','/tmp/r6.json');await q.waitForTimeout(400);await q.click('#impGo');await q.waitForTimeout(300);
+  t(/将覆盖 \d+ 条/.test(await q.textContent('.sheet h3'))&&await q.locator('#askOk.danger').count()===1,'R6-1 导入覆盖确认 + 危险色');
+  await q.click('#askNo');await q.waitForTimeout(200);t((await IT(q))[0].name==='改过的','R6-1 取消不覆盖');
+  await q.click('#impGo');await q.waitForTimeout(200);await q.click('#askOk');await q.waitForTimeout(500);t((await IT(q))[0].name!=='改过的','R6-1 确认后覆盖');
+  const t0=Date.now();await q.waitForSelector('.toast .undo');await q.waitForTimeout(7000);t(await q.locator('.toast .undo').count()===1,'R6-2 导入撤销 8 秒内仍在');
+  await q.click('.toast .undo');await q.waitForTimeout(300);t((await IT(q))[0].name==='改过的','R6-2 导入可撤销');
+  // R6-2 清空回收站：8 秒撤销 + 照片恢复
+  await q.goto(B+'#/item/d3');await q.waitForTimeout(300);await q.setInputFiles('[data-addph]:not([capture])','/workspace/到期提醒/app/tests/fixtures-photo.jpg');await q.waitForTimeout(1500);
+  await q.click('#del');await q.waitForTimeout(400);await q.goto(B+'#/trash');await q.waitForTimeout(300);await q.click('#empty');await q.waitForTimeout(200);t(await q.locator('#askOk').count()===1,'清空回收站确认');await q.click('#askOk');await q.waitForTimeout(7000);
+  t(await q.locator('.toast .undo').count()===1,'R6-2 清空回收站撤销 8 秒内仍在');await q.click('.toast .undo');await q.waitForTimeout(500);
+  await q.evaluate(()=>{const l=JSON.parse(localStorage.getItem('dq.items.v2'));const x=l.find(i=>i.id==='d3');x.deletedAt=null;localStorage.setItem('dq.items.v2',JSON.stringify(l));});
+  await q.goto(B+'#/item/d3');await q.waitForTimeout(1200);t(await q.evaluate(()=>[...document.querySelectorAll('img[data-ph]')].some(i=>i.src&&!i.classList.contains('missing'))),'R6-2 撤销后照片还在');
+  // R6 删除分类：应用内确认
+  await q.goto(B+'#/catmgr');await q.waitForTimeout(200);await q.evaluate(()=>{const s=JSON.parse(localStorage.getItem('dq.settings.v1'));s.cats={...(s.cats||{}),custom:[{id:'c_x',name:'临时',icon:'box',color:'#D94545'}]};localStorage.setItem('dq.settings.v1',JSON.stringify(s));});await q.reload();await q.waitForTimeout(300);
+  let nat=0;q.on('dialog',dg=>{nat++;dg.dismiss();});await q.click('.cm-row[data-k="c_x"]').catch(()=>q.click('text=临时'));await q.waitForTimeout(300);await q.click('#cDel');await q.waitForTimeout(300);
+  t(nat===0&&await q.locator('#askOk').count()===1,'R6 删除分类用应用内确认');await q.click('#askOk');await q.waitForTimeout(300);t(!(await q.evaluate(()=>JSON.parse(localStorage.getItem('dq.settings.v1')).cats.custom.some(d=>d.id==='c_x'))),'删除分类执行');
+  await c.close();}
+ {const fs=require('fs');const src=fs.readFileSync('/workspace/到期提醒/app/js/app.js','utf8');t(!/\bconfirm\(/.test(src),'没有原生 confirm');t((src.match(/UNDO_MS/g)||[]).length>=2&&!/undo\?\(ms\|\|5000\)/.test(src),'撤销时长共用常量');}
  console.log(ok,'passed',bad,'failed');console.log('errors',errs);await br.close();})();

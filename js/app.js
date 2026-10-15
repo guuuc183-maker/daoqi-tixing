@@ -31,7 +31,9 @@ function toast(m,undo,err,extra,ms){if(!err&&Date.now()<errUntil)return;if(err)e
   t.innerHTML=`<span>${h(m)}</span>${extra?`<button class="x2">${h(extra.label)}</button>`:''}${undo?'<button class="undo">撤销</button>':''}`;document.body.appendChild(t);toastEl=t;
   if(extra)t.querySelector('.x2').onclick=()=>{t.remove();extra.fn();};
   if(undo)t.querySelector('.undo').onclick=()=>{if(S.undo()){t.remove();toast('已撤销');route();}else route();};
-  if(err)t.classList.add('err');toastTimer=setTimeout(()=>t.remove(),undo?(ms||5000):err?3000:1900);}
+  if(err)t.classList.add('err');toastTimer=setTimeout(()=>t.remove(),undo?(ms||UNDO_MS):err?3000:1900);}
+// 所有撤销 toast 共用同一个时长（PM：8 秒）
+const UNDO_MS=8000;
 function act(msg,fn,extra,ms){S.snapshot();fn();if(S.lastSaveFailed)return false;toast(msg,true,false,extra,ms);updateBadge();return true;}
 // 底部弹出表单
 // 应用内二次确认（危险操作统一用它，不用原生 confirm）
@@ -313,7 +315,8 @@ function form(id,q){
   let moreOpen=!!(ex&&(ex.intensitySource==='item'||ex.soonSource==='item'||ex.renewMonths||ex.qty||ex.location||ex.note||ex.prodDate||ex.photos?.length));
   // 分类来源：none 未选 / last 上次使用 / auto 按名称推断 / manual 手动 / tpl 来自模板
   let fromTpl=!!q.get('tpl');const lastOK=!!(CATEGORIES[s.lastCat]&&!CATEGORIES[s.lastCat].hidden);
-  const catSrc=()=>ex?'edit':fromTpl?'tpl':picked?'manual':auto?'auto':lastOK?'last':'none';
+  // N9：上次分类也只是「默认」，显示「X · 默认」、全部行不高亮，直到用户自己选
+  const catSrc=()=>ex?'edit':fromTpl?'tpl':picked?'manual':auto?'auto':'none';
   const sugHTML=(typing)=>{const src=catSrc();if(src==='edit')return '';
     if(src==='manual'||src==='tpl')return `<span class="man-tag">${icon('check',14)}${src==='tpl'?'来自模板':'已手动选择 · 改名称不会再覆盖'}</span>`;
     if(!sug)return '';const two=cands.length>1,applied=auto&&it.cat===sug;
@@ -405,7 +408,7 @@ function form(id,q){
         if(picked&&guess&&guess!==it.cat){x.catLearn={...(x.catLearn||{}),[nn]:it.cat};const ks=Object.keys(x.catLearn);if(ks.length>300)delete x.catLearn[ks[0]];}
         if(TEMPLATES.some(tp=>tp.name===it.name)){const u={...(x.tplUse||{})};u[it.name]={n:((u[it.name]||{}).n||0)+1,at:new Date().toISOString()};x.tplUse=u;}
         S.saveSettings(x);}
-      if(more){toast(t('form.savedMore'),true);sessionStorage.setItem('dq.prefill',JSON.stringify({cat:it.cat}));route();return;}
+      if(more){toast(t('form.savedMore'),true);sessionStorage.setItem('dq.prefill',JSON.stringify({cat:it.cat}));route();setTimeout(()=>document.querySelector('#f [name=name]')?.focus(),0);return;}
       if(from&&S.get(from)&&!S.get(from).deletedAt){afterRoute=()=>sheet(`<h3>旧的这批用完了吗？</h3><p class="small muted">「${h(S.get(from).name)}」到期 ${h(S.get(from).due)}</p><div class="actions"><button class="btn primary" id="used">用完了，移入回收站</button><button class="btn" id="keep">还有，保留</button></div>`,w=>{
           w.querySelector('#used').onclick=()=>{closeSheet();act('旧批次已移入回收站',()=>S.softDelete([from]));};w.querySelector('#keep').onclick=closeSheet;});location.hash='#/item/'+saved.id;return;}
       toast(ex?'已保存':t('form.saved',{name:it.name}),true);location.hash=ex?(formOrigin||'#/item/'+saved.id):(formOrigin||'#/');};
@@ -486,7 +489,7 @@ function settings(){
   view.querySelectorAll('[data-dup]').forEach(b=>b.onclick=()=>{importState.dup=b.dataset.dup;settings();});
   view.querySelectorAll('[data-nc]').forEach(b=>b.onclick=()=>{importState.newCat=b.dataset.nc;settings();});
   $('#impNo')&&($('#impNo').onclick=()=>{importState=null;settings();});
-  $('#impGo')&&($('#impGo').onclick=()=>{const a=importState.a,rows=[...a.add,...a.upd,...(importState.dup==='keep'?a.dup.map(r=>({...r,item:{...r.item,id:undefined}})):[])];
+  $('#impGo')&&($('#impGo').onclick=async()=>{const a=importState.a;if(a.upd.length&&!await ask(`将覆盖 ${a.upd.length} 条`,'同 id 的条目会被备份里的版本替换，导入后可以撤销。',`覆盖 ${a.upd.length} 条`))return;const rows=[...a.add,...a.upd,...(importState.dup==='keep'?a.dup.map(r=>({...r,item:{...r.item,id:undefined}})):[])];
     S.snapshot();const cs=st();cs.cats=cs.cats||{};cs.cats.custom=cs.cats.custom||[];
     // 分类按名称合并；没有条目引用的分类不创建（round4 P1）
     const remap={};for(const d of importState.categories||[]){if(!d||!/^c_[a-z0-9]{1,24}$/.test(d.id)||CATEGORIES[d.id]||cs.cats.custom.some(c=>c.id===d.id))continue;const nm=String(d.name||'').normalize('NFKC').trim().slice(0,20);
@@ -499,10 +502,10 @@ function settings(){
     if(importState.newCat==='create'){const made={};for(const r of rows)if(r.newCat){if(!made[r.newCat]){const id='c_'+Math.random().toString(36).slice(2,10);made[r.newCat]=id;cs.cats.custom.push({id,name:r.newCat,icon:'box',color:COLORS[cs.cats.custom.length%COLORS.length]});}r.item.cat=made[r.newCat];}}
     S.saveSettings(cs);applyCats(cs);const l=rows.map(r=>inferSource(r.item,cs));
     const ph=importState.photos;importState=null;S.merge(l);if(!S.lastSaveFailed){toast(t('restore.toast',{n:l.length}),true);updateBadge();}
-    if(ph&&!S.lastSaveFailed&&globalThis.indexedDB){P.importPhotos(ph,l.flatMap(i=>i.photos||[])).then(n=>{if(n)toast(t('restore.toastPh',{n:l.length,m:n}));}).catch(photoErr);}settings();});
+    if(ph&&!S.lastSaveFailed&&globalThis.indexedDB){P.importPhotos(ph,l.flatMap(i=>i.photos||[])).then(n=>{if(n)toast(t('restore.toastPh',{n:l.length,m:n}),true);}).catch(photoErr);}settings();});
   $('#obAgain').onclick=onboarding;
   $('#demo').onclick=()=>{act('已载入示例数据',seed);settings();};
-  $('#clear').onclick=async()=>{if(!n)return;if(!await ask(`清空全部 ${n} 条？`,'会先自动下载一份备份；清空后 30 天内可以在回收站恢复。',`清空 ${n} 条`))return;await exportJSON();act(`已清空 ${n} 条（已自动下载备份，可在回收站恢复）`,()=>S.softDelete(S.all().map(i=>i.id)),null,8000);settings();};
+  $('#clear').onclick=async()=>{if(!n)return;if(!await ask(`清空全部 ${n} 条？`,'会先自动下载一份备份；清空后 30 天内可以在回收站恢复。',`清空 ${n} 条`))return;await exportJSON();act(`已清空 ${n} 条（已自动下载备份，可在回收站恢复）`,()=>S.softDelete(S.all().map(i=>i.id)));settings();};
 }
 // 分类规则二级页：每个分类的快到期天数 + 默认提醒强度
 function catRules(){const s=st(),nItem=k=>S.all().filter(i=>i.cat===k&&inferSource(i,s).intensitySource==='item').length;
@@ -564,7 +567,7 @@ function catSheet(k,onCreated){const c=k?CATEGORIES[k]:{name:'',icon:'box',color
      closeSheet();act(k?'分类已更新':`已新建分类「${name}」`,()=>S.saveSettings(x));catMgr();};
    w.querySelector('#cHide')&&(w.querySelector('#cHide').onclick=()=>{const x=st();x.cats=x.cats||{};const hd=new Set(x.cats.hidden||[]);hd.has(k)?hd.delete(k):hd.add(k);x.cats.hidden=[...hd];
      closeSheet();act(hd.has(k)?`已隐藏「${c.name}」`:`已显示「${c.name}」`,()=>S.saveSettings(x));catMgr();});
-   w.querySelector('#cDel')&&(w.querySelector('#cDel').onclick=()=>{if(!confirm(`删除分类「${c.name}」？${n?`其中的 ${n} 条会移到「其他」。`:''}可以撤销。`))return;
+   w.querySelector('#cDel')&&(w.querySelector('#cDel').onclick=async()=>{if(!await ask(`删除分类「${c.name}」？`,`${n?`其中的 ${n} 条会移到「其他」。`:''}可以撤销。`,'删除分类'))return;
      closeSheet();act(`已删除分类「${c.name}」${n?`，${n} 条已移到「其他」`:''}`,()=>{
        S.replaceAll(S.raw().map(i=>i.cat===k?{...i,cat:'other'}:i));const x=st();x.cats.custom=(x.cats.custom||[]).filter(d=>d.id!==k);x.cats.order=(x.cats.order||[]).filter(o=>o!==k);
        if(x.catSoon)delete x.catSoon[k];if(x.catIntensity)delete x.catIntensity[k];S.saveSettings(x);});catMgr();});});}
