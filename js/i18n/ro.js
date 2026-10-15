@@ -144,7 +144,7 @@ export const ro={
  "tpl.cnDrivingCheck": "Verificare permis (China)",
  "tplDocs.cnDrivingCheck": "Verifică la autoritățile oficiale din China (poliție, imigrări, permise auto). Pentru autobuze și camioane: în 30 de zile după fiecare ciclu de puncte; pentru autoturisme, de obicei la schimbarea permisului (Ordinul MPS nr. 172, art. 72).",
  "tpl.cnCompulsory": "Asigurare obligatorie (China)",
- "tplDocs.cnCompulsory": "Verifică la autoritățile oficiale din China (poliție, imigrări, permise auto). Durata: 1 an.",
+ "tplDocs.cnCompulsory": "Verifică polița. Durata e de obicei 1 an.",
  "tpl.cnCommercial": "Asigurare auto facultativă (China)",
  "tplDocs.cnCommercial": "Verifică la autoritățile oficiale din China (poliție, imigrări, permise auto). De obicei 1 an; vezi polița.",
  "tpl.cnInspection": "Inspecție la stație (China, ≤9 locuri)",

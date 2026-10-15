@@ -144,7 +144,7 @@ export const en={
  "tpl.cnDrivingCheck": "Licence review (China)",
  "tplDocs.cnDrivingCheck": "Check with the official Chinese authorities (police, exit-entry, vehicle office). Buses and trucks: within 30 days after each points cycle; cars: usually at licence renewal (MPS Order No. 172, Art. 72).",
  "tpl.cnCompulsory": "Compulsory motor insurance (China)",
- "tplDocs.cnCompulsory": "Check with the official Chinese authorities (police, exit-entry, vehicle office). Term: 1 year.",
+ "tplDocs.cnCompulsory": "Check your policy. Usually valid for 1 year.",
  "tpl.cnCommercial": "Commercial car insurance (China)",
  "tplDocs.cnCommercial": "Check with the official Chinese authorities (police, exit-entry, vehicle office). Usually 1 year; see your policy.",
  "tpl.cnInspection": "Station inspection (China, ≤9 seats)",
