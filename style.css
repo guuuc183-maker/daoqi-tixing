@@ -259,7 +259,9 @@ input,select,button,textarea{font:inherit;color:inherit}
 .empty-state h2{font-size:21px;font-weight:700;margin:4px 0 0;letter-spacing:-.2px}.empty-state>p{color:var(--text2);margin:0}
 .btn.cta{height:50px;padding:0 26px;border-radius:999px;margin-top:6px}
 .tpl-quick{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:4px}
-.tpl-quick a{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);background:var(--card);border-radius:999px;padding:8px 14px;color:var(--text);font-size:14px}
+.tpl-quick a{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);background:var(--card);border-radius:999px;padding:8px 14px;color:var(--text);font-size:14px;max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.tpl-docs,.card p.small{white-space:normal;overflow-wrap:anywhere;overflow:visible;text-overflow:clip}
+.tpl-docs{margin:8px 4px 0;color:var(--muted)}
 /* 引导页 */
 .ob{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;animation:in var(--t-base) var(--ease)}
 .ob.out{animation:obOut var(--t-base) var(--ease) forwards}@keyframes obOut{to{opacity:0}}

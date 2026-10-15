@@ -589,7 +589,7 @@ export const zh={
  "set.row.demo.sub": "加几条示例，先看看效果",
  "set.row.clr.sub": "先自动备份，30 天内可恢复",
  "tpl.cnInspectionMark": "私家车年检·申领检验标志",
- "tplDocs.cnInspectionMark": "9 座及以下私家车（不含面包车）注册 10 年内，每 2 年申领一次检验标志（第 6、10 年需上线检验）。请填写标志到期日。",
+ "tplDocs.cnInspectionMark": "9 座及以下私家车（不含面包车）注册 10 年内，每 2 年申领一次检验标志（第 6、10 年需上线检验）。请填写标志到期日。可在交管12123 App 申领电子检验标志。",
  "tplShort.cnInspectionMark": "检验标志",
  "tplDocs.cnMedical": "城乡居民医保按年度缴费，集中缴费期各省不同。请填写当地缴费截止日；按 12 月 31 日截止，会在 10 月 1 日和 12 月 1 日左右提醒。",
  "set.row.trash.sub": "删除的保留 30 天",

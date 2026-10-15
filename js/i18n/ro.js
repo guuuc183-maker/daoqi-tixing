@@ -589,7 +589,7 @@ export const ro={
  "set.row.demo.sub": "Adaugă câteva exemple",
  "set.row.clr.sub": "Fac o copie · coș 30 de zile",
  "tpl.cnInspectionMark": "Etichetă de inspecție (China)",
- "tplDocs.cnInspectionMark": "Autoturisme private de cel mult 9 locuri (fără dube): în primii 10 ani ceri o etichetă nouă la fiecare 2 ani, fără să mergi la stație. În anii 6 și 10 e nevoie de inspecție la stație. Introdu data de expirare a etichetei.",
+ "tplDocs.cnInspectionMark": "Autoturisme private de cel mult 9 locuri (fără dube): în primii 10 ani ceri o etichetă nouă la fiecare 2 ani, fără să mergi la stație. În anii 6 și 10 e nevoie de inspecție la stație. Introdu data de expirare a etichetei. Eticheta electronică se poate solicita în aplicația 12123.",
  "tplShort.cnInspectionMark": "Etichetă CN",
  "tplDocs.cnMedical": "Asigurarea medicală se plătește anual; termenul diferă pe provincii. Introdu termenul local.",
  "set.row.trash.sub": "Păstrate 30 de zile",
