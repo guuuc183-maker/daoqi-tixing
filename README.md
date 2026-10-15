@@ -4,3 +4,6 @@
 - 所有路径为相对路径，可直接部署到 GitHub Pages 子路径（如 /daoqi-tixing/）。
 - 文件：index.html / style.css / js/{app,store,dates,templates,io}.js / sw.js / manifest.json
 - 字体：Barlow Condensed（SIL OFL）。
+
+## v1.1
+- 测试：`node tests/logic.test.mjs`（逻辑单测）；`tests/e2e.cjs` 需 playwright-core + 预览服务器在 /daoqi-tixing/ 子路径。

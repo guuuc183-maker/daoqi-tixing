@@ -12,3 +12,14 @@ export function status(n,soon=30){return n<0?'expired':n<=soon?'soon':'safe';}
 export function label(n){return n<0?`已过期 ${-n} 天`:n===0?'今天到期':`还剩 ${n} 天`;}
 const W='日一二三四五六';
 export function nice(s){const d=parse(s);return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 周${W[d.getDay()]}`;}
+const mk=(y,m,d)=>{if(y<100)y+=2000;const dt=new Date(y,m-1,d);return dt.getFullYear()===y&&dt.getMonth()===m-1&&dt.getDate()===d?fmt(dt):null;};
+const lastDay=(y,m)=>{if(y<100)y+=2000;return m>=1&&m<=12?fmt(new Date(y,m,0)):null;};
+// 识别键盘输入的日期：2026-10-15 / 15.10.2026 / 15/10/26 / 151026 / 15102026 / 20261015 / 10/26（月/年→当月最后一天）
+export function parseInput(s){s=String(s||'').trim().replace(/\s+/g,'');let m;if(!s)return null;
+  if(m=s.match(/^(\d{4})[-./年](\d{1,2})[-./月](\d{1,2})日?$/))return mk(+m[1],+m[2],+m[3]);
+  if(m=s.match(/^(\d{1,2})[-./](\d{1,2})[-./](\d{2}|\d{4})$/))return mk(+m[3],+m[2],+m[1]);
+  if(m=s.match(/^(\d{1,2})[./](\d{2}|\d{4})$/))return lastDay(+m[2],+m[1]);
+  if(m=s.match(/^(\d{2})(\d{2})(\d{2})$/))return mk(+m[3],+m[2],+m[1]);
+  if(m=s.match(/^\d{8}$/)){const y=+s.slice(0,4);return y>=1900&&y<=2100?mk(y,+s.slice(4,6),+s.slice(6)):mk(+s.slice(4),+s.slice(2,4),+s.slice(0,2));}
+  return null;}
+export const ymd=s=>s.replace(/-/g,'');

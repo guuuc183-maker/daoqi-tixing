@@ -1,8 +1,8 @@
 // 分类与模板。lead=建议办理提前量（天），docs=所需材料（参考，请以官方为准）
 export const CATEGORIES={
   doc:{name:'证件',color:'#3D7BE0',intensity:'strong'},
-  car:{name:'车辆',color:'#7A5AF0',intensity:'standard'},
-  food:{name:'食品',color:'#E08A1E',intensity:'light'},
+  car:{name:'车辆',color:'#7A5AF0',intensity:'strong'},
+  food:{name:'食品',color:'#E08A1E',intensity:'standard'},
   med:{name:'药品',color:'#E0507A',intensity:'standard'},
   shop:{name:'店内商品',color:'#0C9C6B',intensity:'light'},
   bill:{name:'订阅账单',color:'#1E9FB0',intensity:'standard'},
@@ -34,5 +34,9 @@ export const INTENSITY={
   strong:{name:'强',desc:'提前 60 天起逐渐加密，最后一周每天提醒，点「已处理」才停',days:[60,45,30,21,14,10,7,6,5,4,3,2,1,0]},
   custom:{name:'自定义',desc:'自选提前天数',days:null},
 };
-export function remindDays(it){return it.intensity==='custom'?(it.customDays||[]).slice().sort((a,b)=>b-a):INTENSITY[it.intensity||'standard'].days;}
 export const findTpl=(cat,name)=>TEMPLATES.find(t=>t.cat===cat&&t.name===name);
+// 有保质期概念的分类（显示 生产日期+保质期、再买一次）
+export const PERISHABLE=['food','med','shop'];
+// 自定义档的分类预设
+export const CUSTOM_PRESET={doc:[14,7,3,1],car:[14,7,3,1]};
+export const CAT_ALIAS={'证件':'doc','车辆':'car','食品':'food','药品':'med','店内商品':'shop','订阅账单':'bill','订阅':'bill','家居保修':'home','其他':'other'};

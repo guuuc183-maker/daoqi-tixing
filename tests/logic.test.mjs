@@ -1,0 +1,43 @@
+import {pending,todoList,effInt,inferSource} from '../js/logic.js';
+import {addDays} from '../js/dates.js';
+import {parseCSV,toCSV,parseJSON,toJSON} from '../js/io.js';
+import {toICS} from '../js/ics.js';
+const T='2026-10-15',D=n=>addDays(T,n);let ok=0,bad=0;const eq=(a,b,m)=>{if(JSON.stringify(a)===JSON.stringify(b))ok++;else{bad++;console.log('FAIL',m,a,b);}};
+const st={soonDays:30,catIntensity:{}};
+eq(pending({cat:'bill',name:'x',due:D(5),intensitySource:'item',intensity:'standard'},st,T).kind,'todo','标准档剩5天（错过第7天）仍在待处理');
+eq(pending({cat:'food',name:'x',due:D(-2),intensitySource:'item',intensity:'light'},st,T).kind,'todo','轻档过期2天进入待处理');
+eq(pending({cat:'food',name:'x',due:D(10),intensitySource:'item',intensity:'light'},st,T).kind,null,'轻档剩10天不提醒');
+eq(pending({cat:'food',name:'x',due:D(-2),handledAt:T},st,T).kind,null,'已处理不在待处理');
+eq(pending({cat:'food',name:'x',due:D(3),snoozeUntil:D(1)},st,T).kind,'later','明天再提醒：今天隐藏');
+eq(pending({cat:'food',name:'x',due:D(3),snoozeUntil:D(1)},st,D(1)).kind,'todo','明天再出现');
+eq(pending({cat:'doc',name:'x',due:D(-35)},st,T).kind,'later','强档过期35天：非每周日');
+eq(pending({cat:'doc',name:'x',due:D(-37)},st,T).kind,'todo','强档过期37天：每周一次');
+eq(pending({cat:'doc',name:'x',due:D(-5),handledAt:D(-10),renewMonths:12},st,T).reason,'askRenew','已处理+有周期+过期→问是否续期');
+eq(pending({cat:'doc',name:'x',due:D(-5),handledAt:D(-10),renewMonths:12,renewAsked:true},st,T).kind,null,'只问一次');
+eq(pending({cat:'doc',name:'x',due:D(1),deletedAt:'2026'},st,T).kind,null,'回收站排除');
+eq(pending({cat:'doc',name:'居留卡',due:D(45)},st,T).reason,'remind','居留卡 lead45 / 强档60天内');
+eq(pending({cat:'bill',name:'域名/服务器',due:D(25)},st,T).reason,'remind','标准档剩25天：在30天提醒内');
+eq(pending({cat:'car',name:'RCA 交强险',due:D(10),intensitySource:'item',intensity:'light'},st,T).reason,'lead','轻档但进入办理提前量→该办了');
+// P0-1
+const it={cat:'doc',name:'护照',due:D(100),intensitySource:'cat'};eq(effInt(it,st),'strong','证件默认强');
+eq(effInt({cat:'car'},st),'strong','车辆默认强');eq(effInt({cat:'food'},st),'standard','食品默认标准');
+eq(effInt(it,{catIntensity:{doc:'standard'}}),'standard','改分类默认后跟随');
+eq(effInt({cat:'doc',intensitySource:'item',intensity:'light'},{catIntensity:{doc:'standard'}}),'light','单独设置不受影响');
+eq(inferSource({cat:'doc',intensity:'strong'},st).intensitySource,'cat','旧数据推断cat');
+eq(inferSource({cat:'doc',intensity:'light'},st).intensitySource,'item','旧数据推断item');
+// 排序
+const {todo}=todoList([{id:'a',cat:'food',name:'a',due:D(3)},{id:'b',cat:'doc',name:'b',due:D(5)},{id:'c',cat:'food',name:'c',due:D(0)},{id:'d',cat:'food',name:'d',due:D(-1)}],st,T);
+eq(todo.map(x=>x.id),['d','c','b','a'],'排序 过期>今天>强>天数');
+// CSV
+const items=[{id:'1',name:'a,"b"',cat:'doc',due:'2026-11-01',intensitySource:'item',intensity:'custom',customDays:[7,1],note:'l1\nl2',history:[{from:'2025-11-01',to:'2026-11-01',at:'2025-10-01'}],handledAt:'2026-10-01',renewMonths:12,qty:3}];
+const back=parseCSV(toCSV(items)).items.map(r=>r.item);const clean=o=>Object.fromEntries(Object.entries(o).filter(([,v])=>v!==undefined&&v!=='').sort());
+eq(clean(back[0]),clean(items[0]),'CSV 往返一致');
+eq(parseJSON(toJSON(items)).items[0].item,items[0],'JSON 往返');
+const r=parseCSV('名称,到期日,分类\n护照,15.10.2027,证件\n坏,31.02.2026,\n,2026-01-01,\nDenumire,10/27,');
+eq(r.items.map(x=>[x.item.name,x.item.due,x.item.cat]),[['护照','2027-10-15','doc'],['Denumire','2027-10-31','other']],'CSV 日期识别');
+eq(r.errors.map(e=>e.row),[3,4],'坏行行号');
+const ro=parseCSV('Denumire,Data expirării,Cantitate\nLapte,20.10.2026,2');eq([ro.items[0].item.name,ro.items[0].item.due,ro.items[0].item.qty],['Lapte','2026-10-20',2],'罗语表头');
+const ics=toICS([{id:'x',name:'居留卡',cat:'doc',due:'2026-12-15',intensitySource:'cat'}],st);
+eq((ics.match(/BEGIN:VALARM/g)||[]).length,6,'强档 6 个 VALARM');eq(ics.includes('DTSTART;VALUE=DATE:20261215'),true,'ICS 日期');
+eq(ics.split('\r\n').every(l=>new TextEncoder().encode(l).length<=75),true,'ICS 折行');
+console.log(ok,'passed',bad,'failed');
