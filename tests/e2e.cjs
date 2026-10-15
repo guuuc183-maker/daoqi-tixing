@@ -189,7 +189,7 @@ const B='http://localhost:8765/daoqi-tixing/';
   t(await q.$eval('.top h1',e=>getComputedStyle(e).fontSize)==='30px','V2 标题 30px');
   t(await q.evaluate(()=>getComputedStyle(document.body).backgroundColor)==='rgb(242, 242, 239)','V2 暖色背景');
   await q.goto(B+'#/new');await q.waitForTimeout(300);await q.click('[data-q="1y"]');await q.click('.date-clr');t(await q.inputValue('#dueT')==='','V2 日期框 × 清除');
-  await q.evaluate(()=>{const l=JSON.parse(localStorage.getItem('dq.items.v2'));l.forEach(x=>x.handledAt='2026-10-15');localStorage.setItem('dq.items.v2',JSON.stringify(l));});
+  await q.evaluate(()=>{const l=JSON.parse(localStorage.getItem('dq.items.v2'));l.forEach(x=>{x.handledAt='2026-10-15';x.renewAsked=true;});localStorage.setItem('dq.items.v2',JSON.stringify(l));});
   await q.goto(B+'#/');await q.reload();await q.waitForTimeout(400);t(/全部已处理/.test(await q.textContent('.all-clear'))&&await q.locator('.gold-ring').count()===1,'V2 全部已处理金色环');
   await q.goto(B+'#/settings');await q.waitForTimeout(300);t(await q.locator('.about .ver').count()===1,'V2 关于版本号');await c6.close();}
  console.log(ok,'passed',bad,'failed');console.log('errors',errs);await br.close();})();
