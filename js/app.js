@@ -33,11 +33,11 @@ function top(title,{back=false,right=''}={}){return `<header class="top">${back?
 function row(it){return `<a class="row" href="#/item/${h(it.id)}">
   <span class="ic" style="--c:${cat(it.cat).color}">${ci(it.cat)}</span>
   <span class="grow"><b class="ell">${h(it.name)}</b><small>${h(it.due)}${it.qty?` · ${it.qty} 件`:''}${it.location?` · ${h(it.location)}`:''}${it.handledAt?' · 已处理':''}</small></span>
-  <span class="cd ${it.st}"><span class="num">${it.n<0?-it.n:it.n}</span><small>${it.n<0?'天前过期':it.n===0?'今天':'天'}</small></span></a>`;}
+  <span class="cd ${it.st}"><span class="num">${it.n<0?-it.n:it.n}</span><small>${it.n<0?'天前过期':it.n===0?'今天':'天'}</small><i class="bar"></i></span></a>`;}
 function ring(pct,size=148,w=14){const r=(size-w)/2,c=2*Math.PI*r;return `<svg class="ring" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
   <circle cx="${size/2}" cy="${size/2}" r="${r}" class="ring-bg" stroke-width="${w}" fill="none"/>
   <circle cx="${size/2}" cy="${size/2}" r="${r}" class="ring-fg" stroke-width="${w}" fill="none" stroke-linecap="round"
-   stroke-dasharray="${c}" stroke-dashoffset="${c*(1-pct)}" transform="rotate(-90 ${size/2} ${size/2})"/></svg>`;}
+   stroke-dasharray="${c}" stroke-dashoffset="${c}" data-off="${c*(1-pct)}" transform="rotate(-90 ${size/2} ${size/2})"/></svg>`;}
 
 const REASON={expired:'已过期',today:'今天到期',remind:'',lead:'该办了',askRenew:'是否已续期？',snooze:'明天再提醒',weekly:'过期超 30 天 · 每周提醒'};
 function todoRow(it){const tag=it.reason==='remind'?label(it.n):it.reason==='expired'?label(it.n):REASON[it.reason];
@@ -47,6 +47,7 @@ function todoRow(it){const tag=it.reason==='remind'?label(it.n):it.reason==='exp
   <div class="todo-act">${it.reason==='askRenew'?`<button data-a="renew">${icon('renew',16)}已续期</button><button data-a="noRenew">不再问</button>`:
    `<button data-a="done">${icon('check',16)}已处理</button><button data-a="more" class="more" aria-label="更多操作">⋯</button>`}</div></div>`;}
 function bindTodo(root,rerender){root.querySelectorAll('.todo-row [data-a]').forEach(b=>b.onclick=e=>{e.preventDefault();const id=b.closest('.todo-row').dataset.id,a=b.dataset.a,it=S.get(id);
+  if(a==='done'&&!b.dataset.anim&&!reduced()){const r=b.closest('.todo-row');b.dataset.anim=1;r.classList.add('leaving');return setTimeout(()=>b.click(),440);}
   if(a==='done')act(`已停止提醒「${it.name}」`,()=>S.patch(id,x=>{x.handledAt=todayStr();delete x.snoozeUntil;}));
   if(a==='snooze')act(`「${it.name}」明天再提醒`,()=>S.patch(id,x=>{x.snoozeUntil=addDays(todayStr(),1);}));
   if(a==='noRenew')act('已标记，不再询问',()=>S.patch(id,x=>{x.renewAsked=true;}));
@@ -57,11 +58,25 @@ function bindTodo(root,rerender){root.querySelectorAll('.todo-row [data-a]').for
     w.querySelector('[data-s=snooze]')&&(w.querySelector('[data-s=snooze]').onclick=()=>{closeSheet();act(`「${it.name}」明天再提醒`,()=>S.patch(id,x=>{x.snoozeUntil=addDays(todayStr(),1);}));rerender();});});}
   rerender();});}
 
+const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+// 进场动效：每项错开 30ms，最多 8 项；圆环 420ms 填充
+function enter(){const kids=[...view.children];kids.forEach((e,i)=>{e.classList.add('enter');e.style.setProperty('--i',Math.min(i,8));});
+  view.querySelectorAll('.list .row').forEach((e,i)=>{e.classList.add('enter');e.style.setProperty('--i',Math.min(i,8));});
+  fillRing();}
+function fillRing(){requestAnimationFrame(()=>requestAnimationFrame(()=>view.querySelectorAll('.ring-fg[data-off]').forEach(c=>c.style.strokeDashoffset=c.dataset.off)));}
+const EMPTY_TPL=[['居留卡','doc'],['RCA 交强险','car'],['ITP 车检','car'],['牛奶','food']];
+function emptyState(){return `${top('到期提醒')}<section class="empty-state">
+  <div class="empty-ring">${ring(0,120,12)}</div>
+  <h2>还没有要盯着的日期</h2><p>从模板开始，10 秒加一条</p>
+  <a class="btn primary cta" href="#/new">${icon('add',18)}添加第一条</a>
+  <div class="tpl-quick">${EMPTY_TPL.map(([n,c])=>`<a href="#/new?tpl=${encodeURIComponent(n)}">${ci(c,16)}${n.replace(' 交强险','').replace(' 车检','')}</a>`).join('')}</div>
+  <p class="small muted">也可以在 <a href="#/settings">设置</a> 里导入表格或载入示例数据</p></section>`;}
 function home(){
   const s=st(),items=enrich(),act=items.filter(i=>!i.handledAt);
   const c={expired:0,soon:0,safe:0};act.forEach(i=>c[i.st]++);
   const pct=act.length?c.safe/act.length:1,{todo}=todoList(S.all(),s);
   const shown=homeSeg==='all'?items:items.filter(i=>i.st===homeSeg);
+  if(!items.length){view.innerHTML=emptyState();return;}
   const d=new Date(),ios=/iPhone|iPad|iPod/.test(navigator.userAgent)&&!navigator.standalone&&!s.iosTipClosed;
   view.innerHTML=`${top(`<span class="micro">${d.getMonth()+1}月${d.getDate()}日 · 周${'日一二三四五六'[d.getDay()]}</span><br>到期提醒`)}
   ${ios?`<div class="banner">添加到主屏幕，才能显示角标：点 Safari「分享」→「添加到主屏幕」<button class="x" id="iosx" aria-label="关闭">×</button></div>`:''}
@@ -82,7 +97,7 @@ function home(){
   $('#iosx')&&($('#iosx').onclick=()=>{const x=st();x.iosTipClosed=true;S.saveSettings(x);home();});
   $('#bkx')&&($('#bkx').onclick=()=>{const x=st();x.backupTipAt=new Date().toISOString();S.saveSettings(x);home();});
   $('#bkgo')&&($('#bkgo').onclick=()=>{exportJSON();home();});
-  bindTodo(view,home);
+  bindTodo(view,home);fillRing();
 }
 // P1-2 备份提醒
 function backupTip(s){const n=S.all().length,last=Math.max(Date.parse(s.lastExportAt||0)||0,Date.parse(s.backupTipAt||0)||0,Date.parse(s.firstUseAt||0)||0);
@@ -190,6 +205,7 @@ function form(id,q){
   let pre=null;if(!ex){try{pre=JSON.parse(sessionStorage.getItem('dq.prefill'))}catch{}sessionStorage.removeItem('dq.prefill');}
   const it=ex?inferSource({...ex},s):Object.assign({cat:q.get('cat')||'doc',name:'',due:'',intensitySource:'cat',customDays:[],renewMonths:'',qty:'',location:'',note:'',prodDate:'',shelfDays:''},pre||{});
   if(pre&&q.get('cat'))it.cat=q.get('cat');
+  {const tq=q.get('tpl'),t=tq&&TEMPLATES.find(x=>x.name===tq);if(t&&!ex){it.cat=t.cat;it.name=t.name;it.renewMonths=t.renew||'';}}
   let dueText=it.due||'',chain=false,shelfUnit='d',shelfN=it.shelfDays||'';
   const draw=(focus)=>{const ei=effInt(it,s),per=PERISHABLE.includes(it.cat);
     view.innerHTML=`${top(ex?'编辑':it.rebuyFrom?'再买一次':'新增',{back:true})}
@@ -288,7 +304,7 @@ function settings(){
    <label class="btn">${icon('upload',18)}导入 CSV / JSON<input type="file" id="imp" accept=".csv,.json,text/csv,application/json" hidden></label>
    <button class="btn" id="tpl">${icon('download',18)}下载导入模板</button>
    <label class="check full"><input type="checkbox" id="incTrash"> 导出时包含回收站</label></section>
-  <div class="micro pad">数据</div><section class="card btns"><a class="btn" href="#/trash">${icon('trash',18)}回收站（${tr}）</a><button class="btn" id="demo">${icon('sparkle',18)}载入示例数据</button><button class="btn danger ghost" id="clear">${icon('trash',18)}清空全部</button></section>
+  <div class="micro pad">数据</div><section class="card btns"><a class="btn" href="#/trash">${icon('trash',18)}回收站（${tr}）</a><button class="btn" id="obAgain">${icon('sparkle',18)}重新查看引导</button><button class="btn" id="demo">${icon('sparkle',18)}载入示例数据</button><button class="btn danger ghost" id="clear">${icon('trash',18)}清空全部</button></section>
   <p class="hint" id="persist">数据只保存在本机浏览器 · v1.1</p>`;
   if(navigator.storage?.persisted)navigator.storage.persisted().then(p=>{const e=$('#persist');if(e)e.textContent=`数据只保存在本机浏览器 · 存储：${p?'已持久化':'可能被系统清理，请定期导出'} · v1.1`;});
   view.querySelectorAll('[data-theme]').forEach(b=>b.onclick=()=>{s.theme=b.dataset.theme;S.saveSettings(s);applyTheme();settings();});
@@ -311,6 +327,7 @@ function settings(){
   $('#impNo')&&($('#impNo').onclick=()=>{importState=null;settings();});
   $('#impGo')&&($('#impGo').onclick=()=>{const a=importState.a,l=[...a.add,...a.upd,...(importState.dup==='keep'?a.dup.map(r=>({...r,item:{...r.item,id:undefined}})):[])].map(r=>inferSource(r.item,s));
     importState=null;act(`已导入 ${l.length} 条`,()=>S.merge(l));settings();});
+  $('#obAgain').onclick=onboarding;
   $('#demo').onclick=()=>{act('已载入示例数据',seed);settings();};
   $('#clear').onclick=()=>{if(!n)return;exportJSON();act(`已清空 ${n} 条（已自动下载备份，可在回收站恢复）`,()=>S.softDelete(S.all().map(i=>i.id)));settings();};
 }
@@ -342,6 +359,32 @@ function seed(){const t=todayStr(),D=n=>addDays(t,n);
    {id:'d14',cat:'food',name:'鸡蛋',due:D(0),intensitySource:'cat',qty:10,location:'冰箱'},
   ]);}
 
+// 引导页：最多 3 屏，可跳过，只自动显示一次
+const isIOS=()=>/iPhone|iPad|iPod/.test(navigator.userAgent)&&!navigator.standalone;
+function onboarding(){document.querySelector('.ob')?.remove();const el=document.createElement('div');el.className='ob';el.setAttribute('role','dialog');el.setAttribute('aria-label','欢迎');
+  const demo=`<div class="ob-card"><div class="ob-row"><span class="ic sm" style="--c:#3D7BE0">${ci('doc',18)}</span><b>居留卡</b><span class="num soon">40<small>天</small></span></div>
+    <div class="ob-row"><span class="ic sm" style="--c:#7A5AF0">${ci('car',18)}</span><b>RCA 交强险</b><span class="num soon">6<small>天</small></span></div>
+    <div class="ob-row"><span class="ic sm" style="--c:#E08A1E">${ci('food',18)}</span><b>牛奶</b><span class="num expired">1<small>天</small></span></div></div>`;
+  const lv=`<div class="ob-levels">${[['轻','提前 7 天',1],['标准','30 / 7 / 1 天',3],['强','直到处理',8]].map(([n,d,k])=>`<div class="lvl"><div class="dots">${'<i></i>'.repeat(k)}</div><b>${n}</b><small>${d}</small></div>`).join('')}</div>`;
+  const ios=isIOS();
+  const s3=ios?`<div class="ob-ios"><div class="step"><span class="num">1</span>点 Safari 底部的「分享」${icon('upload',20)}</div><div class="step"><span class="num">2</span>选「添加到主屏幕」</div><div class="step"><span class="num">3</span>从主屏打开，再开启提醒</div></div>`
+    :`<div class="ob-bell">${icon('bell',72)}</div>`;
+  const pages=[['所有到期，一屏看清','证件、车辆、食品，按剩余天数排好，颜色告诉你哪个最急。',demo],
+    ['重要的事，提醒到你处理为止','三档强度：轻、标准、强。强档最后一周每天提醒，点「已处理」才停。',lv],
+    ['开启提醒',ios?'iPhone 需要先添加到主屏幕，才能显示角标和提醒。':'打开 App 时显示今日待处理和图标角标。想要准时闹钟，可以「导出到日历」。',s3]];
+  el.innerHTML=`<button class="ob-skip" data-ob="skip">跳过</button><div class="ob-track">${pages.map(([t,d,v],i)=>`<section class="ob-page" data-i="${i}"><div class="ob-visual">${v}</div><h1>${t}</h1><p>${d}</p></section>`).join('')}</div>
+   <div class="ob-foot"><div class="ob-dots">${pages.map((_,i)=>`<i class="${i?'':'on'}"></i>`).join('')}</div><button class="btn primary block" data-ob="next">下一步</button></div>`;
+  document.body.appendChild(el);const tr=el.querySelector('.ob-track'),next=el.querySelector('[data-ob=next]');let cur=0;
+  const upd=()=>{cur=Math.round(tr.scrollLeft/tr.clientWidth);el.querySelectorAll('.ob-dots i').forEach((d,i)=>d.classList.toggle('on',i===cur));
+    next.textContent=cur<2?'下一步':ios?'我知道了':('Notification' in window&&Notification.permission==='default'?'开启提醒':'开始使用');};
+  tr.addEventListener('scroll',()=>requestAnimationFrame(upd));
+  const done=()=>{const s=st();s.onboarded=true;S.saveSettings(s);el.classList.add('out');setTimeout(()=>el.remove(),reduced()?0:220);};
+  el.querySelector('[data-ob=skip]').onclick=done;
+  next.onclick=async()=>{if(cur<2){tr.scrollTo({left:tr.clientWidth*(cur+1),behavior:reduced()?'auto':'smooth'});setTimeout(upd,reduced()?0:350);return;}
+    // 授权只在用户点击这里时请求
+    if(!ios&&'Notification' in window&&Notification.permission==='default'){try{const r=await Notification.requestPermission();if(r==='granted'&&'setAppBadge' in navigator){const s=st();s.badge=true;S.saveSettings(s);updateBadge();}}catch{}}
+    done();};}
+
 function updateBadge(){const s=st();if(!('setAppBadge' in navigator))return;
   if(!s.badge){navigator.clearAppBadge?.().catch(()=>{});return;}
   const n=todoList(S.all(),s).todo.length;(n?navigator.setAppBadge(n):navigator.clearAppBadge()).catch(()=>{});}
@@ -351,9 +394,10 @@ function route(){
   applyTheme();closeSheet();const [path,qs]=(location.hash.slice(1)||'/').split('?'),q=new URLSearchParams(qs),p=path.split('/').filter(Boolean);
   const tab={'':'home',todo:'home',cats:'cats',cat:'cats',cal:'cal',settings:'settings',trash:'settings',new:'new'}[p[0]||'']||'';
   document.querySelectorAll('#tabbar a').forEach(a=>a.classList.toggle('on',a.dataset.tab===tab));
-  view.classList.remove('in');void view.offsetWidth;view.classList.add('in');window.scrollTo(0,0);
+  view.classList.remove('in');window.scrollTo(0,0);
   const r={'':home,todo:todoPage,cats,cat:()=>catList(p[1]),cal,item:()=>detail(p[1]),new:()=>form(null,q),edit:()=>form(p[1],q),settings,trash:trashPage}[p[0]||''];
   try{(r||home)();}catch(err){console.warn(err);view.innerHTML=`${top('出错了')}<section class="card"><p class="small">这一页显示失败：${h(err.message)}</p><p class="small muted">数据没有丢失。可以先到设置里导出备份。</p><a class="btn" href="#/settings">去设置</a></section>`;}
+  enter();
   if(afterRoute){const f=afterRoute;afterRoute=null;f();}
   view.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>history.length>1?history.back():location.hash='#/');
 }
@@ -361,7 +405,8 @@ function route(){
 addEventListener('dq-storage-error',()=>toast('存储已满或不可用，修改未保存，请先导出备份'));
 S.purgeOld();{const s=st();if(!s.firstUseAt){s.firstUseAt=new Date().toISOString();S.saveSettings(s);}}
 navigator.storage?.persist?.().catch(()=>{});
-if(new URLSearchParams(location.search).has('demo')&&!S.raw().length)seed();
+{const qs=new URLSearchParams(location.search);if(qs.has('demo')){if(!S.raw().length)seed();const s=st();s.onboarded=true;S.saveSettings(s);}}
+if(!st().onboarded)onboarding();
 addEventListener('hashchange',route);route();updateBadge();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){updateBadge();if(!location.hash.startsWith('#/new')&&!location.hash.startsWith('#/edit'))route();}});
 if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('./sw.js').catch(()=>{});

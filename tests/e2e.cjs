@@ -1,7 +1,7 @@
 const {chromium}=require('playwright-core');const fs=require('fs');
 const B='http://localhost:8765/daoqi-tixing/';
 (async()=>{const br=await chromium.launch({executablePath:'/usr/bin/google-chrome'});
- const c=await br.newContext({viewport:{width:390,height:844},acceptDownloads:true});const p=await c.newPage();const errs=[];
+ const c=await br.newContext({viewport:{width:390,height:844},acceptDownloads:true,reducedMotion:'reduce'});const p=await c.newPage();const errs=[];
  p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>m.type()==='error'&&errs.push(m.text()));p.on('dialog',d=>d.accept());
  let ok=0,bad=0;const t=(c,m)=>{if(c)ok++;else{bad++;console.log('FAIL',m);}};
  const go=async h=>{await p.goto(B+h);await p.waitForTimeout(350);};
@@ -92,4 +92,25 @@ const B='http://localhost:8765/daoqi-tixing/';
  // R#7 存储满
  await go('#/');await p.evaluate(()=>{const o=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k==='dq.items.v2')throw new DOMException('full','QuotaExceededError');return o.call(this,k,v)};});
  await go('#/item/'+nid);await p.click('#handled');await p.waitForTimeout(200);t(/存储已满/.test(await p.textContent('.toast')),'R#7 存储满提示');
+
+ // ---- 引导页 / 空状态 / 动效 ----
+ {const c2=await br.newContext({viewport:{width:390,height:844}});await c2.addInitScript(()=>{window.__perm=0;if(window.Notification){const o=Notification.requestPermission;Notification.requestPermission=function(){window.__perm++;return o.apply(this,arguments)}}});const q=await c2.newPage();q.on('pageerror',e=>errs.push(e.message));q.on('console',m=>m.type()==='error'&&errs.push(m.text()));
+  await q.goto(B);await q.waitForTimeout(500);t(await q.locator('.ob').isVisible(),'OB 首次显示引导');
+  t(await q.locator('.ob-page').count()===3,'OB 3 屏');
+  await q.click('[data-ob=next]');await q.waitForTimeout(500);await q.click('[data-ob=next]');await q.waitForTimeout(500);
+  t(/开启提醒|开始使用/.test(await q.textContent('[data-ob=next]')),'OB 第3屏按钮');t(await q.evaluate(()=>window.__perm)===0,'OB 未自动请求权限');
+  await q.click('[data-ob=next]');await q.waitForTimeout(400);t(await q.locator('.ob').count()===0,'OB 完成关闭');
+  await q.reload();await q.waitForTimeout(500);t(await q.locator('.ob').count()===0,'OB 只显示一次');
+  t(/还没有要盯着的日期/.test(await q.textContent('#view')),'空状态标题');t(await q.locator('.empty-ring svg').count()===1,'空状态灰环');
+  t(await q.locator('.tpl-quick a').count()===4,'空状态 4 个模板');t(await q.locator('.empty-state .btn.primary').count()===1,'空状态主按钮');
+  await q.click('.tpl-quick a:nth-child(2)');await q.waitForTimeout(400);t(await q.inputValue('[name=name]')==='RCA 交强险','空状态模板→表单预填');
+  await q.goto(B+'#/settings');await q.waitForTimeout(300);await q.click('#obAgain');await q.waitForTimeout(300);t(await q.locator('.ob').isVisible(),'设置里重新打开引导');
+  await q.click('[data-ob=skip]');
+  // 动效路径：已处理先播放离场动画再生效
+  await q.goto(B+'?demo=1#/');await q.waitForTimeout(800);const nm=await q.textContent('.todo-row .todo-main b');await q.click('.todo-row [data-a=done]');
+  t(await q.locator('.todo-row.leaving').count()===1,'动效 已处理离场');await q.waitForTimeout(800);
+  t(!(await q.$$eval('.todo-main b',e=>e.map(x=>x.textContent))).includes(nm),'动效后条目消失');
+  const off=await q.$eval('.ring-fg',e=>e.style.strokeDashoffset);t(off!=='','圆环填充动画已设置');
+  t(await q.locator('.list .row .bar').count()>0,'列表短横条');
+  await c2.close();}
  console.log(ok,'passed',bad,'failed');console.log('errors',errs);await br.close();})();
