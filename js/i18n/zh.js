@@ -126,7 +126,8 @@ export const zh={
  "renew.toastBtn": "改日期",
  "when.today": "今天",
  "when.yesterday": "昨天",
- "when.days": "{n} 天前"
+ "when.days": "{n} 天前",
+ "form.catDefault": "{cat} · 默认"
 };
 let dict=zh,lang='zh';
 export function setDict(d,l){dict=d;lang=l;}

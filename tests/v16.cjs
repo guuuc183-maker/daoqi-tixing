@@ -68,4 +68,29 @@ const {chromium}=require('playwright-core');const B='http://localhost:8765/daoqi
   await q.goto(B+'#/settings');await q.waitForTimeout(300);t(/v\d+\.\d+\.\d+/.test(await q.textContent('.about .ver')),'V1 关于页版本');
   const ver=await q.evaluate(()=>import('./js/version.js').then(m=>m.VERSION));const keys=await q.evaluate(()=>caches.keys());t(await q.textContent('.about .ver')==='v'+ver,'V1 关于=version.js');
   await q.waitForTimeout(1000);t((await q.evaluate(()=>caches.keys())).includes('dq-v'+ver),'V1 SW 缓存名含版本 '+keys);await c.close();}
+
+ // v1.6.1 P0-A 桌面宽屏引导 1 屏可走完 + 重新查看引导
+ {const [c,q]=await ctx({viewport:{width:1280,height:800}});await q.goto(B+'#/');await q.waitForTimeout(500);
+  const r=await q.$eval('.ob1',e=>{const b=e.getBoundingClientRect();return {w:b.width,vis:b.width>0&&b.height>0,pages:document.querySelectorAll('.ob-page').length};});t(r.vis&&r.pages<=1,'P0-A 1280 引导单屏 '+JSON.stringify(r));
+  await q.click('[data-ob=add]');await q.waitForTimeout(300);t(/#\/new/.test(q.url())&&await q.locator('.ob').count()===0,'P0-A 1280 加第一条可用');
+  await q.goto(B+'#/settings');await q.waitForTimeout(300);await q.$$eval('details.more-set',d=>d.forEach(x=>x.open=true));await q.click('#obAgain');await q.waitForTimeout(300);t(await q.locator('.ob1').count()===1,'P0-A 重新查看引导');
+  await q.click('[data-ob=skip]');await q.waitForTimeout(300);t(await q.locator('.ob').count()===0,'P0-A 跳过');await c.close();}
+ // P0-B 保存并再加一条只带分类
+ {const [c,q]=await ctx();await q.goto(B+'#/');await q.evaluate(()=>localStorage.setItem('dq.settings.v1',JSON.stringify({onboarded:true,lastBackupAt:new Date().toISOString()})));
+  await q.goto(B+'#/new');await q.reload();await q.waitForTimeout(300);await q.selectOption('[name=cat]','med');await q.fill('[name=name]','药A');await q.fill('#dueT','01.12.2026');
+  await q.$eval('#more',e=>e.open=true);await q.click('[data-int=light]');await q.fill('[name=location]','药箱');await q.click('#saveMore');await q.waitForTimeout(400);
+  t(await q.inputValue('[name=location]').catch(()=>'')==='','P0-B 位置不带');t(await q.inputValue('[name=cat]')==='med','P0-B 分类保留');
+  await q.fill('[name=name]','药B');await q.fill('#dueT','02.12.2026');await q.click('#saveTop');await q.waitForTimeout(400);
+  const b=(await IT(q)).find(i=>i.name==='药B');t(b&&b.intensitySource==='cat'&&!b.location,'P0-B 第二条强度跟随分类 '+JSON.stringify(b));await c.close();}
+ // N9 新增页显示实际默认分类，保存即用它
+ {const [c,q]=await ctx();await q.goto(B+'#/');await q.evaluate(()=>localStorage.setItem('dq.settings.v1',JSON.stringify({onboarded:true,lastBackupAt:new Date().toISOString()})));await q.goto(B+'#/new');await q.reload();await q.waitForTimeout(300);
+  t(/食品 · 默认/.test(await q.textContent('.cat-field'))&&await q.locator('[data-cat].on').count()===0,'N9 显示「食品 · 默认」且全部行无高亮');
+  await q.fill('[name=name]','xyzabc');await q.fill('#dueT','01.12.2026');await q.click('#saveTop');await q.waitForTimeout(400);t((await IT(q)).find(i=>i.name==='xyzabc')?.cat==='food','N9 保存为显示的默认分类');await c.close();}
+ // P0-D 清空全部要二次确认
+ {const [c,q]=await ctx();await q.goto(B+'?demo=1#/settings');await q.waitForTimeout(400);const n0=(await IT(q)).filter(i=>!i.deletedAt).length;
+  await q.$$eval('details.more-set',d=>d.forEach(x=>x.open=true));await q.click('#clear');await q.waitForTimeout(300);t(await q.locator('#askOk').count()===1,'P0-D 弹出确认');
+  await q.click('#askNo');await q.waitForTimeout(300);t((await IT(q)).filter(i=>!i.deletedAt).length===n0,'P0-D 取消不清空');
+  await q.click('#clear');await q.waitForTimeout(300);await Promise.all([q.waitForEvent('download'),q.click('#askOk')]);await q.waitForTimeout(500);t((await IT(q)).filter(i=>!i.deletedAt).length===0,'P0-D 确认后清空');await c.close();}
+ // P0-C 旧文案不得残留
+ {const fs=require('fs');const src=fs.readFileSync('/workspace/到期提醒/app/js/app.js','utf8').replace(/\/\/.*$/gm,'');t(!/今日待处理|已处理|待处理|临期/.test(src),'P0-C 旧文案残留 '+(src.match(/.{10}(今日待处理|已处理|待处理|临期).{10}/)||[''])[0]);}
  console.log(ok,'passed',bad,'failed');console.log('errors',errs);await br.close();})();

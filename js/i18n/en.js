@@ -126,5 +126,6 @@ export const en={
  "renew.toastBtn": "Change",
  "when.today": "Today",
  "when.yesterday": "Yesterday",
- "when.days": {"one": "{n} day ago", "other": "{n} days ago"}
+ "when.days": {"one": "{n} day ago", "other": "{n} days ago"},
+ "form.catDefault": "{cat} · default"
 };

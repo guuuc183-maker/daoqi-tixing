@@ -126,5 +126,6 @@ export const ro={
  "renew.toastBtn": "Schimbă",
  "when.today": "Azi",
  "when.yesterday": "Ieri",
- "when.days": {"one": "acum {n} zi", "few": "acum {n} zile", "other": "acum {n} de zile"}
+ "when.days": {"one": "acum {n} zi", "few": "acum {n} zile", "other": "acum {n} de zile"},
+ "form.catDefault": "{cat} · implicit"
 };

@@ -49,7 +49,7 @@ const br={newContext:async o=>{const c=await br0.newContext(o);c.setDefaultTimeo
  // 导出 CSV→清空→导入
  await go('#/settings');const [dl]=await Promise.all([p.waitForEvent('download'),p.click('#ecsv')]);const csvPath='/tmp/exp.csv';await dl.saveAs(csvPath);
  const before=(await LS()).filter(x=>!x.deletedAt).length;
- const [dl2]=await Promise.all([p.waitForEvent('download'),p.click('#clear')]);t(/json$/.test(dl2.suggestedFilename()),'清空自动下载JSON');
+ const [dl2]=await Promise.all([p.waitForEvent('download'),(async()=>{await p.click('#clear');await p.click('#askOk');})()]);t(/json$/.test(dl2.suggestedFilename()),'清空自动下载JSON');
  await p.waitForTimeout(300);t((await LS()).every(x=>x.deletedAt),'清空=全部进回收站');
  await p.evaluate(()=>localStorage.setItem('dq.items.v2','[]'));await go('#/settings');
  await p.setInputFiles('#imp',csvPath);await p.waitForTimeout(300);console.log('preview:',(await p.textContent('.imp p')).trim());
@@ -357,7 +357,7 @@ const br={newContext:async o=>{const c=await br0.newContext(o);c.setDefaultTimeo
   // 手动选择永不被推断覆盖（多种方式 + 多个强关键词 + 保存后核对存储）
   await q.evaluate(()=>{const s=JSON.parse(localStorage.getItem('dq.settings.v1'));delete s.lastCat;delete s.catLearn;localStorage.setItem('dq.settings.v1',JSON.stringify(s));});
   await q.goto(B+'#/');await q.goto(B+'#/new');await q.reload();await q.waitForTimeout(300);
-  t(/未选择 · 保存时用『其他』/.test(await q.textContent('.cat-field')),'3S 状态1 未选择');
+  {const tx=await q.textContent('.cat-field'),v=await q.inputValue('[name=cat]');const nm=await q.evaluate(k=>document.querySelector(`[data-cat="${k}"]`)?.textContent.trim(),v);t(tx.includes(nm+' · 默认')&&await q.locator('[data-cat].on').count()===0,'N9 状态1 显示实际默认分类 '+tx);}
   await q.fill('[name=name]','牛奶');await q.click('#dueT');await q.waitForTimeout(150);
   t(await q.locator('.cat-field.inferred').count()===1&&/按名称推断/.test(await q.textContent('#catSug'))&&/改分类/.test(await q.textContent('#catSug')),'3S 状态2 推断');
   await q.selectOption('[name=cat]','home');await q.waitForTimeout(150);t(/已手动选择/.test(await q.textContent('#catSug'))&&await q.locator('.cat-field.inferred').count()===0,'3S 状态3 手动');

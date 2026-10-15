@@ -27,13 +27,17 @@ function applyTheme(){const t=st().theme;if(t&&t!=='auto')document.documentEleme
 // 通用 toast / 撤销条（5 秒）
 let toastEl=null,toastTimer=null;
 let errUntil=0;
-function toast(m,undo,err,extra){if(!err&&Date.now()<errUntil)return;if(err)errUntil=Date.now()+3000;toastEl?.remove();clearTimeout(toastTimer);const t=document.createElement('div');t.className='toast';
+function toast(m,undo,err,extra,ms){if(!err&&Date.now()<errUntil)return;if(err)errUntil=Date.now()+3000;toastEl?.remove();clearTimeout(toastTimer);const t=document.createElement('div');t.className='toast';
   t.innerHTML=`<span>${h(m)}</span>${extra?`<button class="x2">${h(extra.label)}</button>`:''}${undo?'<button class="undo">撤销</button>':''}`;document.body.appendChild(t);toastEl=t;
   if(extra)t.querySelector('.x2').onclick=()=>{t.remove();extra.fn();};
   if(undo)t.querySelector('.undo').onclick=()=>{if(S.undo()){t.remove();toast('已撤销');route();}else route();};
-  if(err)t.classList.add('err');toastTimer=setTimeout(()=>t.remove(),undo?5000:err?3000:1900);}
-function act(msg,fn,extra){S.snapshot();fn();if(S.lastSaveFailed)return false;toast(msg,true,false,extra);updateBadge();return true;}
+  if(err)t.classList.add('err');toastTimer=setTimeout(()=>t.remove(),undo?(ms||5000):err?3000:1900);}
+function act(msg,fn,extra,ms){S.snapshot();fn();if(S.lastSaveFailed)return false;toast(msg,true,false,extra,ms);updateBadge();return true;}
 // 底部弹出表单
+// 应用内二次确认（危险操作统一用它，不用原生 confirm）
+function ask(title,body,ok,danger=true){return new Promise(res=>{let done=false;const fin=v=>{if(done)return;done=true;closeSheet();res(v);};
+  sheet(`<h3>${h(title)}</h3>${body?`<p class="small muted">${h(body)}</p>`:''}<div class="btns col"><button class="btn ${danger?'danger':'primary'} block" id="askOk">${h(ok)}</button><button class="btn block" id="askNo">取消</button></div>`,
+   w=>{w.querySelector('#askOk').onclick=()=>fin(true);w.querySelector('#askNo').onclick=()=>fin(false);w.querySelector('.sheet-bg').addEventListener('click',()=>fin(false));});});}
 function sheet(html,bind){closeSheet();const w=document.createElement('div');w.className='sheet-wrap';w.innerHTML=`<div class="sheet-bg"></div><div class="sheet">${html}</div>`;
   document.body.appendChild(w);w.querySelector('.sheet-bg').onclick=closeSheet;bind?.(w);return w;}
 function closeSheet(){document.querySelector('.sheet-wrap')?.remove();}
@@ -43,7 +47,7 @@ const cnDate=d=>{const [y,m,dd]=d.split('-');return `${y}年${+m}月${+dd}日`;}
 function top(title,{back=false,right=''}={}){return `<header class="top">${back?`<button class="icon-btn" data-back aria-label="返回">${icon('back',20)}</button>`:''}<h1>${title}</h1><div class="grow"></div>${right}</header>`;}
 function row(it){return `<a class="row" href="#/item/${h(it.id)}">
   <span class="ic" style="--c:${cat(it.cat).color}">${ci(it.cat)}</span>
-  ${it.photos?.length?`<img class="thumb" data-ph="${h(it.photos[0])}" alt="">`:''}<span class="grow"><b class="ell">${h(it.name)}</b><small>${h(it.due)}${it.qty?` · ${it.qty} 件`:''}${it.location?` · ${h(it.location)}`:''}${it.handledAt?' · 已处理':''}</small></span>
+  ${it.photos?.length?`<img class="thumb" data-ph="${h(it.photos[0])}" alt="">`:''}<span class="grow"><b class="ell">${h(it.name)}</b><small>${h(it.due)}${it.qty?` · ${it.qty} 件`:''}${it.location?` · ${h(it.location)}`:''}${it.handledAt?' · 已搞定':''}</small></span>
   <span class="cd ${it.st}"><span class="num">${it.n<0?-it.n:it.n}</span><small>${it.n<0?'天 · 过期':it.n===0?'今天到期':'天'}</small><i class="bar"></i></span></a>`;}
 function ring(pct,size=148,w=14){const r=(size-w)/2,c=2*Math.PI*r;return `<svg class="ring" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
   <circle cx="${size/2}" cy="${size/2}" r="${r}" class="ring-bg" stroke-width="${w}" fill="none"/>
@@ -272,7 +276,7 @@ function detail(id){
     <div><span>提醒强度</span><b>${INTENSITY[ei].name}<small class="muted"> · ${it.intensitySource==='item'?'单独设置':'跟随分类'}</small></b></div>
     <div><span>提前提醒</span><b>${ei==='strong'?'提前 60 天起，最后一周每天':plan.length?plan.map(d=>d===0?'当天':d+' 天').join(' / '):'无'}</b></div>
     <div><span>下次提醒</span><b>${it.handledAt?'已停止':nx===undefined?(it.n<0?'每天（直到处理）':'—'):addDays(it.due,-nx)}</b></div>
-    <div><span>临期阈值</span><b>${effSoon(it,s)} 天<small class="muted"> · ${it.soonSource==='item'?'单独设置':'跟随分类'}</small></b></div>
+    <div><span>快到期天数</span><b>${effSoon(it,s)} 天<small class="muted"> · ${it.soonSource==='item'?'单独设置':'跟随分类'}</small></b></div>
     <div><span>续期周期</span><b>${it.renewMonths?it.renewMonths+' 个月':'不重复'}</b></div>
     ${it.prodDate?`<div><span>生产日期</span><b>${h(it.prodDate)}${it.shelfDays?` · 保质期 ${it.shelfDays} 天`:''}</b></div>`:''}
     ${lead?`<div><span>建议开始办理</span><b>${md(addDays(it.due,-lead))} 前（提前 ${lead} 天）</b></div>`:''}
@@ -313,7 +317,7 @@ function form(id,q){
   const sugHTML=(typing)=>{const src=catSrc();if(src==='edit')return '';
     if(src==='manual'||src==='tpl')return `<span class="man-tag">${icon('check',14)}${src==='tpl'?'来自模板':'已手动选择 · 改名称不会再覆盖'}</span>`;
     if(!sug)return '';const two=cands.length>1,applied=auto&&it.cat===sug;
-    return `<span class="inf-tag">${icon('sparkle',14)}按名称推断</span>${two?cands.map(k=>`<button type="button" class="chip-s ${it.cat===k&&auto?'on':''}" data-sug="${k}">${ci(k,14)}${h(cat(k).name)}</button>`).join(''):''}<span class="inf-hint">${typing&&!applied?`${two?'':`<b>${h(cat(sug).name)}</b> · `}离开输入框后应用`:`强度 ${INTENSITY[effInt(it,s)].name} · 临期 ${it.soonSource==='item'?it.soonDays:catSoon(it.cat,s)} 天 · <u data-chg>改分类</u>`}</span>`;};
+    return `<span class="inf-tag">${icon('sparkle',14)}按名称推断</span>${two?cands.map(k=>`<button type="button" class="chip-s ${it.cat===k&&auto?'on':''}" data-sug="${k}">${ci(k,14)}${h(cat(k).name)}</button>`).join(''):''}<span class="inf-hint">${typing&&!applied?`${two?'':`<b>${h(cat(sug).name)}</b> · `}离开输入框后应用`:`强度 ${INTENSITY[effInt(it,s)].name} · 快到期 ${it.soonSource==='item'?it.soonDays:catSoon(it.cat,s)} 天 · <u data-chg>改分类</u>`}</span>`;};
   // 最近 / 常用：跨分类，按使用次数再按最近时间，最多 8 个；没有记录时用默认常用
   const recentHTML=()=>{const u=s.tplUse||{},vis=t=>CATEGORIES[t.cat]&&!CATEGORIES[t.cat].hidden;
     let l=Object.entries(u).sort((a,b)=>b[1].n-a[1].n||String(b[1].at).localeCompare(String(a[1].at))).map(([n])=>TEMPLATES.find(x=>x.name===n)).filter(Boolean).filter(vis).slice(0,8),cold=!l.length;
@@ -323,12 +327,12 @@ function form(id,q){
   const draw=(focus)=>{const ei=effInt(it,s),per=PERISHABLE.includes(it.cat);
     view.innerHTML=`${top(ex?t('form.title.edit'):it.rebuyFrom?'再买一次':t('form.title.new'),{back:true,right:`<button class="btn sm primary" id="saveTop">${t('form.save')}</button>`})}
     ${ex?'':recentHTML()}
-    ${ex?'':`<div class="micro pad">${t('form.allCats')}</div><div class="chips">${visibleCats().map(([k,c])=>`<button data-cat="${k}" class="${it.cat===k?'on':''}">${ci(k,16)}${h(c.name)}</button>`).join('')}</div>
+    ${ex?'':`<div class="micro pad">${t('form.allCats')}</div><div class="chips">${visibleCats().map(([k,c])=>`<button data-cat="${k}" class="${it.cat===k&&catSrc()!=='none'?'on':''}">${ci(k,16)}${h(c.name)}</button>`).join('')}</div>
     ${(()=>{const ts=tplFor(it.cat,s.region),grp=['cn','ro',undefined].map(r=>[r,ts.filter(t=>t.region===r)]).filter(([,l])=>l.length),multi=grp.filter(([r])=>r).length>1||(grp.length>1);
       return `<div class="chips tpl ${ts.length<=8?'wrap':''}">${grp.map(([r,l])=>`${multi?`<span class="tpl-grp">${r?REGIONS[r]:'通用'}</span>`:''}${l.map(t=>`<button data-tpl="${h(t.name)}" class="${it.name===t.name?'on':''}">${ci(t.cat,16)}${h(t.name)}</button>`).join('')}`).join('')}</div>`;})()}`}
     <form class="card form" id="f" novalidate>
       <label>${t('form.name')}<input name="name" maxlength="60" required value="${h(it.name)}" placeholder="${t('form.name.ph')}" enterkeyhint="done"></label>
-      <div class="lbl-wrap"><span class="lbl-t">分类</span><label class="cat-field ${!ex&&auto&&!picked?'inferred enter':''}">${catSrc()==='none'?`<span class="cat-ph">未选择 · 保存时用『其他』</span>`:`<span class="ic" style="--c:${cat(it.cat).color}">${ci(it.cat,16)}</span><span class="cat-nm">${h(cat(it.cat).name)}</span>${catSrc()==='last'?'<small class="cat-last">上次使用</small>':''}`}<span class="chev">${icon('chev',16)}</span>
+      <div class="lbl-wrap"><span class="lbl-t">分类</span><label class="cat-field ${!ex&&auto&&!picked?'inferred enter':''}">${catSrc()==='none'?`<span class="ic" style="--c:${cat(it.cat).color}">${ci(it.cat,16)}</span><span class="cat-nm cat-def">${h(t('form.catDefault',{cat:cat(it.cat).name}))}</span>`:`<span class="ic" style="--c:${cat(it.cat).color}">${ci(it.cat,16)}</span><span class="cat-nm">${h(cat(it.cat).name)}</span>${catSrc()==='last'?'<small class="cat-last">上次使用</small>':''}`}<span class="chev">${icon('chev',16)}</span>
         <select name="cat" aria-label="分类">${Object.entries(CATEGORIES).filter(([k,c])=>!c.hidden||k===it.cat).map(([k,c])=>`<option value="${k}" ${k===it.cat?'selected':''}>${h(c.name)}</option>`).join('')}<option value="__new">${t('form.newCat')}</option></select></label>
         <div id="catSug" class="cat-state">${sugHTML()}</div></div>
       <label>到期日<span class="date-field"><input id="dueT" inputmode="numeric" autocomplete="off" value="${h(dueText)}" placeholder="15.10.2026 或 10/26">
@@ -401,7 +405,7 @@ function form(id,q){
         if(picked&&guess&&guess!==it.cat){x.catLearn={...(x.catLearn||{}),[nn]:it.cat};const ks=Object.keys(x.catLearn);if(ks.length>300)delete x.catLearn[ks[0]];}
         if(TEMPLATES.some(tp=>tp.name===it.name)){const u={...(x.tplUse||{})};u[it.name]={n:((u[it.name]||{}).n||0)+1,at:new Date().toISOString()};x.tplUse=u;}
         S.saveSettings(x);}
-      if(more){toast(t('form.savedMore'),true);sessionStorage.setItem('dq.prefill',JSON.stringify({cat:it.cat,intensity:it.intensity,intensitySource:it.intensitySource,customDays:it.customDays,location:it.location}));route();return;}
+      if(more){toast(t('form.savedMore'),true);sessionStorage.setItem('dq.prefill',JSON.stringify({cat:it.cat}));route();return;}
       if(from&&S.get(from)&&!S.get(from).deletedAt){afterRoute=()=>sheet(`<h3>旧的这批用完了吗？</h3><p class="small muted">「${h(S.get(from).name)}」到期 ${h(S.get(from).due)}</p><div class="actions"><button class="btn primary" id="used">用完了，移入回收站</button><button class="btn" id="keep">还有，保留</button></div>`,w=>{
           w.querySelector('#used').onclick=()=>{closeSheet();act('旧批次已移入回收站',()=>S.softDelete([from]));};w.querySelector('#keep').onclick=closeSheet;});location.hash='#/item/'+saved.id;return;}
       toast(ex?'已保存':t('form.saved',{name:it.name}),true);location.hash=ex?(formOrigin||'#/item/'+saved.id):(formOrigin||'#/');};
@@ -416,7 +420,7 @@ async function exportJSON(all,withPhotos=true){const s=st(),items=all?S.raw():S.
   download(`到期提醒-${todayStr()}.json`,toJSON(items,photos,(s.cats?.custom)||[]),'application/json');const x=st();x.lastExportAt=x.lastBackupAt=new Date().toISOString();S.saveSettings(x);}
 function icsSheet(){sheet(`<h3>导出到日历（.ics）</h3><p class="small muted">每条生成一个全天事件，并按提醒天数设好闹钟（当天 09:00）。iPhone：下载后点文件 →「添加到日历」。续期后请重新导出这一条。</p>
   <label class="small">范围<select id="icsR" class="inp"><option value="">全部（${S.all().length} 条）</option>${Object.entries(CATEGORIES).map(([k,c])=>`<option value="${k}">${h(c.name)}（${S.all().filter(i=>i.cat===k).length}）</option>`).join('')}</select></label>
-  <label class="check"><input type="checkbox" id="icsH"> 包含已处理的条目</label><button class="btn primary block" id="icsGo">${icon('download',18)}下载 .ics</button>`,w=>{
+  <label class="check"><input type="checkbox" id="icsH"> 包含已搞定的条目</label><button class="btn primary block" id="icsGo">${icon('download',18)}下载 .ics</button>`,w=>{
   w.querySelector('#icsGo').onclick=()=>{const r=w.querySelector('#icsR').value,hd=w.querySelector('#icsH').checked;
     const l=S.all().filter(i=>(!r||i.cat===r)&&(hd||!i.handledAt));download(`到期提醒${r?'-'+cat(r).name:''}.ics`,toICS(l,st()),'text/calendar;charset=utf-8');closeSheet();toast(`已导出 ${l.length} 个日历事件`);};});}
 
@@ -452,7 +456,7 @@ function settings(){
   <div class="micro pad">外观</div><section class="card"><div class="seg">${[['auto','跟随系统'],['light','浅色'],['dark','深色']].map(([k,v])=>`<button data-theme="${k}" class="${(s.theme||'auto')===k?'on':''}">${v}</button>`).join('')}</div></section>
   <div class="micro pad">提醒</div><section class="card"><div class="lbl" style="margin-bottom:8px">${t('set.soonGlobal')}</div><div class="seg">${[7,14,30,60].map(d=>`<button data-soon="${d}" class="${globalSoon(s)==d?'on':''}">${d} 天</button>`).join('')}</div>
 
-   ${badgeOK?`<div class="kv"><div><span>图标角标（待处理数）</span><b><button class="btn sm" id="badge">${s.badge?'已开启 · 关闭':'开启图标角标'}</button></b></div></div>`:''}
+   ${badgeOK?`<div class="kv"><div><span>图标角标（今天要办件数）</span><b><button class="btn sm" id="badge">${s.badge?'已开启 · 关闭':'开启图标角标'}</button></b></div></div>`:''}
    <p class="small muted">iPhone：需要先「添加到主屏幕」。角标只在打开 App 时更新，App 关着的时候不会自动变化。想要准时提醒，请用「导出到日历」。</p>
 
    <div class="kv"><div><span>常用地区（新增时的模板）</span><select id="region">${[['all','都显示'],['cn','中国'],['ro','罗马尼亚']].map(([k,v])=>`<option value="${k}" ${(s.region||'all')===k?'selected':''}>${v}</option>`).join('')}</select></div></div></section>
@@ -460,7 +464,7 @@ function settings(){
    <p>${t('set.push')}推送和邮件提醒在后续版本提供；国内安卓手机可能收不到推送，会用邮件。现在请用「导出到日历」。</p>
    <button class="btn" id="icsS2">${icon('cal',16)}导出到日历（.ics）</button></div></section>
   <div class="micro pad">分类</div><section class="card list set-list">
-   <a class="set-row" href="#/catrules"><span class="grow">分类规则<small>每个分类的临期阈值和提醒强度</small></span>${icon('chev',18)}</a>
+   <a class="set-row" href="#/catrules"><span class="grow">分类规则<small>每个分类的快到期天数和提醒强度</small></span>${icon('chev',18)}</a>
    <a class="set-row" href="#/catmgr"><span class="grow">分类管理<small>新建、改名、排序、隐藏 · 共 ${Object.keys(CATEGORIES).length} 个</small></span>${icon('chev',18)}</a></section>
   <details class="card more-set"><summary>${t('set.more')}</summary><div class="btns">
    <button class="btn" id="ecsv">${icon('download',18)}${t('set.exportCsv')}</button><button class="btn" id="tpl">${icon('download',18)}${t('set.csvTpl')}</button>
@@ -498,27 +502,27 @@ function settings(){
     if(ph&&!S.lastSaveFailed&&globalThis.indexedDB){P.importPhotos(ph,l.flatMap(i=>i.photos||[])).then(n=>{if(n)toast(t('restore.toastPh',{n:l.length,m:n}));}).catch(photoErr);}settings();});
   $('#obAgain').onclick=onboarding;
   $('#demo').onclick=()=>{act('已载入示例数据',seed);settings();};
-  $('#clear').onclick=async()=>{if(!n)return;await exportJSON();act(`已清空 ${n} 条（已自动下载备份，可在回收站恢复）`,()=>S.softDelete(S.all().map(i=>i.id)));settings();};
+  $('#clear').onclick=async()=>{if(!n)return;if(!await ask(`清空全部 ${n} 条？`,'会先自动下载一份备份；清空后 30 天内可以在回收站恢复。',`清空 ${n} 条`))return;await exportJSON();act(`已清空 ${n} 条（已自动下载备份，可在回收站恢复）`,()=>S.softDelete(S.all().map(i=>i.id)),null,8000);settings();};
 }
-// 分类规则二级页：每个分类的临期阈值 + 默认提醒强度
+// 分类规则二级页：每个分类的快到期天数 + 默认提醒强度
 function catRules(){const s=st(),nItem=k=>S.all().filter(i=>i.cat===k&&inferSource(i,s).intensitySource==='item').length;
   view.innerHTML=`${top('分类规则',{back:true})}
   <section class="card list set-list sum">${Object.entries(CATEGORIES).map(([k,c])=>`<div class="set-row"><span class="il" style="color:${c.color}">${ci(k,18)}</span><span class="grow">${h(c.name)} · ${catSoon(k,s)} 天 · ${INTENSITY[catDefault(k,s)].name}</span></div>`).join('')}</section>
-  <div class="micro pad">临期阈值（单条可再单独设置）</div><section class="card kv rules">${Object.entries(CATEGORIES).map(([k,c])=>{const v=(s.catSoon||{})[k],def=c.soon;
-    return `<div><span class="il" style="color:${c.color}">${ci(k,18)}<em>${h(c.name)}</em></span><select data-cs="${k}" aria-label="${h(c.name)}临期阈值">
+  <div class="micro pad">快到期天数（单条可再单独设置）</div><section class="card kv rules">${Object.entries(CATEGORIES).map(([k,c])=>{const v=(s.catSoon||{})[k],def=c.soon;
+    return `<div><span class="il" style="color:${c.color}">${ci(k,18)}<em>${h(c.name)}</em></span><select data-cs="${k}" aria-label="${h(c.name)}快到期天数">
     <option value="" ${v==null?'selected':''}>默认 ${def!=null?def:globalSoon(s)} 天</option>
     ${def!=null?`<option value="g" ${v==='g'?'selected':''}>全局 ${globalSoon(s)} 天</option>`:''}
     ${[1,3,7,14,30,60,90,180].map(d=>`<option value="${d}" ${v===d?'selected':''}>${d} 天</option>`).join('')}</select></div>`;}).join('')}</section>
   <div class="micro pad">默认提醒强度（跟随分类的条目立即生效）</div><section class="card kv rules">${Object.entries(CATEGORIES).map(([k,c])=>`<div><span class="il" style="color:${c.color}">${ci(k,18)}<em>${h(c.name)}</em></span>
    <span class="ci-r">${nItem(k)?`<a href="#" data-over="${k}" class="small">覆盖 ${nItem(k)} 条单独设置</a>`:''}<select data-ci="${k}">${Object.entries(INTENSITY).filter(([x])=>x!=='custom').map(([x,v])=>`<option value="${x}" ${catDefault(k,s)===x?'selected':''}>${v.name}</option>`).join('')}</select></span></div>`).join('')}</section>`;
   view.querySelectorAll('[data-cs]').forEach(x=>x.onchange=()=>{s.catSoon=s.catSoon||{};const v=x.value;if(v==='')delete s.catSoon[x.dataset.cs];else s.catSoon[x.dataset.cs]=v==='g'?'g':+v;
-    S.saveSettings(s);toast(`${h(cat(x.dataset.cs).name)}临期阈值：${catSoon(x.dataset.cs,s)} 天`);});
+    S.saveSettings(s);toast(`${h(cat(x.dataset.cs).name)}快到期天数：${catSoon(x.dataset.cs,s)} 天`);});
   view.querySelectorAll('[data-soon]').forEach(b=>b.onclick=()=>{s.soonDays=+b.dataset.soon;S.saveSettings(s);catRules();});
   view.querySelectorAll('[data-ci]').forEach(x=>x.onchange=()=>{const old=S.all().map(i=>inferSource(i,st()));s.catIntensity[x.dataset.ci]=x.value;S.saveSettings(s);
     // 先固化旧数据的来源，避免改默认后被误判
     S.replaceAll(S.raw().map(i=>i.deletedAt?i:(old.find(o=>o.id===i.id)||i)));toast(`${h(cat(x.dataset.ci).name)}默认改为「${INTENSITY[x.value].name}」`);catRules();});
-  view.querySelectorAll('[data-over]').forEach(a=>a.onclick=e=>{e.preventDefault();const k=a.dataset.over,v=catDefault(k,s),cnt=nItem(k);
-    if(!confirm(`将覆盖 ${cnt} 条单独设置，全部改为跟随分类（${INTENSITY[v].name}），可撤销。继续？`))return;
+  view.querySelectorAll('[data-over]').forEach(a=>a.onclick=async e=>{e.preventDefault();const k=a.dataset.over,v=catDefault(k,s),cnt=nItem(k);
+    if(!await ask(`覆盖 ${cnt} 条单独设置？`,`这 ${cnt} 条会全部改为跟随分类（${INTENSITY[v].name}），可以撤销。`,`覆盖 ${cnt} 条`,false))return;
     act(`已覆盖 ${cnt} 条单独设置`,()=>S.replaceAll(S.raw().map(i=>i.cat===k&&!i.deletedAt?{...inferSource(i,s),intensitySource:'cat',intensity:undefined}:i)));catRules();});
 }
 
@@ -573,7 +577,7 @@ function trashPage(){const l=S.trash().sort((a,b)=>b.deletedAt.localeCompare(a.d
    <button class="btn sm" data-r>恢复</button><button class="btn sm danger" data-p aria-label="彻底删除">${icon('trash',16)}</button></div>`).join('')||'<div class="empty">回收站是空的</div>'}</section>`;
   view.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{const id=b.closest('[data-id]').dataset.id;act('已恢复',()=>S.restore(id));trashPage();});
   view.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{const id=b.closest('[data-id]').dataset.id;act('已彻底删除',()=>S.purge(id));trashPage();});
-  $('#empty')&&($('#empty').onclick=()=>{if(confirm(`彻底删除回收站里的 ${l.length} 条？`)){act('回收站已清空',()=>S.emptyTrash());trashPage();}});}
+  $('#empty')&&($('#empty').onclick=async()=>{if(await ask(`彻底删除回收站里的 ${l.length} 条？`,'彻底删除后不能恢复。',`彻底删除 ${l.length} 条`)){act('回收站已清空',()=>S.emptyTrash());trashPage();}});}
 
 function seed(){const t=todayStr(),D=n=>addDays(t,n);
   S.merge([
