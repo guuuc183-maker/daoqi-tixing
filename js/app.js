@@ -47,7 +47,7 @@ function todoRow(it){const tag=it.reason==='remind'||it.reason==='soon'?label(it
   <a href="#/item/${h(it.id)}" class="todo-main"><span class="ic sm" style="--c:${cat(it.cat).color}">${ci(it.cat,18)}</span>
    <span class="grow"><b class="ell">${h(it.name)}</b><small class="${it.n<0?'expired':it.n<=7?'soon':'muted'}">${h(tag)}${it.reason==='lead'||it.reason==='askRenew'?` · ${label(it.n)}`:''}${effInt(it,st())==='strong'?' · 强':''}</small></span></a>
   <div class="todo-act">${it.reason==='askRenew'?`<button data-a="renew">${icon('renew',16)}已续期</button><button data-a="noRenew">不再问</button>`:
-   `<button data-a="done">${icon('check',16)}已处理</button><button data-a="more" class="more" aria-label="更多操作">⋯</button>`}</div></div>`;}
+   `<button data-a="done">${icon('check',16)}已处理</button><button data-a="more" class="more" aria-label="更多操作">${icon('more',20)}</button>`}</div></div>`;}
 function bindTodo(root,rerender){root.querySelectorAll('.todo-row [data-a]').forEach(b=>b.onclick=e=>{e.preventDefault();const id=b.closest('.todo-row').dataset.id,a=b.dataset.a,it=S.get(id);
   if(a==='done'&&!b.dataset.anim&&!reduced()){const r=b.closest('.todo-row');b.dataset.anim=1;r.classList.add('leaving');return setTimeout(()=>b.click(),440);}
   if(a==='done')act(`已停止提醒「${it.name}」`,()=>S.patch(id,x=>{x.handledAt=todayStr();delete x.snoozeUntil;}));
@@ -69,9 +69,9 @@ function enter(){hydrate(view);const kids=[...view.children];kids.forEach((e,i)=
 function fillRing(){requestAnimationFrame(()=>requestAnimationFrame(()=>view.querySelectorAll('.ring-fg[data-off]').forEach(c=>c.style.strokeDashoffset=c.dataset.off)));}
 const EMPTY_TPL=[['居留卡','doc'],['RCA 交强险','car'],['ITP 车检','car'],['牛奶','food']];
 function emptyState(){return `${top('到期提醒')}<section class="empty-state">
-  <div class="empty-ring">${ring(0,120,12)}</div>
+  <div class="empty-ring">${ring(0,64,6)}</div>
   <h2>还没有要盯着的日期</h2><p>从模板开始，10 秒加一条</p>
-  <a class="btn primary cta" href="#/new">${icon('add',18)}添加第一条</a>
+  <a class="btn sm primary cta" href="#/new">${icon('add',18)}添加第一条</a>
   <div class="tpl-quick">${EMPTY_TPL.map(([n,c])=>`<a href="#/new?tpl=${encodeURIComponent(n)}">${ci(c,16)}${n.replace(' 交强险','').replace(' 车检','')}</a>`).join('')}</div>
   <p class="small muted">也可以在 <a href="#/settings">设置</a> 里导入表格或载入示例数据</p></section>`;}
 // 照片区块：缩略图 + 拍照/相册
@@ -110,7 +110,7 @@ function home(){
     </div>
   </section>
   <section class="card todo"><div class="todo-head"><span class="micro">今日待处理 · ${todo.length}</span>${todo.length>3?`<a href="#/todo" class="small">查看全部 ${todo.length} 条 ›</a>`:''}</div>
-   ${todo.length?todo.slice(0,3).map(todoRow).join(''):`<div class="all-clear">${icon('check',18)} 今天没有要处理的</div>`}</section></div>
+   ${todo.length?todo.slice(0,3).map(todoRow).join(''):`<div class="all-clear"><span class="gold-ring">${ring(1,40,4)}</span><span>全部已处理 · 今天没有要处理的</span></div>`}</section></div>
   <div class="seg" role="tablist">${[['all','全部'],['soon','临期'],['expired','已过期'],['safe','安全']].map(([k,n])=>`<button data-seg="${k}" class="${homeSeg===k?'on':''}">${n}</button>`).join('')}</div>
   <section class="card list">${shown.map(row).join('')||`<div class="empty">${items.length?'这一栏没有条目':'还没有条目<br><a href="#/new">添加第一条</a> 或在设置里载入示例数据'}</div>`}</section>`;
   view.querySelectorAll('[data-seg]').forEach(b=>b.onclick=e=>{e.preventDefault();homeSeg=b.dataset.seg;home();});
@@ -192,6 +192,7 @@ function detail(id){
     <div class="cd-num num">${Math.abs(it.n)}<small>天</small></div>
     <div class="pill ${it.st}">${it.n<0?'已过期':it.n===0?'今天到期':'距离到期'} · ${ST[it.st]}</div>
     <div class="muted small">${nice(it.due)}</div>
+    ${it.history?.length?`<div class="milestone">${icon('check',16)}已按时续期 ${it.history.length} 次</div>`:''}
   </section>
   ${it.handledAt?`<div class="card handled">${icon('check',18)}<span class="grow">已处理（${h(md(it.handledAt))}）· 本周期不再提醒</span><button class="btn sm" id="unhandle">恢复提醒</button></div>`:''}
   <div class="actions"><button class="btn primary" id="renew">${icon('renew',20)}已续期</button>${it.handledAt?'':`<button class="btn" id="handled">${icon('check',20)}已处理</button>`}</div>
@@ -242,9 +243,9 @@ function form(id,q){
       ${per?`<div class="two"><label>生产日期<input name="prodDate" id="prod" inputmode="numeric" value="${h(it.prodDate||'')}" placeholder="可选，如 01.10.2026"></label>
         <label>保质期<span class="shelf"><input id="shelfN" type="number" min="1" value="${h(shelfN)}" placeholder="—"><select id="shelfU"><option value="d" ${shelfUnit==='d'?'selected':''}>天</option><option value="m" ${shelfUnit==='m'?'selected':''}>月</option></select></span></label></div>`:''}
       <label>到期日<span class="date-field"><input id="dueT" inputmode="numeric" autocomplete="off" value="${h(dueText)}" placeholder="15.10.2026 或 10/26">
-        <span class="date-pick">${icon('cal',20)}<input type="date" id="dueP" value="${valid(it.due||'')?it.due:''}" aria-label="选日期"></span></span></label>
+        <button type="button" data-q="clr" class="date-clr" aria-label="清除日期">${icon('add',16)}</button><span class="date-pick">${icon('cal',20)}<input type="date" id="dueP" value="${valid(it.due||'')?it.due:''}" aria-label="选日期"></span></span></label>
       <div id="dueHint" class="hint-l"></div>
-      <div class="chips wrap quick">${[['7d','+7天'],['1m','+1月'],['3m','+3月'],['1y','+1年'],['2y','+2年']].map(([k,l])=>`<button type="button" data-q="${k}">${l}</button>`).join('')}<button type="button" data-q="clr" class="ghost">清除</button></div>
+      <div class="chips quick">${[['7d','+7天'],['1m','+1月'],['3m','+3月'],['1y','+1年'],['2y','+2年']].map(([k,l])=>`<button type="button" data-q="${k}">${l}</button>`).join('')}</div>
       <div class="lbl">提醒强度 <span class="src">${it.intensitySource==='item'?`已单独设置 · <a href="#" id="follow">恢复跟随分类</a>`:`跟随分类：${cat(it.cat).name} · ${INTENSITY[catDefault(it.cat,s)].name}`}</span></div>
       <div class="seg">${Object.entries(INTENSITY).map(([k,v])=>`<button type="button" data-int="${k}" class="${ei===k?'on':''}">${v.name}</button>`).join('')}</div>
       <p class="hint-l">${INTENSITY[ei].desc}</p>
@@ -345,8 +346,8 @@ function settings(){
    <label class="check full"><input type="checkbox" id="incTrash"> 导出时包含回收站</label>
    <label class="check full"><input type="checkbox" id="incPh" checked> JSON 包含照片（文件会变大；CSV 不含照片）</label></section>
   <div class="micro pad">数据</div><section class="card btns"><a class="btn" href="#/trash">${icon('trash',18)}回收站（${tr}）</a><button class="btn" id="obAgain">${icon('sparkle',18)}重新查看引导</button><button class="btn" id="demo">${icon('sparkle',18)}载入示例数据</button><button class="btn danger ghost" id="clear">${icon('trash',18)}清空全部</button></section>
-  <p class="hint" id="persist">数据只保存在本机浏览器 · v1.1</p>`;
-  if(navigator.storage?.persisted)navigator.storage.persisted().then(p=>{const e=$('#persist');if(e)e.textContent=`数据只保存在本机浏览器 · 存储：${p?'已持久化':'可能被系统清理，请定期导出'} · v1.1`;});
+  <div class="micro pad">关于</div><section class="card about"><div class="kv"><div><span>到期提醒</span><b class="ver num">v1.3</b></div></div><p class="small muted" id="persist">数据只保存在本机浏览器</p></section>`;
+  if(navigator.storage?.persisted)navigator.storage.persisted().then(p=>{const e=$('#persist');if(e)e.textContent=`数据只保存在本机浏览器 · 存储：${p?'已持久化':'可能被系统清理，请定期导出'}`;});
   view.querySelectorAll('[data-theme]').forEach(b=>b.onclick=()=>{s.theme=b.dataset.theme;S.saveSettings(s);applyTheme();settings();});
   view.querySelectorAll('[data-cs]').forEach(x=>x.onchange=()=>{s.catSoon=s.catSoon||{};const v=x.value;if(v==='')delete s.catSoon[x.dataset.cs];else s.catSoon[x.dataset.cs]=v==='g'?'g':+v;
     S.saveSettings(s);toast(`${cat(x.dataset.cs).name}临期阈值：${catSoon(x.dataset.cs,s)} 天`);});
@@ -432,7 +433,7 @@ function updateBadge(){const s=st();if(!('setAppBadge' in navigator))return;
   if(!s.badge){navigator.clearAppBadge?.().catch(()=>{});return;}
   const n=todoList(S.all(),s).todo.length;(n?navigator.setAppBadge(n):navigator.clearAppBadge()).catch(()=>{});}
 
-document.querySelectorAll('#tabbar [data-ic]').forEach(e=>e.innerHTML=icon(e.dataset.ic,e.dataset.ic==='add'?22:24));
+document.querySelectorAll('#tabbar [data-ic]').forEach(e=>e.innerHTML=e.dataset.ic==='add'?icon('add',20,'',2.25):icon(e.dataset.ic,24));
 function route(){
   applyTheme();closeSheet();document.querySelector('.viewer')?.remove();const [path,qs]=(location.hash.slice(1)||'/').split('?'),q=new URLSearchParams(qs),p=path.split('/').filter(Boolean);
   const tab={'':'home',todo:'home',cats:'cats',cat:'cats',cal:'cal',settings:'settings',trash:'settings',new:'new'}[p[0]||'']||'';

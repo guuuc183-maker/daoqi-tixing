@@ -180,4 +180,16 @@ const B='http://localhost:8765/daoqi-tixing/';
   await r5.setInputFiles('#imp','/tmp/ph.json');await r5.waitForTimeout(400);t(/含照片 3 张/.test(await r5.textContent('.imp')),'PH 导入预览显示照片数');
   await r5.click('#impGo');await r5.waitForTimeout(1500);await r5.goto(B+'#/item/d7');await r5.waitForTimeout(800);
   t(await r5.$$eval('.ph img',e=>e.filter(x=>x.naturalWidth>0).length)===3,'PH 导入后照片恢复');await c5.close();}
+
+ // ---- 走查 v2 ----
+ {const c6=await br.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});const q=await c6.newPage();q.on('pageerror',e=>errs.push(e.message));
+  await q.goto(B+'?demo=1#/');await q.waitForTimeout(400);t(await q.locator('.todo-act .more svg').count()>0,'V2 ⋯ 为 SVG');
+  t(await q.$eval('.ico',e=>e.getAttribute('stroke-width'))==='1.75','V2 图标线宽 1.75');
+  t(await q.$eval('.ring-txt .big',e=>getComputedStyle(e).fontSize)==='52px','V2 环内数字 52px');
+  t(await q.$eval('.top h1',e=>getComputedStyle(e).fontSize)==='30px','V2 标题 30px');
+  t(await q.evaluate(()=>getComputedStyle(document.body).backgroundColor)==='rgb(242, 242, 239)','V2 暖色背景');
+  await q.goto(B+'#/new');await q.waitForTimeout(300);await q.click('[data-q="1y"]');await q.click('.date-clr');t(await q.inputValue('#dueT')==='','V2 日期框 × 清除');
+  await q.evaluate(()=>{const l=JSON.parse(localStorage.getItem('dq.items.v2'));l.forEach(x=>x.handledAt='2026-10-15');localStorage.setItem('dq.items.v2',JSON.stringify(l));});
+  await q.goto(B+'#/');await q.reload();await q.waitForTimeout(400);t(/全部已处理/.test(await q.textContent('.all-clear'))&&await q.locator('.gold-ring').count()===1,'V2 全部已处理金色环');
+  await q.goto(B+'#/settings');await q.waitForTimeout(300);t(await q.locator('.about .ver').count()===1,'V2 关于版本号');await c6.close();}
  console.log(ok,'passed',bad,'failed');console.log('errors',errs);await br.close();})();
